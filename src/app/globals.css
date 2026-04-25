@@ -94,24 +94,24 @@ button {
 }
 
 .enter-btn {
-  width: 240px;
-  padding: 14px 30px;
   position: relative;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
+  padding: 8px 16px;
   background: transparent;
-  border: 2px solid #fff;
-  border-radius: 14px;
-  font-size: 17px;
+  border: 0;
+  font-size: 22px;
   color: #fff;
   text-transform: uppercase;
   text-decoration: none;
   font-family: "Bebas Neue", Impact, sans-serif;
-  letter-spacing: 0.12em;
-  transition: color 0.4s ease;
+  letter-spacing: 0.18em;
+  transition: letter-spacing 0.3s ease;
   z-index: 1;
+}
+.enter-btn:hover {
+  letter-spacing: 0.24em;
 }
 .enter-btn span.btn-text {
   position: relative;
@@ -120,67 +120,18 @@ button {
 }
 @keyframes smooth-pulse {
   0% {
-    opacity: 0.55;
+    opacity: 0.6;
     text-shadow: 0 0 2px #fff;
   }
   100% {
     opacity: 1;
-    text-shadow: 0 0 10px #fff, 0 0 20px #fff;
+    text-shadow: 0 0 10px #fff, 0 0 22px rgba(255, 255, 255, 0.7);
   }
 }
-.enter-btn .arrow {
-  position: absolute;
-  right: 18px;
-  display: flex;
-  align-items: center;
-  opacity: 0;
-  transform: translateX(-15px);
-  transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  z-index: 3;
-}
-.enter-btn:hover .arrow {
-  opacity: 1;
-  transform: translateX(0);
-  color: #000;
-}
+/* Hide legacy decorations from the previous button design */
+.enter-btn .arrow,
 .enter-btn .wave {
-  position: absolute;
-  width: 240px;
-  height: 240px;
-  left: 50%;
-  top: 120%;
-  transform: translate(-50%, 0);
-  transition: 0.7s;
-  z-index: 0;
-  opacity: 0;
-}
-.enter-btn:hover .wave {
-  opacity: 1;
-  top: -80px;
-}
-.enter-btn .wave::before,
-.enter-btn .wave::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 50%;
-  width: 200%;
-  height: 200%;
-  transform: translate(-50%, -75%);
-}
-.enter-btn .wave::before {
-  border-radius: 45%;
-  background: transparent;
-  animation: wave-rotate 5s linear infinite;
-}
-.enter-btn .wave::after {
-  border-radius: 40%;
-  background: #fff;
-  opacity: 0.5;
-  animation: wave-rotate 10s linear infinite;
-}
-.enter-btn:hover {
-  color: #000;
+  display: none;
 }
 
 /* ENTER pulse on intro */

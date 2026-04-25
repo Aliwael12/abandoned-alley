@@ -18,7 +18,7 @@ export default function Footer() {
   const inView = useInView(ref, { once: true, amount: 0.3 });
 
   return (
-    <footer className="relative z-10 mt-24 bg-[#f4ecdc] text-[#0a0907] overflow-hidden">
+    <footer className="relative z-10 mt-24 bg-black text-white overflow-hidden">
       <div className="px-6 md:px-10 pt-8 pb-2">
         {/* Top nav row */}
         <nav className="flex flex-wrap items-center justify-between gap-y-3 gap-x-8 font-[family-name:var(--font-bebas)] text-2xl md:text-4xl tracking-[0.04em]">
@@ -58,21 +58,23 @@ export default function Footer() {
       </div>
 
       {/* Wordmark + spray overlay */}
-      <div ref={ref} className="relative w-full select-none">
+      <div ref={ref} className="relative w-full select-none pb-8 md:pb-12">
         <h2
           className="
             font-[family-name:var(--font-bebas)]
-            leading-[0.78]
-            text-[#1b110d]
+            leading-[0.95]
+            text-[#e60a1f]
             text-center
-            tracking-[-0.01em]
+            tracking-[-0.02em]
             font-black
             whitespace-nowrap
+            px-2
+            py-2
           "
-          style={{ fontSize: "clamp(96px, 26vw, 460px)" }}
+          style={{ fontSize: "clamp(46px, 14.2vw, 230px)" }}
           aria-label="Abandoned Alley"
         >
-          ABND ALLY
+          ABANDONED ALLEY
         </h2>
 
         {/* Spray paint overlay */}
@@ -117,7 +119,7 @@ function SprayOverlay({ text, animate }: { text: string; animate: boolean }) {
           fill="#f0c021"
           fontSize={150}
           fontFamily="var(--font-marker), 'Permanent Marker', cursive"
-          textLength={VB_W * 0.92}
+          textLength={VB_W * 0.74}
           lengthAdjust="spacingAndGlyphs"
           transform="rotate(-3.5 500 100)"
           style={{
@@ -128,7 +130,7 @@ function SprayOverlay({ text, animate }: { text: string; animate: boolean }) {
           animate={
             animate ? { clipPath: "inset(-10% -2% -10% -2%)" } : {}
           }
-          transition={{ duration: 1.5, ease: [0.22, 1, 0.36, 1], delay: 0.25 }}
+          transition={{ duration: 3.2, ease: [0.22, 1, 0.36, 1], delay: 0.4 }}
         >
           {text}
         </motion.text>
