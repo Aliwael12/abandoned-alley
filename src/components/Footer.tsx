@@ -1,49 +1,138 @@
 "use client";
 
-import { ArrowRight } from "lucide-react";
-import { useState } from "react";
+import Link from "next/link";
+import { motion, useInView } from "framer-motion";
+import { useRef } from "react";
+
+const NAV = [
+  { href: "/", label: "HOME" },
+  { href: "/shop", label: "SHOP" },
+  { href: "/collections", label: "COLLECTIONS" },
+  { href: "/contact", label: "CONTACT" },
+];
+
+const SPRAY = "DON'T DIE WONDERING";
 
 export default function Footer() {
-  const [email, setEmail] = useState("");
-  const [done, setDone] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, amount: 0.3 });
 
   return (
-    <footer className="relative z-10 border-t border-white/10 mt-24 bg-black/40 backdrop-blur-md">
-      <div className="max-w-[1100px] mx-auto px-6 py-12 flex flex-col items-center gap-6">
-        <h5 className="font-[family-name:var(--font-bebas)] tracking-[0.2em] text-xl">
-          Subscribe to our email
-        </h5>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (email) setDone(true);
-          }}
-          className="neon-glass h-12 flex items-center w-full max-w-md overflow-hidden"
-        >
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Email address"
-            className="flex-1 bg-transparent border-none px-5 h-full outline-none text-white placeholder:text-white/50"
-          />
-          <button
-            type="submit"
-            aria-label="Subscribe"
-            className="px-5 h-full flex items-center text-white hover:text-[var(--accent)] transition"
-          >
-            <ArrowRight size={20} />
-          </button>
-        </form>
-        {done && (
-          <p className="text-xs text-white/60">Thanks — you&apos;re on the list.</p>
-        )}
+    <footer className="relative z-10 mt-24 bg-[#f4ecdc] text-[#0a0907] overflow-hidden">
+      <div className="px-6 md:px-10 pt-8 pb-2">
+        {/* Top nav row */}
+        <nav className="flex flex-wrap items-center justify-between gap-y-3 gap-x-8 font-[family-name:var(--font-bebas)] text-2xl md:text-4xl tracking-[0.04em]">
+          {NAV.map((n) => (
+            <Link
+              key={n.href}
+              href={n.href}
+              className="hover:opacity-70 transition"
+            >
+              {n.label}
+            </Link>
+          ))}
+        </nav>
 
-        <p className="text-[11px] tracking-[0.3em] uppercase text-white/40 mt-4">
-          &copy; 2026 Abandoned Alley
-        </p>
+        {/* Meta row */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-10 mb-4 text-[10px] md:text-[11px] tracking-[0.18em] uppercase font-[family-name:var(--font-bebas)] leading-[1.55]">
+          <div>
+            <p>studio@abandonedalley.example</p>
+            <p>Drop 001 — DON&apos;T DIE WONDERING</p>
+            <p>Casablanca / Online, Worldwide</p>
+          </div>
+          <div className="md:text-center flex md:justify-center">
+            <a
+              href="https://instagram.com/abandonedalley"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:opacity-70 transition"
+            >
+              INSTAGRAM
+            </a>
+          </div>
+          <div className="md:text-right">
+            <p>WEBSITE BY ABND ALLY</p>
+            <p>&copy; 2026 — ALL RIGHTS RESERVED</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Wordmark + spray overlay */}
+      <div ref={ref} className="relative w-full select-none">
+        <h2
+          className="
+            font-[family-name:var(--font-bebas)]
+            leading-[0.78]
+            text-[#1b110d]
+            text-center
+            tracking-[-0.01em]
+            font-black
+            whitespace-nowrap
+          "
+          style={{ fontSize: "clamp(96px, 26vw, 460px)" }}
+          aria-label="Abandoned Alley"
+        >
+          ABND ALLY
+        </h2>
+
+        {/* Spray paint overlay */}
+        <SprayOverlay text={SPRAY} animate={inView} />
       </div>
     </footer>
+  );
+}
+
+function SprayOverlay({ text, animate }: { text: string; animate: boolean }) {
+  // SVG viewBox auto-scales the text to fit the container width, so it can
+  // never overflow the ABND ALLY wordmark behind it. The reveal is animated
+  // with a left-to-right clip-path wipe to mimic a spray nozzle moving
+  // across the wordmark.
+  const VB_W = 1000;
+  const VB_H = 200;
+
+  return (
+    <div
+      className="absolute inset-0 flex items-center justify-center pointer-events-none px-[6%]"
+      aria-hidden
+    >
+      <motion.svg
+        viewBox={`0 0 ${VB_W} ${VB_H}`}
+        preserveAspectRatio="xMidYMid meet"
+        className="w-full h-auto"
+        style={{ overflow: "visible" }}
+        initial={{ opacity: 0 }}
+        animate={animate ? { opacity: 1 } : {}}
+        transition={{ duration: 0.2 }}
+      >
+        <defs>
+          <filter id="spray-blur" x="-10%" y="-10%" width="120%" height="120%">
+            <feGaussianBlur stdDeviation="0.6" />
+          </filter>
+        </defs>
+        <motion.text
+          x="50%"
+          y="62%"
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fill="#f0c021"
+          fontSize={150}
+          fontFamily="var(--font-marker), 'Permanent Marker', cursive"
+          textLength={VB_W * 0.92}
+          lengthAdjust="spacingAndGlyphs"
+          transform="rotate(-3.5 500 100)"
+          style={{
+            filter:
+              "drop-shadow(0 0 6px rgba(240,192,33,0.55)) drop-shadow(0 0 18px rgba(240,192,33,0.3))",
+          }}
+          initial={{ clipPath: "inset(0% 100% 0% 0%)" }}
+          animate={
+            animate ? { clipPath: "inset(-10% -2% -10% -2%)" } : {}
+          }
+          transition={{ duration: 1.5, ease: [0.22, 1, 0.36, 1], delay: 0.25 }}
+        >
+          {text}
+        </motion.text>
+      </motion.svg>
+    </div>
   );
 }

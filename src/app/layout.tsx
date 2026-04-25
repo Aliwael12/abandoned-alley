@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Bebas_Neue, Rajdhani, Audiowide } from "next/font/google";
+import { Bebas_Neue, Rajdhani, Audiowide, Permanent_Marker } from "next/font/google";
 import "./globals.css";
 import LightningBackground from "@/components/LightningBackground";
 import Header from "@/components/Header";
@@ -26,6 +26,12 @@ const audiowide = Audiowide({
   variable: "--font-audiowide",
   display: "swap",
 });
+const marker = Permanent_Marker({
+  weight: "400",
+  subsets: ["latin"],
+  variable: "--font-marker",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Abandoned Alley",
@@ -38,7 +44,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${bebas.variable} ${rajdhani.variable} ${audiowide.variable}`}
+      className={`${bebas.variable} ${rajdhani.variable} ${audiowide.variable} ${marker.variable}`}
     >
       <body>
         <LightningBackground />
