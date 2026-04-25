@@ -114,7 +114,6 @@ export default function ProductDetail({ product }: { product: Product }) {
                     key={activeMedia.src}
                     src={activeMedia.src}
                     poster={activeMedia.poster}
-                    controls
                     autoPlay
                     loop
                     muted

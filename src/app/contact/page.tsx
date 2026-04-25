@@ -1,6 +1,6 @@
 import ContactForm from "@/components/ContactForm";
 import { Mail, MapPin } from "lucide-react";
-import { InstagramIcon, YoutubeIcon } from "@/components/Socials";
+import { InstagramIcon } from "@/components/Socials";
 
 export const metadata = { title: "Contact — Abandoned Alley" };
 
@@ -44,12 +44,6 @@ export default function ContactPage() {
                 className="hover:text-white"
               >
                 @abandonedalley
-              </a>
-            </li>
-            <li className="flex items-center gap-3 text-sm text-white/80">
-              <YoutubeIcon size={16} className="text-white/50" />
-              <a href="#" className="hover:text-white">
-                YouTube
               </a>
             </li>
           </ul>

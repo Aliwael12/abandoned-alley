@@ -5,7 +5,6 @@ import LightningBackground from "@/components/LightningBackground";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import RunningText from "@/components/RunningText";
-import CustomCursor from "@/components/CustomCursor";
 import MusicPlayer from "@/components/MusicPlayer";
 import PageLoader from "@/components/PageLoader";
 
@@ -43,7 +42,6 @@ export default function RootLayout({
     >
       <body>
         <LightningBackground />
-        <CustomCursor />
         <PageLoader />
         <RunningText />
         <Header />

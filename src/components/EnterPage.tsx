@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { InstagramIcon, YoutubeIcon, TiktokIcon } from "./Socials";
+import { InstagramIcon, TiktokIcon } from "./Socials";
 
 const Logo3D = dynamic(() => import("./Logo3D"), { ssr: false });
 
@@ -61,7 +61,7 @@ export default function EnterPage() {
       <div className="flex flex-col items-center gap-3 z-[2] mt-8">
         <div className="flex gap-5 text-white/90">
           <a
-            href="https://instagram.com/abandonedalley/"
+            href="https://instagram.com/abandonedalley.eg/"
             target="_blank"
             rel="noopener noreferrer"
             aria-label="Instagram"
@@ -70,16 +70,7 @@ export default function EnterPage() {
             <InstagramIcon />
           </a>
           <a
-            href="https://youtube.com/"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="YouTube"
-            className="hover:scale-110 transition"
-          >
-            <YoutubeIcon />
-          </a>
-          <a
-            href="https://www.tiktok.com/@abandonedalley"
+            href="https://www.tiktok.com/@abandonedalley.eg"
             target="_blank"
             rel="noopener noreferrer"
             aria-label="TikTok"

@@ -40,36 +40,10 @@ export default function Footer() {
           <p className="text-xs text-white/60">Thanks — you&apos;re on the list.</p>
         )}
 
-        <PaymentIcons />
-
         <p className="text-[11px] tracking-[0.3em] uppercase text-white/40 mt-4">
           &copy; 2026 Abandoned Alley
         </p>
       </div>
     </footer>
-  );
-}
-
-function PaymentIcons() {
-  const items = [
-    { name: "Apple Pay", bg: "#000" },
-    { name: "Google Pay", bg: "#fff", color: "#1a1a1a" },
-    { name: "PayPal", bg: "#003087", color: "#fff" },
-    { name: "Visa", bg: "#1a1f71", color: "#fff" },
-    { name: "Mastercard", bg: "#fff", color: "#1a1a1a" },
-    { name: "Amex", bg: "#2e77bb", color: "#fff" },
-  ];
-  return (
-    <div className="flex items-center gap-2 mt-4">
-      {items.map((p) => (
-        <div
-          key={p.name}
-          className="w-[42px] h-[28px] rounded-md grid place-items-center text-[8px] font-bold tracking-widest border border-white/10 shadow"
-          style={{ background: p.bg, color: p.color ?? "#fff" }}
-        >
-          {p.name === "Apple Pay" ? " Pay" : p.name.toUpperCase()}
-        </div>
-      ))}
-    </div>
   );
 }
