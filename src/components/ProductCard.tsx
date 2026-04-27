@@ -22,15 +22,12 @@ export default function ProductCard({ product }: { product: Product }) {
             className="object-cover product-card-img"
           />
         )}
-        <span className="absolute top-3 left-3 text-[10px] tracking-[0.25em] uppercase bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded">
-          {product.vendor}
-        </span>
       </div>
       <div className="mt-3 flex items-center justify-between">
         <h3 className="font-[family-name:var(--font-bebas)] tracking-[0.12em] text-lg">
           {product.title}
         </h3>
-        <p className="text-sm text-white/80">${product.price.toFixed(2)}</p>
+        <p className="text-sm text-white/80">EGP {product.price.toFixed(2)}</p>
       </div>
     </Link>
   );

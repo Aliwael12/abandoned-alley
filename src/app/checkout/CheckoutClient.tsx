@@ -225,7 +225,7 @@ export default function CheckoutClient() {
           className="w-full bg-white text-black py-4 rounded-lg font-[family-name:var(--font-bebas)] tracking-[0.2em] uppercase hover:bg-white/90 transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {submitting && <Loader2 className="animate-spin" size={16} />}
-          {submitting ? "Placing order…" : `Place order — $${subtotal.toFixed(2)}`}
+          {submitting ? "Placing order…" : `Place order — EGP ${subtotal.toFixed(2)}`}
         </button>
 
         <p className="text-[11px] text-white/40 text-center">
@@ -260,7 +260,7 @@ export default function CheckoutClient() {
                 </p>
                 <p className="text-[11px] text-white/50">{item.variantTitle}</p>
                 <p className="text-sm mt-auto">
-                  ${(item.price * item.quantity).toFixed(2)}
+                  EGP {(item.price * item.quantity).toFixed(2)}
                 </p>
               </div>
             </li>
@@ -271,7 +271,7 @@ export default function CheckoutClient() {
           <span className="text-white/60 uppercase tracking-[0.2em] text-xs">
             Subtotal
           </span>
-          <span>${subtotal.toFixed(2)}</span>
+          <span>EGP {subtotal.toFixed(2)}</span>
         </div>
         <div className="flex items-center justify-between text-sm">
           <span className="text-white/60 uppercase tracking-[0.2em] text-xs">
@@ -284,7 +284,7 @@ export default function CheckoutClient() {
             Total
           </span>
           <span className="font-[family-name:var(--font-bebas)] tracking-[0.1em] text-2xl">
-            ${subtotal.toFixed(2)}
+            EGP {subtotal.toFixed(2)}
           </span>
         </div>
       </aside>

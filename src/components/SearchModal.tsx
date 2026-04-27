@@ -111,7 +111,7 @@ export default function SearchModal({
                             </p>
                             <p className="text-xs text-white/50">{p.vendor}</p>
                           </div>
-                          <p className="text-sm">${p.price.toFixed(2)}</p>
+                          <p className="text-sm">EGP {p.price.toFixed(2)}</p>
                         </Link>
                       </li>
                     );

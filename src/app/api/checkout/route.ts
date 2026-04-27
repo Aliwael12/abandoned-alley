@@ -113,7 +113,7 @@ export async function POST(request: Request) {
     items: parsed.items,
     notes: parsed.notes ?? null,
     subtotal,
-    currency: "USD",
+    currency: "EGP",
     status: "pending",
     createdAt: serverTimestamp(),
   };
@@ -149,7 +149,7 @@ export async function POST(request: Request) {
     resend.emails.send({
       from: EMAIL_FROM,
       to: ADMIN_EMAIL,
-      subject: `New order #${orderId} — $${subtotal.toFixed(2)}`,
+      subject: `New order #${orderId} — EGP ${subtotal.toFixed(2)}`,
       html: adminOrderHtml(emailPayload),
       replyTo: parsed.customer.email,
     }),

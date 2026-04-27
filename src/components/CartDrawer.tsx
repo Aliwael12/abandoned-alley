@@ -100,7 +100,7 @@ export default function CartDrawer() {
                             </button>
                           </div>
                           <p className="text-sm">
-                            ${(item.price * item.quantity).toFixed(2)}
+                            EGP {(item.price * item.quantity).toFixed(2)}
                           </p>
                         </div>
                       </div>
@@ -111,7 +111,7 @@ export default function CartDrawer() {
                 <div className="border-t border-white/10 p-5 flex flex-col gap-3 bg-black/40">
                   <div className="flex items-center justify-between">
                     <span className="text-white/60 uppercase tracking-[0.2em] text-xs">Subtotal</span>
-                    <span className="text-lg">${subtotal.toFixed(2)}</span>
+                    <span className="text-lg">EGP {subtotal.toFixed(2)}</span>
                   </div>
                   <Link
                     href="/checkout"

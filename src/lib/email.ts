@@ -42,7 +42,7 @@ const itemsHtml = (items: OrderItemForEmail[]) =>
           <span style="color:#888;font-size:13px;">${escape(i.variantTitle)} &middot; Qty ${i.quantity}</span>
         </td>
         <td style="padding:10px 0;border-bottom:1px solid #222;color:#eee;text-align:right;">
-          $${(i.price * i.quantity).toFixed(2)}
+          EGP ${(i.price * i.quantity).toFixed(2)}
         </td>
       </tr>`
     )
@@ -59,7 +59,7 @@ export function customerOrderHtml(order: OrderForEmail) {
       ${itemsHtml(order.items)}
       <tr>
         <td style="padding:14px 0 0;color:#888;text-transform:uppercase;letter-spacing:0.18em;font-size:12px;">Subtotal</td>
-        <td style="padding:14px 0 0;color:#eee;text-align:right;font-size:18px;">$${order.subtotal.toFixed(2)}</td>
+        <td style="padding:14px 0 0;color:#eee;text-align:right;font-size:18px;">EGP ${order.subtotal.toFixed(2)}</td>
       </tr>
     </table>
     <h3 style="margin-top:32px;color:#eee;letter-spacing:0.1em;">Ship to</h3>
@@ -86,7 +86,7 @@ export function adminOrderHtml(order: OrderForEmail) {
       ${itemsHtml(order.items)}
       <tr>
         <td style="padding:14px 0 0;color:#888;text-transform:uppercase;letter-spacing:0.18em;font-size:12px;">Subtotal</td>
-        <td style="padding:14px 0 0;color:#eee;text-align:right;font-size:18px;">$${order.subtotal.toFixed(2)}</td>
+        <td style="padding:14px 0 0;color:#eee;text-align:right;font-size:18px;">EGP ${order.subtotal.toFixed(2)}</td>
       </tr>
     </table>
     <h3 style="margin-top:32px;">Ship to</h3>

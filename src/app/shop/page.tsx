@@ -13,7 +13,7 @@ export default async function ShopPage() {
           Abandoned Alley
         </p>
         <h2 className="font-[family-name:var(--font-bebas)] text-4xl md:text-6xl tracking-[0.18em] uppercase">
-          Latest Drop
+          SHOP ALL
         </h2>
         <div className="w-12 h-px bg-white/30" />
       </div>

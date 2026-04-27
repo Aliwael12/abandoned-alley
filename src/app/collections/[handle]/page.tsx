@@ -1,5 +1,5 @@
 import ProductCard from "@/components/ProductCard";
-import { collections } from "@/lib/products";
+import { getCollectionByHandle } from "@/lib/collections-server";
 import { getActiveProducts } from "@/lib/products-server";
 import Image from "next/image";
 import { notFound } from "next/navigation";
@@ -12,8 +12,10 @@ export async function generateMetadata({
   params: Promise<{ handle: string }>;
 }) {
   const { handle } = await params;
-  const c = collections.find((x) => x.handle === handle);
-  return { title: c ? `${c.title} — Abandoned Alley` : "Collection — Abandoned Alley" };
+  const c = await getCollectionByHandle(handle);
+  return {
+    title: c ? `${c.title} — Abandoned Alley` : "Collection — Abandoned Alley",
+  };
 }
 
 export default async function CollectionDetail({
@@ -22,7 +24,7 @@ export default async function CollectionDetail({
   params: Promise<{ handle: string }>;
 }) {
   const { handle } = await params;
-  const meta = collections.find((c) => c.handle === handle);
+  const meta = await getCollectionByHandle(handle);
   if (!meta) notFound();
   const all = await getActiveProducts();
   const items = all.filter((p) => p.collection === handle);
@@ -30,14 +32,17 @@ export default async function CollectionDetail({
   return (
     <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-14">
       <div className="relative h-[42vh] min-h-[280px] rounded-2xl overflow-hidden mb-12 border border-white/10">
-        <Image
-          src={meta.image}
-          alt={meta.title}
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover scale-105"
-        />
+        {meta.image && (
+          <Image
+            src={meta.image}
+            alt={meta.title}
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover scale-105"
+            unoptimized
+          />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
         <div className="absolute bottom-8 left-0 right-0 flex flex-col items-center text-center px-6">
           <p className="text-[11px] tracking-[0.4em] uppercase text-white/70 mb-2">
@@ -47,7 +52,7 @@ export default async function CollectionDetail({
             {meta.title}
           </h1>
           <p className="mt-3 text-white/70 text-sm tracking-[0.18em] uppercase">
-            {meta.count} pieces · drop 001
+            {items.length} {items.length === 1 ? "piece" : "pieces"}
           </p>
         </div>
       </div>

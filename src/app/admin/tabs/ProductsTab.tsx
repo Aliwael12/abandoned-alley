@@ -16,7 +16,7 @@ type EditState = Partial<Pick<Product, "title" | "description" | "price">> & {
 };
 
 const fmtUsd = (n: number) =>
-  n.toLocaleString("en-US", { style: "currency", currency: "USD" });
+  n.toLocaleString("en-US", { style: "currency", currency: "EGP" });
 
 export default function ProductsTab({ products, onChanged, onError }: Props) {
   const [editing, setEditing] = useState<string | null>(null);
@@ -156,7 +156,7 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
             <input
               type="number"
               step="0.01"
-              placeholder="Price (USD)"
+              placeholder="Price (EGP)"
               value={createDraft.price}
               onChange={(e) => setCreateDraft({ ...createDraft, price: e.target.value })}
               className={inputCls}

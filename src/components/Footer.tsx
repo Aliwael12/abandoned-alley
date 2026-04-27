@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { motion, useInView } from "framer-motion";
-import { useRef } from "react";
+import { motion } from "framer-motion";
 
 const NAV = [
   { href: "/", label: "HOME" },
@@ -14,9 +13,6 @@ const NAV = [
 const SPRAY = "DON'T DIE WONDERING";
 
 export default function Footer() {
-  const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, amount: 0.3 });
-
   return (
     <footer className="relative z-10 mt-24 bg-black text-white overflow-hidden">
       <div className="px-6 md:px-10 pt-8 pb-2">
@@ -58,7 +54,7 @@ export default function Footer() {
       </div>
 
       {/* Wordmark + spray overlay */}
-      <div ref={ref} className="relative w-full select-none pb-8 md:pb-12">
+      <div className="relative w-full select-none pb-8 md:pb-12">
         <h2
           className="
             font-[family-name:var(--font-bebas)]
@@ -78,17 +74,16 @@ export default function Footer() {
         </h2>
 
         {/* Spray paint overlay */}
-        <SprayOverlay text={SPRAY} animate={inView} />
+        <SprayOverlay text={SPRAY} />
       </div>
     </footer>
   );
 }
 
-function SprayOverlay({ text, animate }: { text: string; animate: boolean }) {
+function SprayOverlay({ text }: { text: string }) {
   // SVG viewBox auto-scales the text to fit the container width, so it can
-  // never overflow the ABND ALLY wordmark behind it. The reveal is animated
-  // with a left-to-right clip-path wipe to mimic a spray nozzle moving
-  // across the wordmark.
+  // never overflow the ABND ALLY wordmark behind it. The clip-path wipe loops
+  // forever, so the text keeps getting "sprayed" left-to-right on repeat.
   const VB_W = 1000;
   const VB_H = 200;
 
@@ -102,9 +97,6 @@ function SprayOverlay({ text, animate }: { text: string; animate: boolean }) {
         preserveAspectRatio="xMidYMid meet"
         className="w-full h-auto"
         style={{ overflow: "visible" }}
-        initial={{ opacity: 0 }}
-        animate={animate ? { opacity: 1 } : {}}
-        transition={{ duration: 0.2 }}
       >
         <defs>
           <filter id="spray-blur" x="-10%" y="-10%" width="120%" height="120%">
@@ -126,11 +118,21 @@ function SprayOverlay({ text, animate }: { text: string; animate: boolean }) {
             filter:
               "drop-shadow(0 0 6px rgba(240,192,33,0.55)) drop-shadow(0 0 18px rgba(240,192,33,0.3))",
           }}
-          initial={{ clipPath: "inset(0% 100% 0% 0%)" }}
-          animate={
-            animate ? { clipPath: "inset(-10% -2% -10% -2%)" } : {}
-          }
-          transition={{ duration: 3.2, ease: [0.22, 1, 0.36, 1], delay: 0.4 }}
+          animate={{
+            clipPath: [
+              "inset(0% 100% 0% 0%)",
+              "inset(-10% -2% -10% -2%)",
+              "inset(-10% -2% -10% -2%)",
+              "inset(0% 100% 0% 0%)",
+            ],
+          }}
+          transition={{
+            duration: 5.2,
+            times: [0, 0.55, 0.85, 1],
+            ease: [0.22, 1, 0.36, 1],
+            repeat: Infinity,
+            repeatDelay: 0.6,
+          }}
         >
           {text}
         </motion.text>

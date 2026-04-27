@@ -1,9 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import type { OrdersResponse } from "../types";
 
 const fmtUsd = (n: number) =>
-  n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+  n.toLocaleString("en-US", { style: "currency", currency: "EGP", maximumFractionDigits: 0 });
 
 export default function OverviewTab({ data }: { data: OrdersResponse | null }) {
   if (!data) return null;
@@ -82,24 +83,46 @@ export default function OverviewTab({ data }: { data: OrdersResponse | null }) {
               </thead>
               <tbody>
                 {orders.slice(0, 25).map((o) => (
-                  <tr key={o.id} className="border-b border-white/5">
+                  <tr
+                    key={o.id}
+                    className="border-b border-white/5 hover:bg-white/5 transition cursor-pointer group"
+                  >
                     <td className="py-3 pr-4 font-mono text-xs text-white/70">
-                      #{o.id.slice(0, 8)}
+                      <Link
+                        href={`/admin/orders/${o.id}`}
+                        className="block group-hover:text-white"
+                      >
+                        #{o.id.slice(0, 8)}
+                      </Link>
                     </td>
                     <td className="py-3 pr-4">
-                      <div>{o.customerName}</div>
-                      <div className="text-xs text-white/40">{o.customerEmail}</div>
+                      <Link href={`/admin/orders/${o.id}`} className="block">
+                        <div>{o.customerName}</div>
+                        <div className="text-xs text-white/40">{o.customerEmail}</div>
+                      </Link>
                     </td>
-                    <td className="py-3 pr-4">{o.itemCount}</td>
                     <td className="py-3 pr-4">
-                      <span className="px-2 py-0.5 text-[10px] tracking-[0.15em] uppercase border border-white/15 rounded">
-                        {o.status}
-                      </span>
+                      <Link href={`/admin/orders/${o.id}`} className="block">
+                        {o.itemCount}
+                      </Link>
+                    </td>
+                    <td className="py-3 pr-4">
+                      <Link href={`/admin/orders/${o.id}`} className="block">
+                        <span className="px-2 py-0.5 text-[10px] tracking-[0.15em] uppercase border border-white/15 rounded">
+                          {o.status}
+                        </span>
+                      </Link>
                     </td>
                     <td className="py-3 pr-4 text-xs text-white/60">
-                      {o.createdAt ? new Date(o.createdAt).toLocaleString() : "—"}
+                      <Link href={`/admin/orders/${o.id}`} className="block">
+                        {o.createdAt ? new Date(o.createdAt).toLocaleString() : "—"}
+                      </Link>
                     </td>
-                    <td className="py-3 text-right">{fmtUsd(o.subtotal)}</td>
+                    <td className="py-3 text-right">
+                      <Link href={`/admin/orders/${o.id}`} className="block">
+                        {fmtUsd(o.subtotal)}
+                      </Link>
+                    </td>
                   </tr>
                 ))}
               </tbody>

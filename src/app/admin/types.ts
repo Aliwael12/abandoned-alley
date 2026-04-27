@@ -19,3 +19,15 @@ export type OrdersResponse = {
   series: { date: string; revenue: number; count: number }[];
   orders: OrderRow[];
 };
+
+export type CollectionMeta = {
+  handle: string;
+  title: string;
+  image: string;
+  description?: string;
+  count?: number;
+};
+
+export type CollectionsResponse = {
+  collections: CollectionMeta[];
+};

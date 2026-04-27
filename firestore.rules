@@ -70,6 +70,13 @@ service cloud.firestore {
       allow create, update, delete: if true;
     }
 
+    // Collections: same MVP trade-off as products — open writes. Tighten by
+    // moving the admin write path to the Admin SDK before launch.
+    match /collections/{handle} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

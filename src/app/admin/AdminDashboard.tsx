@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   BarChart3,
   Boxes,
+  Layers,
   LogOut,
   Mail,
   Loader2,
@@ -12,15 +13,17 @@ import {
 } from "lucide-react";
 import OverviewTab from "./tabs/OverviewTab";
 import ProductsTab from "./tabs/ProductsTab";
+import CollectionsTab from "./tabs/CollectionsTab";
 import BroadcastTab from "./tabs/BroadcastTab";
 import type { Product } from "@/lib/products";
-import type { OrdersResponse } from "./types";
+import type { CollectionMeta, OrdersResponse } from "./types";
 
-type Tab = "overview" | "products" | "broadcast";
+type Tab = "overview" | "products" | "collections" | "broadcast";
 
 const TABS: { id: Tab; label: string; icon: React.ComponentType<{ size?: number }> }[] = [
   { id: "overview", label: "Overview", icon: BarChart3 },
   { id: "products", label: "Products", icon: Boxes },
+  { id: "collections", label: "Collections", icon: Layers },
   { id: "broadcast", label: "Promo email", icon: Mail },
 ];
 
@@ -29,6 +32,7 @@ export default function AdminDashboard() {
   const [tab, setTab] = useState<Tab>("overview");
   const [orders, setOrders] = useState<OrdersResponse | null>(null);
   const [products, setProducts] = useState<Product[] | null>(null);
+  const [collections, setCollections] = useState<CollectionMeta[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,14 +40,20 @@ export default function AdminDashboard() {
     setLoading(true);
     setError(null);
     try {
-      const [oRes, pRes] = await Promise.all([
+      const [oRes, pRes, cRes] = await Promise.all([
         fetch("/api/admin/orders", { cache: "no-store" }),
         fetch("/api/admin/products", { cache: "no-store" }),
+        fetch("/api/admin/collections", { cache: "no-store" }),
       ]);
       if (!oRes.ok) throw new Error((await oRes.json())?.error ?? "Orders load failed");
       if (!pRes.ok) throw new Error((await pRes.json())?.error ?? "Products load failed");
+      if (!cRes.ok)
+        throw new Error((await cRes.json())?.error ?? "Collections load failed");
       setOrders((await oRes.json()) as OrdersResponse);
       setProducts(((await pRes.json()) as { products: Product[] }).products);
+      setCollections(
+        ((await cRes.json()) as { collections: CollectionMeta[] }).collections
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Load failed");
     } finally {
@@ -128,6 +138,14 @@ export default function AdminDashboard() {
           {tab === "overview" && <OverviewTab data={orders} />}
           {tab === "products" && (
             <ProductsTab
+              products={products ?? []}
+              onChanged={refresh}
+              onError={(m) => setError(m)}
+            />
+          )}
+          {tab === "collections" && (
+            <CollectionsTab
+              collections={collections ?? []}
               products={products ?? []}
               onChanged={refresh}
               onError={(m) => setError(m)}

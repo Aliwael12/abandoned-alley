@@ -5,7 +5,7 @@ import { useCart } from "@/lib/cart";
 import Image from "next/image";
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Minus, Plus, Truck, RotateCcw, ShieldCheck, Play } from "lucide-react";
+import { Minus, Plus, Truck, RotateCcw, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
 export default function ProductDetail({ product }: { product: Product }) {
@@ -81,11 +81,6 @@ export default function ProductDetail({ product }: { product: Product }) {
                   sizes="80px"
                   className="object-cover"
                 />
-                {m.type === "video" && (
-                  <span className="absolute inset-0 grid place-items-center bg-black/30">
-                    <Play size={16} className="text-white drop-shadow" />
-                  </span>
-                )}
               </button>
             ))}
           </div>
@@ -135,7 +130,7 @@ export default function ProductDetail({ product }: { product: Product }) {
             <h1 className="font-[family-name:var(--font-bebas)] text-4xl md:text-5xl tracking-[0.12em] uppercase">
               {product.title}
             </h1>
-            <p className="text-2xl">${matchedVariant.price.toFixed(2)}</p>
+            <p className="text-2xl">EGP {matchedVariant.price.toFixed(2)}</p>
           </div>
 
           <p className="text-white/70 leading-relaxed max-w-md">
@@ -200,7 +195,7 @@ export default function ProductDetail({ product }: { product: Product }) {
           </button>
 
           <ul className="grid grid-cols-3 gap-3 mt-2">
-            <Feature icon={<Truck size={16} />} title="Free shipping" sub="Orders over $200" />
+            <Feature icon={<Truck size={16} />} title="Free shipping" sub="Orders over EGP 200" />
             <Feature icon={<RotateCcw size={16} />} title="14-day returns" sub="Easy & free" />
             <Feature
               icon={<ShieldCheck size={16} />}
