@@ -43,7 +43,7 @@ export default function ContactPage() {
                 rel="noopener noreferrer"
                 className="hover:text-white"
               >
-                @abandonedalley
+                @abandonedalley.eg
               </a>
             </li>
           </ul>
