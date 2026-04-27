@@ -189,7 +189,7 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
       <ul className="flex flex-col gap-4">
         {products.length === 0 ? (
           <p className="text-sm text-white/50 py-6">
-            No products. Click <em>Seed</em> to import your bundled catalog.
+            No products yet. Use the <em>New product</em> form above to add one.
           </p>
         ) : (
           products.map((p) => {

@@ -31,9 +31,8 @@ function normalize(raw: Record<string, unknown>): Product | null {
 }
 
 /**
- * All products from Firestore. Falls back to the bundled static seed when
- * Firestore is empty (so the storefront keeps working before the admin runs
- * the seed action).
+ * All products from Firestore. Falls back to the bundled static catalog when
+ * Firestore is empty so the storefront keeps working out of the box.
  */
 export async function getAllProducts(): Promise<Product[]> {
   try {
@@ -74,20 +73,4 @@ export async function upsertProduct(p: Product): Promise<void> {
 
 export async function deleteProduct(handle: string): Promise<void> {
   await deleteDoc(doc(db, COL, handle));
-}
-
-export async function seedFromStatic(): Promise<{ written: number }> {
-  let written = 0;
-  for (const p of STATIC_PRODUCTS) {
-    const existing = await getDoc(doc(db, COL, p.handle));
-    if (!existing.exists()) {
-      await setDoc(doc(db, COL, p.handle), {
-        ...p,
-        disabled: false,
-        updatedAt: serverTimestamp(),
-      });
-      written++;
-    }
-  }
-  return { written };
 }

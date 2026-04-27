@@ -8,7 +8,6 @@ import {
   LogOut,
   Mail,
   Loader2,
-  Plus,
   RefreshCw,
 } from "lucide-react";
 import OverviewTab from "./tabs/OverviewTab";
@@ -32,7 +31,6 @@ export default function AdminDashboard() {
   const [products, setProducts] = useState<Product[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [seeding, setSeeding] = useState(false);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -63,19 +61,6 @@ export default function AdminDashboard() {
     router.refresh();
   }
 
-  async function seed() {
-    setSeeding(true);
-    try {
-      const res = await fetch("/api/admin/seed", { method: "POST" });
-      if (!res.ok) throw new Error((await res.json())?.error ?? "Seed failed");
-      await refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Seed failed");
-    } finally {
-      setSeeding(false);
-    }
-  }
-
   return (
     <div className="flex flex-col gap-8">
       <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
@@ -95,15 +80,6 @@ export default function AdminDashboard() {
           >
             <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
             Refresh
-          </button>
-          <button
-            onClick={seed}
-            disabled={seeding}
-            className="inline-flex items-center gap-2 px-4 py-2 border border-white/15 hover:border-white/40 rounded-md text-xs tracking-[0.2em] uppercase transition disabled:opacity-50"
-            title="Copy bundled static products into Firestore (only writes missing handles)"
-          >
-            {seeding ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
-            Seed
           </button>
           <button
             onClick={logout}
