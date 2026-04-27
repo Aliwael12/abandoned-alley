@@ -42,12 +42,11 @@ export const products: Product[] = [
       { type: "image", src: "/media/black-ddw-3.jpg", alt: "Black DDW Tee — composite" },
       { type: "video", src: "/media/black-ddw.mp4", poster: "/media/black-ddw-1.jpg" },
     ],
-    options: [{ name: "Size", values: ["S", "M", "L", "XL"] }],
+    options: [{ name: "Size", values: ["S", "M", "L"] }],
     variants: [
       { id: "bddw-s", title: "S", price: 65, options: { Size: "S" } },
       { id: "bddw-m", title: "M", price: 65, options: { Size: "M" } },
       { id: "bddw-l", title: "L", price: 65, options: { Size: "L" } },
-      { id: "bddw-xl", title: "XL", price: 65, options: { Size: "XL" } },
     ],
   },
   {
@@ -63,12 +62,11 @@ export const products: Product[] = [
       { type: "image", src: "/media/white-ddw-2.jpg", alt: "White DDW Tee — composite" },
       { type: "video", src: "/media/white-ddw.mp4", poster: "/media/white-ddw-1.jpg" },
     ],
-    options: [{ name: "Size", values: ["S", "M", "L", "XL"] }],
+    options: [{ name: "Size", values: ["S", "M", "L"] }],
     variants: [
       { id: "wddw-s", title: "S", price: 65, options: { Size: "S" } },
       { id: "wddw-m", title: "M", price: 65, options: { Size: "M" } },
       { id: "wddw-l", title: "L", price: 65, options: { Size: "L" } },
-      { id: "wddw-xl", title: "XL", price: 65, options: { Size: "XL" } },
     ],
   },
 ];

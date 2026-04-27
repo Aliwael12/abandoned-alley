@@ -5,7 +5,7 @@ import { useCart } from "@/lib/cart";
 import Image from "next/image";
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Minus, Plus, Truck, RotateCcw, ShieldCheck } from "lucide-react";
+import { Minus, Plus } from "lucide-react";
 import Link from "next/link";
 
 export default function ProductDetail({ product }: { product: Product }) {
@@ -195,36 +195,8 @@ export default function ProductDetail({ product }: { product: Product }) {
           >
             Buy it now
           </button>
-
-          <ul className="grid grid-cols-3 gap-3 mt-2">
-            <Feature icon={<Truck size={16} />} title="Free shipping" sub="Orders over EGP 200" />
-            <Feature icon={<RotateCcw size={16} />} title="14-day returns" sub="Easy & free" />
-            <Feature
-              icon={<ShieldCheck size={16} />}
-              title="Secure checkout"
-              sub="Protected payment"
-            />
-          </ul>
         </div>
       </div>
     </div>
-  );
-}
-
-function Feature({
-  icon,
-  title,
-  sub,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  sub: string;
-}) {
-  return (
-    <li className="flex flex-col gap-1.5 p-3 rounded-md border border-white/10 bg-white/[0.03]">
-      <span className="text-white/70">{icon}</span>
-      <p className="text-sm">{title}</p>
-      <p className="text-[11px] text-white/50">{sub}</p>
-    </li>
   );
 }

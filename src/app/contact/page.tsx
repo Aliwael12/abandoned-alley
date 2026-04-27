@@ -30,15 +30,15 @@ export default function ContactPage() {
           </div>
           <ul className="flex flex-col gap-4">
             <li className="flex items-center gap-3 text-sm text-white/80">
-              <Mail size={16} className="text-white/50" /> studio@abandonedalley.example
+              <Mail size={16} className="text-white/50" /> abandonedalley@gmail.com
             </li>
             <li className="flex items-center gap-3 text-sm text-white/80">
-              <MapPin size={16} className="text-white/50" /> Casablanca / Online
+              <MapPin size={16} className="text-white/50" /> Cairo / Online
             </li>
             <li className="flex items-center gap-3 text-sm text-white/80">
               <InstagramIcon size={16} className="text-white/50" />
               <a
-                href="https://instagram.com/abandonedalley"
+                href="https://instagram.com/abandonedalley.eg"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="hover:text-white"
