@@ -1,9 +1,11 @@
 import ProductCard from "@/components/ProductCard";
-import { products } from "@/lib/products";
+import { getActiveProducts } from "@/lib/products-server";
 
 export const metadata = { title: "Shop — Abandoned Alley" };
+export const dynamic = "force-dynamic";
 
-export default function ShopPage() {
+export default async function ShopPage() {
+  const products = await getActiveProducts();
   return (
     <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-14">
       <div className="flex flex-col items-center gap-3 mb-12">

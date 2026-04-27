@@ -113,12 +113,14 @@ export default function CartDrawer() {
                     <span className="text-white/60 uppercase tracking-[0.2em] text-xs">Subtotal</span>
                     <span className="text-lg">${subtotal.toFixed(2)}</span>
                   </div>
-                  <button
-                    type="button"
-                    className="w-full bg-white text-black py-4 rounded-lg font-[family-name:var(--font-bebas)] tracking-[0.2em] uppercase hover:bg-white/90 transition"
+                  <Link
+                    href="/checkout"
+                    onClick={close}
+                    style={{ color: "#000" }}
+                    className="w-full bg-white py-4 rounded-lg font-[family-name:var(--font-bebas)] tracking-[0.2em] uppercase hover:bg-white/90 transition text-center"
                   >
                     Checkout
-                  </button>
+                  </Link>
                   <p className="text-[11px] text-white/40 text-center">
                     Shipping & taxes calculated at checkout.
                   </p>

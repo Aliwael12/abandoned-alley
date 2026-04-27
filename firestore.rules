@@ -1,0 +1,77 @@
+rules_version = '2';
+
+// ============================================================================
+// SECURITY NOTE — READ THIS BEFORE GOING TO PRODUCTION
+// ============================================================================
+// These rules allow the storefront and admin dashboard to function using only
+// the public Firebase Web SDK config (no service account). The trade-off:
+// anyone who knows your public apiKey (it's exposed in the page source — that
+// is by design for the Web SDK) can hit Firestore directly and:
+//   - read all orders (customer PII: name, email, phone, address)
+//   - read your subscriber list
+//   - read & write all products
+//
+// This is acceptable for an MVP / staging environment, NOT for production.
+//
+// To lock this down, switch the server side to the Firebase Admin SDK
+// (service-account auth) and replace this entire file with:
+//
+//   service cloud.firestore {
+//     match /databases/{database}/documents {
+//       match /{document=**} { allow read, write: if false; }
+//     }
+//   }
+//
+// The Admin SDK bypasses these rules entirely.
+// ============================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Orders: anyone can CREATE (public checkout), but reads are OPEN here so
+    // the admin dashboard can compute analytics. Tighten before launch.
+    match /orders/{orderId} {
+      allow create: if
+        request.resource.data.customer.name is string &&
+        request.resource.data.customer.email is string &&
+        request.resource.data.customer.email.matches('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$') &&
+        request.resource.data.customer.phone is string &&
+        request.resource.data.shipping.address is string &&
+        request.resource.data.shipping.city is string &&
+        request.resource.data.shipping.state is string &&
+        request.resource.data.shipping.zip is string &&
+        request.resource.data.shipping.country is string &&
+        request.resource.data.items is list &&
+        request.resource.data.items.size() > 0 &&
+        request.resource.data.items.size() <= 50 &&
+        request.resource.data.subtotal is number &&
+        request.resource.data.subtotal >= 0 &&
+        request.resource.data.subtotal <= 100000 &&
+        request.resource.data.status == 'pending';
+      allow read: if true;
+      allow update, delete: if false;
+    }
+
+    // Subscribers: signup is public; reads needed for broadcast list.
+    match /subscribers/{email} {
+      allow create, update: if
+        request.resource.data.email is string &&
+        request.resource.data.email.matches('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$') &&
+        request.resource.data.status == 'subscribed';
+      allow read: if true;
+      allow delete: if false;
+    }
+
+    // Products: storefront reads, admin writes. Open writes are the main risk
+    // here — anyone with the apiKey can edit your catalog. Move to Admin SDK
+    // before launch.
+    match /products/{handle} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

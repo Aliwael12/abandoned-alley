@@ -7,6 +7,7 @@ import Footer from "@/components/Footer";
 import RunningText from "@/components/RunningText";
 import MusicPlayer from "@/components/MusicPlayer";
 import PageLoader from "@/components/PageLoader";
+import { Analytics } from "@vercel/analytics/next";
 
 const bebas = Bebas_Neue({
   weight: "400",
@@ -54,6 +55,7 @@ export default function RootLayout({
         <main className="relative">{children}</main>
         <MusicPlayer />
         <Footer />
+        <Analytics />
       </body>
     </html>
   );

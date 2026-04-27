@@ -24,6 +24,7 @@ export type Product = {
   options: ProductOption[];
   variants: ProductVariant[];
   collection: string;
+  disabled?: boolean;
 };
 
 export const products: Product[] = [

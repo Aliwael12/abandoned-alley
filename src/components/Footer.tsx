@@ -38,11 +38,11 @@ export default function Footer() {
           <div>
             <p>studio@abandonedalley.example</p>
             <p>Drop 001 — DON&apos;T DIE WONDERING</p>
-            <p>Casablanca / Online, Worldwide</p>
+            <p>Cairo / Online, Worldwide</p>
           </div>
           <div className="md:text-center flex md:justify-center">
             <a
-              href="https://instagram.com/abandonedalley"
+              href="https://instagram.com/abandonedalley.eg"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:opacity-70 transition"

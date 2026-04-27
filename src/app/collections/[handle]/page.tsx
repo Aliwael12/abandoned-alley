@@ -1,11 +1,10 @@
 import ProductCard from "@/components/ProductCard";
-import { collections, products } from "@/lib/products";
+import { collections } from "@/lib/products";
+import { getActiveProducts } from "@/lib/products-server";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 
-export function generateStaticParams() {
-  return collections.map((c) => ({ handle: c.handle }));
-}
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,
@@ -25,7 +24,8 @@ export default async function CollectionDetail({
   const { handle } = await params;
   const meta = collections.find((c) => c.handle === handle);
   if (!meta) notFound();
-  const items = products.filter((p) => p.collection === handle);
+  const all = await getActiveProducts();
+  const items = all.filter((p) => p.collection === handle);
 
   return (
     <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-14">

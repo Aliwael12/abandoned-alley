@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Search, User, ShoppingBag, Menu, X } from "lucide-react";
+import { Search, ShoppingBag, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { useCart } from "@/lib/cart";
 import dynamic from "next/dynamic";
@@ -73,13 +73,6 @@ export default function Header() {
             >
               <Search size={18} />
             </button>
-            <Link
-              href="/account"
-              className="hidden md:inline-flex text-white/80 hover:text-white transition"
-              aria-label="Account"
-            >
-              <User size={18} />
-            </Link>
             <button
               type="button"
               onClick={openCart}

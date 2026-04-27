@@ -1,6 +1,6 @@
 "use client";
 
-import { products } from "@/lib/products";
+import { type Product } from "@/lib/products";
 import { AnimatePresence, motion } from "framer-motion";
 import { Search, X } from "lucide-react";
 import Link from "next/link";
@@ -15,14 +15,28 @@ export default function SearchModal({
   onClose: () => void;
 }) {
   const [query, setQuery] = useState("");
+  const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
-    if (!open) setQuery("");
+    if (!open) {
+      setQuery("");
+      return;
+    }
+    let cancelled = false;
+    fetch("/api/products", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((data: { products: Product[] }) => {
+        if (!cancelled) setProducts(data.products);
+      })
+      .catch(() => {});
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("keydown", onKey);
+    };
   }, [open, onClose]);
 
   const results = useMemo(() => {
@@ -34,7 +48,7 @@ export default function SearchModal({
         p.vendor.toLowerCase().includes(q) ||
         p.handle.includes(q)
     );
-  }, [query]);
+  }, [query, products]);
 
   return (
     <AnimatePresence>
