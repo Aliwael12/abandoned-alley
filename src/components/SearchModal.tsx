@@ -102,6 +102,7 @@ export default function SearchModal({
                                 fill
                                 className="object-cover"
                                 sizes="48px"
+                                unoptimized
                               />
                             )}
                           </div>

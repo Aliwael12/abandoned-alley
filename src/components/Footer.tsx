@@ -47,7 +47,7 @@ export default function Footer() {
             </a>
           </div>
           <div className="md:text-right">
-            <p>WEBSITE BY ABND ALLY</p>
+            <p>WEBSITE BY ONYX LABS</p>
             <p>&copy; 2026 — ALL RIGHTS RESERVED</p>
           </div>
         </div>

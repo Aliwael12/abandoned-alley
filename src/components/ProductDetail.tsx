@@ -80,6 +80,7 @@ export default function ProductDetail({ product }: { product: Product }) {
                   fill
                   sizes="80px"
                   className="object-cover"
+                  unoptimized
                 />
               </button>
             ))}
@@ -103,6 +104,7 @@ export default function ProductDetail({ product }: { product: Product }) {
                     sizes="(min-width:1024px) 50vw, 100vw"
                     priority
                     className="object-cover"
+                    unoptimized
                   />
                 ) : (
                   <video
