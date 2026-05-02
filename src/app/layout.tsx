@@ -8,6 +8,7 @@ import RunningText from "@/components/RunningText";
 import MusicPlayer from "@/components/MusicPlayer";
 import PageLoader from "@/components/PageLoader";
 import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const bebas = Bebas_Neue({
   weight: "400",
@@ -56,6 +57,7 @@ export default function RootLayout({
         <MusicPlayer />
         <Footer />
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

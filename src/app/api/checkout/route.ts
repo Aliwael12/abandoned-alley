@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { addDoc, collection, doc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import {
   resend,
@@ -9,6 +9,11 @@ import {
   adminOrderHtml,
   type OrderForEmail,
 } from "@/lib/email";
+import {
+  buildPackageFromOrder,
+  isDroppinConfigured,
+  pushPackages,
+} from "@/lib/droppin";
 
 export const runtime = "nodejs";
 
@@ -160,6 +165,45 @@ export async function POST(request: Request) {
     .filter(Boolean);
   if (emailErrors.length) {
     console.error("Resend errors:", emailErrors);
+  }
+
+  if (isDroppinConfigured()) {
+    try {
+      const pkg = buildPackageFromOrder({
+        id: orderId,
+        customer: parsed.customer,
+        shipping: parsed.shipping,
+        items: parsed.items,
+        subtotal,
+        notes: parsed.notes ?? null,
+      });
+      const result = await pushPackages([pkg]);
+      const created = result.createdPackages?.[0];
+      if (result.success && created) {
+        await updateDoc(doc(db, "orders", orderId), {
+          droppinPackageId: created.id,
+          droppinTrackingNumber: created.trackingNumber,
+          droppinStatus: created.status,
+          droppinPushedAt: serverTimestamp(),
+        });
+      } else {
+        await updateDoc(doc(db, "orders", orderId), {
+          droppinError: result.error || "Unknown push failure",
+          droppinPushAttemptedAt: serverTimestamp(),
+        });
+        console.error("Droppin push failed:", result.error);
+      }
+    } catch (err) {
+      console.error("Droppin push error:", err);
+      try {
+        await updateDoc(doc(db, "orders", orderId), {
+          droppinError: err instanceof Error ? err.message : String(err),
+          droppinPushAttemptedAt: serverTimestamp(),
+        });
+      } catch {
+        // best-effort
+      }
+    }
   }
 
   return NextResponse.json({ ok: true, orderId });

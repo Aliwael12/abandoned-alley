@@ -28,6 +28,13 @@ export type OrderDetail = {
   currency: string;
   status: string;
   createdAt: number | null;
+  droppin: {
+    packageId: number | null;
+    trackingNumber: string | null;
+    status: string | null;
+    error: string | null;
+    pushedAt: number | null;
+  };
 };
 
 function tsToMillis(ts: unknown): number | null {
@@ -73,5 +80,16 @@ export async function getOrderById(id: string): Promise<OrderDetail | null> {
     currency: String(data.currency ?? "EGP"),
     status: String(data.status ?? "pending"),
     createdAt: tsToMillis(data.createdAt),
+    droppin: {
+      packageId:
+        typeof data.droppinPackageId === "number" ? data.droppinPackageId : null,
+      trackingNumber:
+        typeof data.droppinTrackingNumber === "string"
+          ? data.droppinTrackingNumber
+          : null,
+      status: typeof data.droppinStatus === "string" ? data.droppinStatus : null,
+      error: typeof data.droppinError === "string" ? data.droppinError : null,
+      pushedAt: tsToMillis(data.droppinPushedAt),
+    },
   };
 }

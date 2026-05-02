@@ -155,6 +155,63 @@ export default async function OrderDetailPage({
 
       <section className="glass rounded-2xl p-6 flex flex-col gap-3">
         <h2 className="font-[family-name:var(--font-bebas)] text-2xl tracking-[0.18em]">
+          Shipping (Droppin)
+        </h2>
+        {order.droppin.trackingNumber ? (
+          <>
+            <div className="flex justify-between text-sm">
+              <span className="text-white/60 uppercase tracking-[0.2em] text-xs">
+                Tracking
+              </span>
+              <a
+                href={`https://api.droppin-eg.com/api/packages/track/${order.droppin.trackingNumber}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-mono text-white/90 hover:text-white transition"
+              >
+                {order.droppin.trackingNumber}
+              </a>
+            </div>
+            {order.droppin.status && (
+              <div className="flex justify-between text-sm">
+                <span className="text-white/60 uppercase tracking-[0.2em] text-xs">
+                  Status
+                </span>
+                <span>{order.droppin.status}</span>
+              </div>
+            )}
+            {order.droppin.packageId !== null && (
+              <div className="flex justify-between text-sm">
+                <span className="text-white/60 uppercase tracking-[0.2em] text-xs">
+                  Package ID
+                </span>
+                <span className="font-mono text-white/70">
+                  {order.droppin.packageId}
+                </span>
+              </div>
+            )}
+            {order.droppin.pushedAt && (
+              <div className="flex justify-between text-sm">
+                <span className="text-white/60 uppercase tracking-[0.2em] text-xs">
+                  Pushed
+                </span>
+                <span className="text-white/70">
+                  {new Date(order.droppin.pushedAt).toLocaleString()}
+                </span>
+              </div>
+            )}
+          </>
+        ) : order.droppin.error ? (
+          <p className="text-sm text-red-300/90">
+            Push failed: {order.droppin.error}
+          </p>
+        ) : (
+          <p className="text-sm text-white/50">Not pushed to Droppin yet.</p>
+        )}
+      </section>
+
+      <section className="glass rounded-2xl p-6 flex flex-col gap-3">
+        <h2 className="font-[family-name:var(--font-bebas)] text-2xl tracking-[0.18em]">
           Summary
         </h2>
         <div className="flex justify-between text-sm">
