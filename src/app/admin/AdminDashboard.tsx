@@ -5,26 +5,38 @@ import { useRouter } from "next/navigation";
 import {
   BarChart3,
   Boxes,
+  Inbox,
   Layers,
   LogOut,
   Mail,
   Loader2,
   RefreshCw,
+  Settings,
 } from "lucide-react";
 import OverviewTab from "./tabs/OverviewTab";
 import ProductsTab from "./tabs/ProductsTab";
 import CollectionsTab from "./tabs/CollectionsTab";
 import BroadcastTab from "./tabs/BroadcastTab";
+import ContactTab from "./tabs/ContactTab";
+import SettingsTab from "./tabs/SettingsTab";
 import type { Product } from "@/lib/products";
 import type { CollectionMeta, OrdersResponse } from "./types";
 
-type Tab = "overview" | "products" | "collections" | "broadcast";
+type Tab =
+  | "overview"
+  | "products"
+  | "collections"
+  | "broadcast"
+  | "contact"
+  | "settings";
 
 const TABS: { id: Tab; label: string; icon: React.ComponentType<{ size?: number }> }[] = [
   { id: "overview", label: "Overview", icon: BarChart3 },
   { id: "products", label: "Products", icon: Boxes },
   { id: "collections", label: "Collections", icon: Layers },
   { id: "broadcast", label: "Promo email", icon: Mail },
+  { id: "contact", label: "Contact", icon: Inbox },
+  { id: "settings", label: "Settings", icon: Settings },
 ];
 
 export default function AdminDashboard() {
@@ -36,34 +48,59 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const loadAll = useCallback(async () => {
+    const [oRes, pRes, cRes] = await Promise.all([
+      fetch("/api/admin/orders", { cache: "no-store" }),
+      fetch("/api/admin/products", { cache: "no-store" }),
+      fetch("/api/admin/collections", { cache: "no-store" }),
+    ]);
+    if (!oRes.ok) throw new Error((await oRes.json())?.error ?? "Orders load failed");
+    if (!pRes.ok) throw new Error((await pRes.json())?.error ?? "Products load failed");
+    if (!cRes.ok)
+      throw new Error((await cRes.json())?.error ?? "Collections load failed");
+    return {
+      orders: (await oRes.json()) as OrdersResponse,
+      products: ((await pRes.json()) as { products: Product[] }).products,
+      collections: ((await cRes.json()) as { collections: CollectionMeta[] })
+        .collections,
+    };
+  }, []);
+
   const refresh = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [oRes, pRes, cRes] = await Promise.all([
-        fetch("/api/admin/orders", { cache: "no-store" }),
-        fetch("/api/admin/products", { cache: "no-store" }),
-        fetch("/api/admin/collections", { cache: "no-store" }),
-      ]);
-      if (!oRes.ok) throw new Error((await oRes.json())?.error ?? "Orders load failed");
-      if (!pRes.ok) throw new Error((await pRes.json())?.error ?? "Products load failed");
-      if (!cRes.ok)
-        throw new Error((await cRes.json())?.error ?? "Collections load failed");
-      setOrders((await oRes.json()) as OrdersResponse);
-      setProducts(((await pRes.json()) as { products: Product[] }).products);
-      setCollections(
-        ((await cRes.json()) as { collections: CollectionMeta[] }).collections
-      );
+      const data = await loadAll();
+      setOrders(data.orders);
+      setProducts(data.products);
+      setCollections(data.collections);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Load failed");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loadAll]);
 
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    let cancelled = false;
+    loadAll()
+      .then((data) => {
+        if (cancelled) return;
+        setOrders(data.orders);
+        setProducts(data.products);
+        setCollections(data.collections);
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setError(err instanceof Error ? err.message : "Load failed");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [loadAll]);
 
   async function logout() {
     await fetch("/api/admin/logout", { method: "POST" });
@@ -152,6 +189,8 @@ export default function AdminDashboard() {
             />
           )}
           {tab === "broadcast" && <BroadcastTab onError={(m) => setError(m)} />}
+          {tab === "contact" && <ContactTab onError={(m) => setError(m)} />}
+          {tab === "settings" && <SettingsTab onError={(m) => setError(m)} />}
         </>
       )}
     </div>

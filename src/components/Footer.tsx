@@ -32,7 +32,6 @@ export default function Footer() {
         {/* Meta row */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-10 mb-4 text-[10px] md:text-[11px] tracking-[0.18em] uppercase font-[family-name:var(--font-bebas)] leading-[1.55]">
           <div>
-            <p>studio@abandonedalley.example</p>
             <p>Drop 001 — DON&apos;T DIE WONDERING</p>
             <p>Cairo / Online, Worldwide</p>
           </div>

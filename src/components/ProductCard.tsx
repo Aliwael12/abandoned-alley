@@ -5,8 +5,10 @@ import Image from "next/image";
 import Link from "next/link";
 
 export default function ProductCard({ product }: { product: Product }) {
-  const firstImage = product.media.find((m) => m.type === "image");
-  const cover = firstImage?.src ?? "";
+  const head = product.media[0];
+  const coverEntry =
+    head && head.type === "image" ? head : product.media.find((m) => m.type === "image");
+  const cover = coverEntry?.src ?? "";
   return (
     <Link
       href={`/products/${product.handle}`}

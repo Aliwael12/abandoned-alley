@@ -128,6 +128,7 @@ export type OrderForDroppin = {
   shipping: { address: string; city: string; state: string; zip: string; country: string };
   items: { title: string; variantTitle: string; price: number; quantity: number }[];
   subtotal: number;
+  shippingFee: number;
   notes?: string | null;
 };
 
@@ -135,8 +136,7 @@ export function buildPackageFromOrder(order: OrderForDroppin): DroppinPushPackag
   const pickupName = process.env.DROPPIN_PICKUP_NAME?.trim() || "Shop";
   const pickupPhone = process.env.DROPPIN_PICKUP_PHONE?.trim() || "";
   const pickupAddress = process.env.DROPPIN_PICKUP_ADDRESS?.trim() || "";
-  const deliveryCostRaw = process.env.DROPPIN_DELIVERY_COST?.trim();
-  const deliveryCost = deliveryCostRaw ? Number(deliveryCostRaw) : undefined;
+  const deliveryCost = order.shippingFee;
 
   const fullAddress = [
     order.shipping.address,
@@ -161,8 +161,8 @@ export function buildPackageFromOrder(order: OrderForDroppin): DroppinPushPackag
     deliveryContactPhone: order.customer.phone,
     deliveryAddress: fullAddress,
     priority: "normal",
-    codAmount: order.subtotal + (deliveryCost ?? 0),
-    deliveryCost: deliveryCost,
+    codAmount: order.subtotal + deliveryCost,
+    deliveryCost,
     shownDeliveryCost: deliveryCost,
     paymentMethod: "cash",
     shopNotes: order.notes || undefined,

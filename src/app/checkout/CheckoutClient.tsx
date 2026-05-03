@@ -39,12 +39,38 @@ export default function CheckoutClient() {
   const [form, setForm] = useState<FormState>(initial);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [shippingFee, setShippingFee] = useState<number | null>(null);
+  const [shippingFeeFailed, setShippingFeeFailed] = useState(false);
 
   useEffect(() => {
-    setHydrated(true);
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) setHydrated(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/shipping-fee", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("fee fetch failed"))))
+      .then((data: { shippingFee: number }) => {
+        if (cancelled) return;
+        setShippingFee(Number(data.shippingFee) || 0);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setShippingFeeFailed(true);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const subtotal = items.reduce((n, i) => n + i.price * i.quantity, 0);
+  const total = shippingFee !== null ? subtotal + shippingFee : subtotal;
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -221,11 +247,17 @@ export default function CheckoutClient() {
 
         <button
           type="submit"
-          disabled={submitting}
+          disabled={submitting || shippingFee === null}
           className="w-full bg-white text-black py-4 rounded-lg font-[family-name:var(--font-bebas)] tracking-[0.2em] uppercase hover:bg-white/90 transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {submitting && <Loader2 className="animate-spin" size={16} />}
-          {submitting ? "Placing order…" : `Place order — EGP ${subtotal.toFixed(2)}`}
+          {submitting
+            ? "Placing order…"
+            : shippingFee === null
+            ? shippingFeeFailed
+              ? "Shipping unavailable — refresh"
+              : "Loading…"
+            : `Place order — EGP ${total.toFixed(2)}`}
         </button>
 
         <p className="text-[11px] text-white/40 text-center">
@@ -277,14 +309,20 @@ export default function CheckoutClient() {
           <span className="text-white/60 uppercase tracking-[0.2em] text-xs">
             Shipping
           </span>
-          <span className="text-white/50">Calculated after</span>
+          <span>
+            {shippingFee !== null
+              ? `EGP ${shippingFee.toFixed(2)}`
+              : shippingFeeFailed
+              ? "—"
+              : "…"}
+          </span>
         </div>
         <div className="flex items-center justify-between">
           <span className="font-[family-name:var(--font-bebas)] tracking-[0.2em] text-lg">
             Total
           </span>
           <span className="font-[family-name:var(--font-bebas)] tracking-[0.1em] text-2xl">
-            EGP {subtotal.toFixed(2)}
+            EGP {total.toFixed(2)}
           </span>
         </div>
       </aside>

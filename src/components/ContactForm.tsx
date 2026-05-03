@@ -1,18 +1,38 @@
 "use client";
 
-import { Send } from "lucide-react";
+import { Loader2, Send } from "lucide-react";
 import { useState } from "react";
 
 export default function ContactForm() {
   const [done, setDone] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState({ name: "", email: "", message: "" });
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.error ?? "Could not send message");
+      setData({ name: "", email: "", message: "" });
+      setDone(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not send message");
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   return (
     <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        setDone(true);
-      }}
+      onSubmit={onSubmit}
       className="glass rounded-2xl p-7 flex flex-col gap-4"
     >
       <h3 className="font-[family-name:var(--font-bebas)] text-2xl tracking-[0.18em]">
@@ -43,11 +63,21 @@ export default function ContactForm() {
       />
       <button
         type="submit"
-        className="self-start inline-flex items-center gap-2 px-6 py-3 bg-white text-black rounded-lg font-[family-name:var(--font-bebas)] tracking-[0.2em] uppercase hover:bg-white/90 transition"
+        disabled={submitting}
+        className="self-start inline-flex items-center gap-2 px-6 py-3 bg-white text-black rounded-lg font-[family-name:var(--font-bebas)] tracking-[0.2em] uppercase hover:bg-white/90 transition disabled:opacity-60 disabled:cursor-not-allowed"
       >
-        Send <Send size={14} />
+        {submitting ? (
+          <>
+            Sending <Loader2 size={14} className="animate-spin" />
+          </>
+        ) : (
+          <>
+            Send <Send size={14} />
+          </>
+        )}
       </button>
-      {done && (
+      {error && <p className="text-xs text-[var(--accent)]">{error}</p>}
+      {done && !error && (
         <p className="text-xs text-white/60">
           Thanks — we&apos;ll get back to you soon.
         </p>

@@ -219,6 +219,18 @@ export default async function OrderDetailPage({
           <span>{fmt(order.subtotal, order.currency)}</span>
         </div>
         <div className="flex justify-between text-sm">
+          <span className="text-white/60 uppercase tracking-[0.2em] text-xs">Shipping</span>
+          <span>{fmt(order.shippingFee, order.currency)}</span>
+        </div>
+        <div className="flex justify-between text-sm pt-2 border-t border-white/10">
+          <span className="font-[family-name:var(--font-bebas)] tracking-[0.2em] text-base">
+            Total
+          </span>
+          <span className="font-[family-name:var(--font-bebas)] tracking-[0.1em] text-base">
+            {fmt(order.subtotal + order.shippingFee, order.currency)}
+          </span>
+        </div>
+        <div className="flex justify-between text-sm">
           <span className="text-white/60 uppercase tracking-[0.2em] text-xs">Items</span>
           <span>{itemCount}</span>
         </div>

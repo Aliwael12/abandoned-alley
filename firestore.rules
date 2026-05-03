@@ -77,6 +77,30 @@ service cloud.firestore {
       allow create, update, delete: if true;
     }
 
+    // Contact messages: public submit (validated), open reads for admin list.
+    // Lock down with Admin SDK before launch to protect submitter PII.
+    match /contact/{messageId} {
+      allow create: if
+        request.resource.data.name is string &&
+        request.resource.data.name.size() > 0 &&
+        request.resource.data.email is string &&
+        request.resource.data.email.matches('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$') &&
+        request.resource.data.message is string &&
+        request.resource.data.message.size() > 0 &&
+        request.resource.data.message.size() <= 2000 &&
+        request.resource.data.status == 'new';
+      allow read: if true;
+      allow update, delete: if false;
+    }
+
+    // Store-wide settings (shipping fee, etc). MVP trade-off as above —
+    // anyone with the apiKey can change settings. Tighten with Admin SDK.
+    match /settings/{key} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

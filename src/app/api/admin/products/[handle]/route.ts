@@ -5,14 +5,42 @@ import {
   getProductByHandle,
   upsertProduct,
 } from "@/lib/products-server";
-import type { Product } from "@/lib/products";
+import type { Media, Product } from "@/lib/products";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 type Patch = Partial<
-  Pick<Product, "title" | "description" | "price" | "disabled">
+  Pick<Product, "title" | "description" | "price" | "disabled" | "media">
 > & { image?: string };
+
+function sanitizeMedia(raw: unknown): Media[] | null {
+  if (!Array.isArray(raw)) return null;
+  const out: Media[] = [];
+  for (const entry of raw) {
+    if (!entry || typeof entry !== "object") return null;
+    const e = entry as Record<string, unknown>;
+    const type = e.type;
+    const src = typeof e.src === "string" ? e.src.trim() : "";
+    if (!src) return null;
+    if (type === "image") {
+      out.push({
+        type: "image",
+        src,
+        alt: typeof e.alt === "string" ? e.alt : undefined,
+      });
+    } else if (type === "video") {
+      out.push({
+        type: "video",
+        src,
+        poster: typeof e.poster === "string" ? e.poster : undefined,
+      });
+    } else {
+      return null;
+    }
+  }
+  return out;
+}
 
 export async function PATCH(
   request: Request,
@@ -54,7 +82,13 @@ export async function PATCH(
   if (typeof body.disabled === "boolean") {
     next.disabled = body.disabled;
   }
-  if (typeof body.image === "string" && body.image.trim()) {
+  if (body.media !== undefined) {
+    const cleaned = sanitizeMedia(body.media);
+    if (cleaned === null) {
+      return NextResponse.json({ error: "Invalid media entries" }, { status: 400 });
+    }
+    next.media = cleaned;
+  } else if (typeof body.image === "string" && body.image.trim()) {
     next.media = [{ type: "image", src: body.image.trim(), alt: next.title }];
   }
 

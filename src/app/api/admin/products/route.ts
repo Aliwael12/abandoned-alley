@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/admin-auth";
 import { getAllProducts, upsertProduct } from "@/lib/products-server";
-import type { Product } from "@/lib/products";
+import type { Media, Product } from "@/lib/products";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,6 +12,39 @@ const slugify = (s: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 60);
+
+/**
+ * Returns the cleaned media array, or `null` if any entry is malformed.
+ * Returns `[]` when input is undefined/null (caller decides legacy fallback).
+ */
+function sanitizeMedia(raw: unknown): Media[] | null {
+  if (raw === undefined || raw === null) return [];
+  if (!Array.isArray(raw)) return null;
+  const out: Media[] = [];
+  for (const entry of raw) {
+    if (!entry || typeof entry !== "object") return null;
+    const e = entry as Record<string, unknown>;
+    const type = e.type;
+    const src = typeof e.src === "string" ? e.src.trim() : "";
+    if (!src) return null;
+    if (type === "image") {
+      out.push({
+        type: "image",
+        src,
+        alt: typeof e.alt === "string" ? e.alt : undefined,
+      });
+    } else if (type === "video") {
+      out.push({
+        type: "video",
+        src,
+        poster: typeof e.poster === "string" ? e.poster : undefined,
+      });
+    } else {
+      return null;
+    }
+  }
+  return out;
+}
 
 export async function GET() {
   if (!(await isAdmin())) {
@@ -39,6 +72,10 @@ export async function POST(request: Request) {
   const collectionHandle = String(body.collection ?? "").trim() || "general";
   const image = String(body.image ?? "").trim();
   const handleInput = String(body.handle ?? "").trim();
+  const mediaInput = sanitizeMedia(body.media);
+  if (mediaInput === null) {
+    return NextResponse.json({ error: "Invalid media entries" }, { status: 400 });
+  }
 
   if (!title) return NextResponse.json({ error: "Title required" }, { status: 400 });
   if (!Number.isFinite(price) || price < 0)
@@ -54,9 +91,12 @@ export async function POST(request: Request) {
     collection: collectionHandle,
     description,
     price,
-    media: image
-      ? [{ type: "image", src: image, alt: title }]
-      : [],
+    media:
+      mediaInput.length > 0
+        ? mediaInput
+        : image
+        ? [{ type: "image", src: image, alt: title }]
+        : [],
     options: [{ name: "Size", values: ["S", "M", "L", "XL"] }],
     variants: ["S", "M", "L", "XL"].map((sz) => ({
       id: `${handle}-${sz.toLowerCase()}`,

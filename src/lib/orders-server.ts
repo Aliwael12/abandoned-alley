@@ -25,6 +25,7 @@ export type OrderDetail = {
   items: OrderItem[];
   notes: string | null;
   subtotal: number;
+  shippingFee: number;
   currency: string;
   status: string;
   createdAt: number | null;
@@ -77,6 +78,7 @@ export async function getOrderById(id: string): Promise<OrderDetail | null> {
     })),
     notes: typeof data.notes === "string" ? (data.notes as string) : null,
     subtotal: Number(data.subtotal ?? 0),
+    shippingFee: Number(data.shippingFee ?? 0),
     currency: String(data.currency ?? "EGP"),
     status: String(data.status ?? "pending"),
     createdAt: tsToMillis(data.createdAt),

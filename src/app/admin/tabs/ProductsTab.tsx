@@ -2,8 +2,19 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Eye, EyeOff, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
-import type { Product } from "@/lib/products";
+import {
+  ArrowDown,
+  ArrowUp,
+  Eye,
+  EyeOff,
+  Loader2,
+  Pencil,
+  Plus,
+  Star,
+  Trash2,
+  X,
+} from "lucide-react";
+import type { Media, Product } from "@/lib/products";
 
 type Props = {
   products: Product[];
@@ -12,11 +23,166 @@ type Props = {
 };
 
 type EditState = Partial<Pick<Product, "title" | "description" | "price">> & {
-  image?: string;
+  media?: Media[];
 };
 
 const fmtUsd = (n: number) =>
   n.toLocaleString("en-US", { style: "currency", currency: "EGP" });
+
+function MediaEditor({
+  media,
+  onChange,
+}: {
+  media: Media[];
+  onChange: (next: Media[]) => void;
+}) {
+  const [url, setUrl] = useState("");
+
+  function add() {
+    const src = url.trim();
+    if (!src) return;
+    onChange([...media, { type: "image", src }]);
+    setUrl("");
+  }
+
+  function move(i: number, delta: number) {
+    const j = i + delta;
+    if (j < 0 || j >= media.length) return;
+    const next = media.slice();
+    [next[i], next[j]] = [next[j], next[i]];
+    onChange(next);
+  }
+
+  function remove(i: number) {
+    if (media.length === 1 && !confirm("Remove the only image for this product?")) return;
+    onChange(media.filter((_, idx) => idx !== i));
+  }
+
+  function setMain(i: number) {
+    if (i === 0) return;
+    const next = media.slice();
+    const [picked] = next.splice(i, 1);
+    next.unshift(picked);
+    onChange(next);
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="text-[11px] tracking-[0.3em] uppercase text-white/60">
+        Images ({media.length})
+      </div>
+
+      {media.length === 0 ? (
+        <p className="text-xs text-white/50 py-2">
+          No images yet — add one below. The first image is the main card image.
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {media.map((m, i) => {
+            const isMain = i === 0;
+            return (
+              <li
+                key={`${i}-${m.src}`}
+                className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-md p-2"
+              >
+                <div className="relative w-12 h-12 bg-white/5 rounded overflow-hidden shrink-0 grid place-items-center">
+                  {m.type === "image" ? (
+                    <Image
+                      src={m.src}
+                      alt=""
+                      fill
+                      sizes="48px"
+                      className="object-cover"
+                      unoptimized
+                    />
+                  ) : (
+                    <span className="text-[9px] tracking-[0.2em] uppercase text-white/60">
+                      Video
+                    </span>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    {isMain && (
+                      <span className="px-1.5 py-0.5 text-[9px] tracking-[0.2em] uppercase border border-white/30 rounded text-white/80">
+                        Main
+                      </span>
+                    )}
+                    <code className="text-[11px] text-white/70 truncate font-mono">
+                      {m.src}
+                    </code>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => move(i, -1)}
+                    disabled={i === 0}
+                    aria-label="Move up"
+                    className="w-8 h-8 grid place-items-center border border-white/15 rounded hover:border-white/40 disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    <ArrowUp size={12} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => move(i, 1)}
+                    disabled={i === media.length - 1}
+                    aria-label="Move down"
+                    className="w-8 h-8 grid place-items-center border border-white/15 rounded hover:border-white/40 disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    <ArrowDown size={12} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMain(i)}
+                    disabled={isMain}
+                    aria-label="Set as main"
+                    title="Set as main"
+                    className="w-8 h-8 grid place-items-center border border-white/15 rounded hover:border-white/40 disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    <Star size={12} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => remove(i)}
+                    aria-label="Remove"
+                    className="w-8 h-8 grid place-items-center border border-white/15 rounded hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      <div className="flex gap-2">
+        <input
+          placeholder="Image URL (https://… or /media/…)"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              add();
+            }
+          }}
+          className="bg-white/5 border border-white/15 rounded-md h-10 px-3 text-sm outline-none focus:border-white/40 transition flex-1"
+        />
+        <button
+          type="button"
+          onClick={add}
+          disabled={!url.trim()}
+          className="px-4 py-2 border border-white/15 hover:border-white/40 rounded-md text-xs tracking-[0.2em] uppercase disabled:opacity-50 inline-flex items-center gap-2"
+        >
+          <Plus size={12} />
+          Add
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default function ProductsTab({ products, onChanged, onError }: Props) {
   const [editing, setEditing] = useState<string | null>(null);
@@ -27,8 +193,8 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
     title: "",
     description: "",
     price: "",
-    image: "",
     collection: "general",
+    media: [] as Media[],
   });
 
   function startEdit(p: Product) {
@@ -37,7 +203,7 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
       title: p.title,
       description: p.description,
       price: p.price,
-      image: p.media[0]?.type === "image" ? p.media[0].src : "",
+      media: p.media,
     });
   }
 
@@ -99,13 +265,22 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...createDraft,
+          title: createDraft.title,
+          description: createDraft.description,
+          collection: createDraft.collection,
+          media: createDraft.media,
           price: Number(createDraft.price),
         }),
       });
       if (!res.ok) throw new Error((await res.json())?.error ?? "Create failed");
       setCreating(false);
-      setCreateDraft({ title: "", description: "", price: "", image: "", collection: "general" });
+      setCreateDraft({
+        title: "",
+        description: "",
+        price: "",
+        collection: "general",
+        media: [],
+      });
       await onChanged();
     } catch (err) {
       onError(err instanceof Error ? err.message : "Create failed");
@@ -168,15 +343,18 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
               className={inputCls}
             />
           </div>
-          <input
-            placeholder="Image URL (https://… or /media/…)"
-            value={createDraft.image}
-            onChange={(e) => setCreateDraft({ ...createDraft, image: e.target.value })}
-            className={inputCls}
+          <MediaEditor
+            media={createDraft.media}
+            onChange={(media) => setCreateDraft({ ...createDraft, media })}
           />
           <button
             onClick={createProduct}
-            disabled={busy === "__new__" || !createDraft.title || !createDraft.price}
+            disabled={
+              busy === "__new__" ||
+              !createDraft.title ||
+              !createDraft.price ||
+              createDraft.media.length === 0
+            }
             style={{ color: "#000" }}
             className="self-start bg-white px-5 py-2.5 rounded-md text-xs tracking-[0.2em] uppercase disabled:opacity-50 inline-flex items-center gap-2"
           >
@@ -194,7 +372,11 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
         ) : (
           products.map((p) => {
             const isEditing = editing === p.handle;
-            const img = p.media.find((m) => m.type === "image");
+            const head = p.media[0];
+            const img =
+              head && head.type === "image"
+                ? head
+                : p.media.find((m) => m.type === "image");
             return (
               <li
                 key={p.handle}
@@ -229,21 +411,17 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
                         onChange={(e) => setDraft({ ...draft, description: e.target.value })}
                         className="bg-white/5 border border-white/15 rounded-md p-3 text-sm outline-none focus:border-white/40 transition resize-none"
                       />
-                      <div className="grid md:grid-cols-2 gap-3">
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={draft.price ?? 0}
-                          onChange={(e) => setDraft({ ...draft, price: Number(e.target.value) })}
-                          className={inputCls}
-                        />
-                        <input
-                          placeholder="Image URL"
-                          value={draft.image ?? ""}
-                          onChange={(e) => setDraft({ ...draft, image: e.target.value })}
-                          className={inputCls}
-                        />
-                      </div>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={draft.price ?? 0}
+                        onChange={(e) => setDraft({ ...draft, price: Number(e.target.value) })}
+                        className={inputCls}
+                      />
+                      <MediaEditor
+                        media={draft.media ?? []}
+                        onChange={(media) => setDraft({ ...draft, media })}
+                      />
                     </>
                   ) : (
                     <>

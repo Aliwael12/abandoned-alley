@@ -14,6 +14,7 @@ import {
   isDroppinConfigured,
   pushPackages,
 } from "@/lib/droppin";
+import { getShippingFee } from "@/lib/settings-server";
 
 export const runtime = "nodejs";
 
@@ -111,6 +112,7 @@ export async function POST(request: Request) {
   }
 
   const subtotal = parsed.items.reduce((n, i) => n + i.price * i.quantity, 0);
+  const shippingFee = await getShippingFee();
 
   const orderDoc = {
     customer: parsed.customer,
@@ -118,6 +120,7 @@ export async function POST(request: Request) {
     items: parsed.items,
     notes: parsed.notes ?? null,
     subtotal,
+    shippingFee,
     currency: "EGP",
     status: "pending",
     createdAt: serverTimestamp(),
@@ -141,6 +144,7 @@ export async function POST(request: Request) {
     notes: parsed.notes,
     items: parsed.items,
     subtotal,
+    shippingFee,
   };
 
   const results = await Promise.allSettled([
@@ -154,7 +158,7 @@ export async function POST(request: Request) {
     resend.emails.send({
       from: EMAIL_FROM,
       to: ADMIN_EMAIL,
-      subject: `New order #${orderId} — EGP ${subtotal.toFixed(2)}`,
+      subject: `New order #${orderId} — EGP ${(subtotal + shippingFee).toFixed(2)}`,
       html: adminOrderHtml(emailPayload),
       replyTo: parsed.customer.email,
     }),
@@ -175,6 +179,7 @@ export async function POST(request: Request) {
         shipping: parsed.shipping,
         items: parsed.items,
         subtotal,
+        shippingFee,
         notes: parsed.notes ?? null,
       });
       const result = await pushPackages([pkg]);

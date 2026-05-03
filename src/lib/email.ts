@@ -3,7 +3,7 @@ import { Resend } from "resend";
 export const resend = new Resend(process.env.RESEND_API_KEY!);
 
 export const EMAIL_FROM = process.env.EMAIL_FROM ?? "Abandoned Alley <onboarding@resend.dev>";
-export const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "dev@tsk.vc";
+export const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "abandonedalley@gmail.com";
 
 export type OrderItemForEmail = {
   title: string;
@@ -27,6 +27,7 @@ export type OrderForEmail = {
   notes?: string;
   items: OrderItemForEmail[];
   subtotal: number;
+  shippingFee: number;
 };
 
 const escape = (s: string) =>
@@ -50,6 +51,7 @@ const itemsHtml = (items: OrderItemForEmail[]) =>
 
 export function customerOrderHtml(order: OrderForEmail) {
   const ship = order.shipping;
+  const total = order.subtotal + order.shippingFee;
   return `
   <div style="background:#0a0a0a;color:#eee;font-family:Helvetica,Arial,sans-serif;padding:32px;max-width:600px;margin:auto;">
     <h1 style="font-family:Impact,sans-serif;letter-spacing:0.18em;font-size:28px;margin:0 0 8px;">ABANDONED ALLEY</h1>
@@ -59,7 +61,15 @@ export function customerOrderHtml(order: OrderForEmail) {
       ${itemsHtml(order.items)}
       <tr>
         <td style="padding:14px 0 0;color:#888;text-transform:uppercase;letter-spacing:0.18em;font-size:12px;">Subtotal</td>
-        <td style="padding:14px 0 0;color:#eee;text-align:right;font-size:18px;">EGP ${order.subtotal.toFixed(2)}</td>
+        <td style="padding:14px 0 0;color:#eee;text-align:right;font-size:14px;">EGP ${order.subtotal.toFixed(2)}</td>
+      </tr>
+      <tr>
+        <td style="padding:6px 0 0;color:#888;text-transform:uppercase;letter-spacing:0.18em;font-size:12px;">Shipping</td>
+        <td style="padding:6px 0 0;color:#eee;text-align:right;font-size:14px;">EGP ${order.shippingFee.toFixed(2)}</td>
+      </tr>
+      <tr>
+        <td style="padding:14px 0 0;color:#eee;text-transform:uppercase;letter-spacing:0.18em;font-size:13px;font-weight:bold;border-top:1px solid #222;">Total</td>
+        <td style="padding:14px 0 0;color:#eee;text-align:right;font-size:18px;font-weight:bold;border-top:1px solid #222;">EGP ${total.toFixed(2)}</td>
       </tr>
     </table>
     <h3 style="margin-top:32px;color:#eee;letter-spacing:0.1em;">Ship to</h3>
@@ -75,6 +85,7 @@ export function customerOrderHtml(order: OrderForEmail) {
 
 export function adminOrderHtml(order: OrderForEmail) {
   const ship = order.shipping;
+  const total = order.subtotal + order.shippingFee;
   return `
   <div style="background:#0a0a0a;color:#eee;font-family:Helvetica,Arial,sans-serif;padding:32px;max-width:600px;margin:auto;">
     <h2 style="margin:0 0 16px;">New order #${escape(order.id)}</h2>
@@ -86,7 +97,15 @@ export function adminOrderHtml(order: OrderForEmail) {
       ${itemsHtml(order.items)}
       <tr>
         <td style="padding:14px 0 0;color:#888;text-transform:uppercase;letter-spacing:0.18em;font-size:12px;">Subtotal</td>
-        <td style="padding:14px 0 0;color:#eee;text-align:right;font-size:18px;">EGP ${order.subtotal.toFixed(2)}</td>
+        <td style="padding:14px 0 0;color:#eee;text-align:right;font-size:14px;">EGP ${order.subtotal.toFixed(2)}</td>
+      </tr>
+      <tr>
+        <td style="padding:6px 0 0;color:#888;text-transform:uppercase;letter-spacing:0.18em;font-size:12px;">Shipping</td>
+        <td style="padding:6px 0 0;color:#eee;text-align:right;font-size:14px;">EGP ${order.shippingFee.toFixed(2)}</td>
+      </tr>
+      <tr>
+        <td style="padding:14px 0 0;color:#eee;text-transform:uppercase;letter-spacing:0.18em;font-size:13px;font-weight:bold;border-top:1px solid #222;">Total</td>
+        <td style="padding:14px 0 0;color:#eee;text-align:right;font-size:18px;font-weight:bold;border-top:1px solid #222;">EGP ${total.toFixed(2)}</td>
       </tr>
     </table>
     <h3 style="margin-top:32px;">Ship to</h3>

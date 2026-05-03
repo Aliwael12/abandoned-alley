@@ -7,7 +7,15 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 
-export default function SearchModal({
+export default function SearchModal(props: {
+  open: boolean;
+  onClose: () => void;
+}) {
+  // Remount on open/close so internal query state resets without an effect.
+  return <SearchModalInner key={props.open ? "open" : "closed"} {...props} />;
+}
+
+function SearchModalInner({
   open,
   onClose,
 }: {
@@ -18,10 +26,7 @@ export default function SearchModal({
   const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
-    if (!open) {
-      setQuery("");
-      return;
-    }
+    if (!open) return;
     let cancelled = false;
     fetch("/api/products", { cache: "no-store" })
       .then((r) => r.json())
