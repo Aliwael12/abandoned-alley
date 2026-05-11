@@ -27,6 +27,18 @@ type IncomingItem = {
   quantity: number;
 };
 
+type AttributionIn = {
+  sessionId: string | null;
+  referrer: string | null;
+  utm: {
+    source: string | null;
+    medium: string | null;
+    campaign: string | null;
+    content: string | null;
+    term: string | null;
+  };
+};
+
 type IncomingOrder = {
   customer: { name: string; email: string; phone: string };
   shipping: {
@@ -38,6 +50,7 @@ type IncomingOrder = {
   };
   notes?: string;
   items: IncomingItem[];
+  attribution?: AttributionIn;
 };
 
 function isValidEmail(s: string) {
@@ -90,11 +103,32 @@ function validate(body: unknown): IncomingOrder | string {
     });
   }
 
+  let attribution: AttributionIn | undefined;
+  const attrRaw = b.attribution;
+  if (attrRaw && typeof attrRaw === "object") {
+    const a = attrRaw as Record<string, unknown>;
+    const utmRaw = (a.utm ?? {}) as Record<string, unknown>;
+    const str = (v: unknown, max = 120) =>
+      typeof v === "string" && v.length ? v.slice(0, max) : null;
+    attribution = {
+      sessionId: str(a.sessionId, 64),
+      referrer: str(a.referrer, 500),
+      utm: {
+        source: str(utmRaw.source, 80),
+        medium: str(utmRaw.medium, 80),
+        campaign: str(utmRaw.campaign, 120),
+        content: str(utmRaw.content, 120),
+        term: str(utmRaw.term, 120),
+      },
+    };
+  }
+
   return {
     customer: { name, email, phone },
     shipping: ship,
     notes: typeof b.notes === "string" ? b.notes.trim().slice(0, 1000) : undefined,
     items: cleanItems,
+    attribution,
   };
 }
 
@@ -114,6 +148,45 @@ export async function POST(request: Request) {
   const subtotal = parsed.items.reduce((n, i) => n + i.price * i.quantity, 0);
   const shippingFee = await getShippingFee();
 
+  const SOCIAL_HOSTS: Record<string, string> = {
+    "instagram.com": "instagram",
+    "www.instagram.com": "instagram",
+    "l.instagram.com": "instagram",
+    "facebook.com": "facebook",
+    "www.facebook.com": "facebook",
+    "m.facebook.com": "facebook",
+    "l.facebook.com": "facebook",
+    "lm.facebook.com": "facebook",
+    "tiktok.com": "tiktok",
+    "www.tiktok.com": "tiktok",
+    "vm.tiktok.com": "tiktok",
+    "twitter.com": "twitter",
+    "x.com": "twitter",
+    "t.co": "twitter",
+  };
+  let referrerHost: string | null = null;
+  let socialReferrer: string | null = null;
+  const refUrl = parsed.attribution?.referrer ?? null;
+  if (refUrl) {
+    try {
+      const h = new URL(refUrl).hostname.toLowerCase();
+      referrerHost = h;
+      socialReferrer = SOCIAL_HOSTS[h] ?? null;
+    } catch {
+      // ignore
+    }
+  }
+
+  const attributionDoc = parsed.attribution
+    ? {
+        sessionId: parsed.attribution.sessionId,
+        referrer: parsed.attribution.referrer,
+        referrerHost,
+        socialReferrer,
+        utm: parsed.attribution.utm,
+      }
+    : null;
+
   const orderDoc = {
     customer: parsed.customer,
     shipping: parsed.shipping,
@@ -123,6 +196,7 @@ export async function POST(request: Request) {
     shippingFee,
     currency: "EGP",
     status: "pending",
+    attribution: attributionDoc,
     createdAt: serverTimestamp(),
   };
 

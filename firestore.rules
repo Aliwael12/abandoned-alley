@@ -47,7 +47,11 @@ service cloud.firestore {
         request.resource.data.subtotal is number &&
         request.resource.data.subtotal >= 0 &&
         request.resource.data.subtotal <= 100000 &&
-        request.resource.data.status == 'pending';
+        request.resource.data.status == 'pending' &&
+        request.resource.data.keys().hasOnly([
+          'customer','shipping','items','notes','subtotal','shippingFee',
+          'currency','status','attribution','createdAt'
+        ]);
       allow read: if true;
       allow update, delete: if false;
     }
@@ -99,6 +103,16 @@ service cloud.firestore {
       allow read: if true;
       allow create, update: if true;
       allow delete: if false;
+    }
+
+    // Analytics sessions: public can create (anonymous beacon), reads open for
+    // admin dashboard aggregation. MVP trade-off — tighten with Admin SDK.
+    match /sessions/{sessionDoc} {
+      allow create: if
+        request.resource.data.keys().hasAny(['sessionId','referrer','referrerHost','socialReferrer','country','region','city','path','utm']) &&
+        request.resource.data.size() < 30;
+      allow read: if true;
+      allow update, delete: if false;
     }
 
     match /{document=**} {

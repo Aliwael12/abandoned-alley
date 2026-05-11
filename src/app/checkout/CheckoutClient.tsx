@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "@/lib/cart";
 import { Loader2 } from "lucide-react";
+import { getStoredAttribution } from "@/components/SessionTracker";
 
 type FormState = {
   name: string;
@@ -102,12 +103,16 @@ export default function CheckoutClient() {
             price: i.price,
             quantity: i.quantity,
           })),
+          attribution: getStoredAttribution(),
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error ?? "Order failed");
+      const total = subtotal + (shippingFee ?? 0);
       clear();
-      router.push(`/checkout/success?id=${encodeURIComponent(data.orderId)}`);
+      router.push(
+        `/checkout/success?id=${encodeURIComponent(data.orderId)}&total=${total}&currency=EGP`
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
       setSubmitting(false);

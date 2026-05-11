@@ -7,6 +7,7 @@ import {
   Boxes,
   Inbox,
   Layers,
+  LineChart,
   LogOut,
   Mail,
   Loader2,
@@ -14,6 +15,7 @@ import {
   Settings,
 } from "lucide-react";
 import OverviewTab from "./tabs/OverviewTab";
+import AnalyticsTab from "./tabs/AnalyticsTab";
 import ProductsTab from "./tabs/ProductsTab";
 import CollectionsTab from "./tabs/CollectionsTab";
 import BroadcastTab from "./tabs/BroadcastTab";
@@ -24,6 +26,7 @@ import type { CollectionMeta, OrdersResponse } from "./types";
 
 type Tab =
   | "overview"
+  | "analytics"
   | "products"
   | "collections"
   | "broadcast"
@@ -32,6 +35,7 @@ type Tab =
 
 const TABS: { id: Tab; label: string; icon: React.ComponentType<{ size?: number }> }[] = [
   { id: "overview", label: "Overview", icon: BarChart3 },
+  { id: "analytics", label: "Analytics", icon: LineChart },
   { id: "products", label: "Products", icon: Boxes },
   { id: "collections", label: "Collections", icon: Layers },
   { id: "broadcast", label: "Promo email", icon: Mail },
@@ -173,6 +177,7 @@ export default function AdminDashboard() {
       ) : (
         <>
           {tab === "overview" && <OverviewTab data={orders} />}
+          {tab === "analytics" && <AnalyticsTab />}
           {tab === "products" && (
             <ProductsTab
               products={products ?? []}
