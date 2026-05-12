@@ -2,6 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Loader2, TrendingDown, TrendingUp, Minus } from "lucide-react";
+import {
+  CompareRangePicker,
+  DateRangePicker,
+  previousPeriod,
+  type DateRange,
+} from "./DateRangePicker";
 
 type Point = { date: string; current: number; previous: number };
 type Breakdown = { label?: string; title?: string; current: number; previous: number };
@@ -18,8 +24,9 @@ type Analytics = {
     days: number;
     currentStart: string;
     currentEnd: string;
-    previousStart: string;
-    previousEnd: string;
+    previousStart: string | null;
+    previousEnd: string | null;
+    compareDays: number;
   };
   kpis: {
     grossSales: Kpi;
@@ -52,12 +59,6 @@ type Analytics = {
     utmCampaign: Breakdown[];
   };
 };
-
-const RANGE_OPTIONS = [
-  { days: 7, label: "Last 7 days" },
-  { days: 30, label: "Last 30 days" },
-  { days: 90, label: "Last 90 days" },
-];
 
 const fmtEgp = (n: number) =>
   `EGP ${Math.round(n).toLocaleString("en-US")}`;
@@ -353,14 +354,30 @@ function BreakdownCard({
   );
 }
 
-function AnalyticsView({ days }: { days: number }) {
+function AnalyticsView({
+  range,
+  compare,
+}: {
+  range: DateRange;
+  compare: DateRange | null;
+}) {
   const [data, setData] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/admin/analytics?days=${days}`, { cache: "no-store" })
+    const params = new URLSearchParams({
+      start: range.start,
+      end: range.end,
+    });
+    if (compare) {
+      params.set("compareStart", compare.start);
+      params.set("compareEnd", compare.end);
+    } else {
+      params.set("compare", "none");
+    }
+    fetch(`/api/admin/analytics?${params.toString()}`, { cache: "no-store" })
       .then(async (r) => {
         if (!r.ok) throw new Error((await r.json())?.error ?? "Failed");
         return (await r.json()) as Analytics;
@@ -377,7 +394,7 @@ function AnalyticsView({ days }: { days: number }) {
     return () => {
       cancelled = true;
     };
-  }, [days]);
+  }, [range.start, range.end, compare?.start, compare?.end, compare]);
 
   if (loading && !data) {
     return (
@@ -395,13 +412,16 @@ function AnalyticsView({ days }: { days: number }) {
   }
   if (!data) return null;
 
-  const { kpis, series, breakdowns, range } = data;
-  const currentLabel = `${formatShortDate(range.currentStart)}–${formatShortDate(
-    range.currentEnd
+  const { kpis, series, breakdowns, range: apiRange } = data;
+  const currentLabel = `${formatShortDate(apiRange.currentStart)}–${formatShortDate(
+    apiRange.currentEnd
   )}`;
-  const previousLabel = `${formatShortDate(range.previousStart)}–${formatShortDate(
-    range.previousEnd
-  )}`;
+  const previousLabel =
+    apiRange.previousStart && apiRange.previousEnd
+      ? `${formatShortDate(apiRange.previousStart)}–${formatShortDate(
+          apiRange.previousEnd
+        )}`
+      : "No comparison";
 
   return (
     <div className="flex flex-col gap-6">
@@ -594,31 +614,44 @@ function AnalyticsView({ days }: { days: number }) {
   );
 }
 
+function defaultRange(): DateRange {
+  const now = new Date();
+  const today = new Date(
+    Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
+  );
+  const start = new Date(today);
+  start.setUTCDate(start.getUTCDate() - 29);
+  const toIso = (d: Date) => d.toISOString().slice(0, 10);
+  return { start: toIso(start), end: toIso(today) };
+}
+
 export default function AnalyticsTab() {
-  const [days, setDays] = useState(30);
+  const [range, setRange] = useState<DateRange>(() => defaultRange());
+  const [compare, setCompare] = useState<DateRange | null>(() =>
+    previousPeriod(defaultRange())
+  );
+
+  function handleRangeChange(r: DateRange) {
+    setRange(r);
+    // Auto-shift comparison to the new "previous period" unless user had explicitly cleared it.
+    setCompare((cur) => (cur === null ? null : previousPeriod(r)));
+  }
+
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex justify-end">
-        <div className="inline-flex border border-white/10 rounded-md overflow-hidden">
-          {RANGE_OPTIONS.map((opt) => {
-            const active = days === opt.days;
-            return (
-              <button
-                key={opt.days}
-                onClick={() => setDays(opt.days)}
-                className={`px-4 py-2 text-[11px] tracking-[0.2em] uppercase transition ${
-                  active
-                    ? "bg-white text-black"
-                    : "text-white/60 hover:text-white"
-                }`}
-              >
-                {opt.label}
-              </button>
-            );
-          })}
-        </div>
+      <div className="flex justify-end gap-2">
+        <DateRangePicker value={range} onChange={handleRangeChange} />
+        <CompareRangePicker
+          primary={range}
+          value={compare}
+          onChange={setCompare}
+        />
       </div>
-      <AnalyticsView key={days} days={days} />
+      <AnalyticsView
+        key={`${range.start}-${range.end}-${compare?.start ?? "x"}-${compare?.end ?? "x"}`}
+        range={range}
+        compare={compare}
+      />
     </div>
   );
 }

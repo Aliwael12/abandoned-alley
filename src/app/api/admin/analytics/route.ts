@@ -118,20 +118,65 @@ function pctChange(curr: number, prev: number): number | null {
   return ((curr - prev) / prev) * 100;
 }
 
+function parseIsoToUtc(s: string | null): number | null {
+  if (!s) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  if (!m) return null;
+  const ms = Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return isNaN(ms) ? null : ms;
+}
+
 export async function GET(request: Request) {
   if (!(await isAdmin())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const { searchParams } = new URL(request.url);
-  const days = Math.min(
-    90,
-    Math.max(7, Number(searchParams.get("days") ?? 30))
-  );
 
-  const todayStart = startOfUtcDay(Date.now()) + DAY_MS;
-  const periodStart = todayStart - days * DAY_MS;
-  const prevStart = periodStart - days * DAY_MS;
+  // Resolve current range. Prefer explicit start/end; fall back to legacy days.
+  const startParam = parseIsoToUtc(searchParams.get("start"));
+  const endParam = parseIsoToUtc(searchParams.get("end"));
+
+  let periodStart: number;
+  let periodEnd: number; // exclusive upper bound (start of day after `end`)
+  let days: number;
+
+  if (startParam !== null && endParam !== null && endParam >= startParam) {
+    periodStart = startParam;
+    periodEnd = endParam + DAY_MS;
+    days = Math.max(1, Math.round((periodEnd - periodStart) / DAY_MS));
+  } else {
+    days = Math.min(
+      365,
+      Math.max(1, Number(searchParams.get("days") ?? 30))
+    );
+    periodEnd = startOfUtcDay(Date.now()) + DAY_MS;
+    periodStart = periodEnd - days * DAY_MS;
+  }
+
+  // Resolve comparison range. Default to previous period of equal length.
+  const compStartParam = parseIsoToUtc(searchParams.get("compareStart"));
+  const compEndParam = parseIsoToUtc(searchParams.get("compareEnd"));
+  const noCompare = searchParams.get("compare") === "none";
+
+  let prevStart: number;
+  let prevEnd: number;
+  if (noCompare) {
+    prevStart = periodStart;
+    prevEnd = periodStart;
+  } else if (
+    compStartParam !== null &&
+    compEndParam !== null &&
+    compEndParam >= compStartParam
+  ) {
+    prevStart = compStartParam;
+    prevEnd = compEndParam + DAY_MS;
+  } else {
+    prevStart = periodStart - days * DAY_MS;
+    prevEnd = periodStart;
+  }
+
+  const fetchFloor = Math.min(periodStart, prevStart);
 
   let orderSnap;
   let sessionSnap;
@@ -155,7 +200,7 @@ export async function GET(request: Request) {
     })
     .filter(
       (o): o is OrderDoc & { _createdAt: number } =>
-        typeof o._createdAt === "number" && o._createdAt >= prevStart
+        typeof o._createdAt === "number" && o._createdAt >= fetchFloor
     );
 
   const sessions = sessionSnap.docs
@@ -165,15 +210,20 @@ export async function GET(request: Request) {
     })
     .filter(
       (s): s is SessionDoc & { _createdAt: number } =>
-        typeof s._createdAt === "number" && s._createdAt >= prevStart
+        typeof s._createdAt === "number" && s._createdAt >= fetchFloor
     );
+
+  const compareDays = noCompare
+    ? 0
+    : Math.max(0, Math.round((prevEnd - prevStart) / DAY_MS));
 
   function bucketize(
     items: { _createdAt: number }[],
     extract: (i: { _createdAt: number }) => number,
-    start: number
+    start: number,
+    len: number
   ): Bucket[] {
-    const buckets = emptyBuckets(start, days);
+    const buckets = emptyBuckets(start, len);
     const index = new Map(buckets.map((b, i) => [b.date, i]));
     for (const it of items) {
       const day = isoDay(startOfUtcDay(it._createdAt));
@@ -192,25 +242,35 @@ export async function GET(request: Request) {
     }));
   }
 
-  const currentOrders = orders.filter((o) => o._createdAt >= periodStart);
-  const previousOrders = orders.filter(
-    (o) => o._createdAt >= prevStart && o._createdAt < periodStart
+  const currentOrders = orders.filter(
+    (o) => o._createdAt >= periodStart && o._createdAt < periodEnd
   );
-  const currentSessions = sessions.filter((s) => s._createdAt >= periodStart);
-  const previousSessions = sessions.filter(
-    (s) => s._createdAt >= prevStart && s._createdAt < periodStart
+  const previousOrders = noCompare
+    ? []
+    : orders.filter(
+        (o) => o._createdAt >= prevStart && o._createdAt < prevEnd
+      );
+  const currentSessions = sessions.filter(
+    (s) => s._createdAt >= periodStart && s._createdAt < periodEnd
   );
+  const previousSessions = noCompare
+    ? []
+    : sessions.filter(
+        (s) => s._createdAt >= prevStart && s._createdAt < prevEnd
+      );
 
   // Gross sales over time (all orders' subtotal regardless of status)
   const salesCurr = bucketize(
     currentOrders,
     (o) => Number((o as OrderDoc).subtotal ?? 0),
-    periodStart
+    periodStart,
+    days
   );
   const salesPrev = bucketize(
     previousOrders,
     (o) => Number((o as OrderDoc).subtotal ?? 0),
-    prevStart
+    prevStart,
+    compareDays
   );
 
   // Net sales = gross minus cancelled/refunded/returned
@@ -220,7 +280,8 @@ export async function GET(request: Request) {
       const od = o as OrderDoc;
       return isCancelled(od) ? 0 : Number(od.subtotal ?? 0);
     },
-    periodStart
+    periodStart,
+    days
   );
   const netSalesPrev = bucketize(
     previousOrders,
@@ -228,23 +289,26 @@ export async function GET(request: Request) {
       const od = o as OrderDoc;
       return isCancelled(od) ? 0 : Number(od.subtotal ?? 0);
     },
-    prevStart
+    prevStart,
+    compareDays
   );
 
   // Orders count over time
-  const ordersCurr = bucketize(currentOrders, () => 1, periodStart);
-  const ordersPrev = bucketize(previousOrders, () => 1, prevStart);
+  const ordersCurr = bucketize(currentOrders, () => 1, periodStart, days);
+  const ordersPrev = bucketize(previousOrders, () => 1, prevStart, compareDays);
 
   // Delivered orders over time
   const deliveredCurr = bucketize(
     currentOrders,
     (o) => (isDelivered(o as OrderDoc) ? 1 : 0),
-    periodStart
+    periodStart,
+    days
   );
   const deliveredPrev = bucketize(
     previousOrders,
     (o) => (isDelivered(o as OrderDoc) ? 1 : 0),
-    prevStart
+    prevStart,
+    compareDays
   );
 
   // AOV over time = sales / orders per day
@@ -258,8 +322,13 @@ export async function GET(request: Request) {
   }));
 
   // Sessions over time
-  const sessionsCurr = bucketize(currentSessions, () => 1, periodStart);
-  const sessionsPrev = bucketize(previousSessions, () => 1, prevStart);
+  const sessionsCurr = bucketize(currentSessions, () => 1, periodStart, days);
+  const sessionsPrev = bucketize(
+    previousSessions,
+    () => 1,
+    prevStart,
+    compareDays
+  );
 
   // Conversion rate over time = orders / sessions (in %)
   const convCurr: Bucket[] = ordersCurr.map((b, i) => ({
@@ -549,9 +618,10 @@ export async function GET(request: Request) {
     range: {
       days,
       currentStart: isoDay(periodStart),
-      currentEnd: isoDay(todayStart - DAY_MS),
-      previousStart: isoDay(prevStart),
-      previousEnd: isoDay(periodStart - DAY_MS),
+      currentEnd: isoDay(periodEnd - DAY_MS),
+      previousStart: noCompare ? null : isoDay(prevStart),
+      previousEnd: noCompare ? null : isoDay(prevEnd - DAY_MS),
+      compareDays: noCompare ? 0 : compareDays,
     },
     kpis: {
       grossSales: {
