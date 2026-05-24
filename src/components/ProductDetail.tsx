@@ -1,6 +1,8 @@
 "use client";
 
 import { Product } from "@/lib/products";
+import type { SizeChart } from "@/lib/size-charts";
+import SizeChartPanel from "@/components/SizeChartPanel";
 import { useCart } from "@/lib/cart";
 import Image from "next/image";
 import { useMemo, useState } from "react";
@@ -8,7 +10,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Minus, Plus } from "lucide-react";
 import Link from "next/link";
 
-export default function ProductDetail({ product }: { product: Product }) {
+export default function ProductDetail({
+  product,
+  sizeChart,
+}: {
+  product: Product;
+  sizeChart?: SizeChart | null;
+}) {
   const add = useCart((s) => s.add);
   const [active, setActive] = useState(0);
   const [qty, setQty] = useState(1);
@@ -138,6 +146,8 @@ export default function ProductDetail({ product }: { product: Product }) {
           <p className="text-white/70 leading-relaxed max-w-md">
             {product.description}
           </p>
+
+          {sizeChart && <SizeChartPanel chart={sizeChart} />}
 
           {product.options.map((opt) => (
             <div key={opt.name} className="flex flex-col gap-3">

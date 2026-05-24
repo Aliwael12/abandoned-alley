@@ -12,6 +12,7 @@ import {
   Mail,
   Loader2,
   RefreshCw,
+  Ruler,
   Settings,
 } from "lucide-react";
 import OverviewTab from "./tabs/OverviewTab";
@@ -21,6 +22,7 @@ import CollectionsTab from "./tabs/CollectionsTab";
 import BroadcastTab from "./tabs/BroadcastTab";
 import ContactTab from "./tabs/ContactTab";
 import SettingsTab from "./tabs/SettingsTab";
+import SizeChartsTab from "./tabs/SizeChartsTab";
 import type { Product } from "@/lib/products";
 import type { CollectionMeta, OrdersResponse } from "./types";
 
@@ -31,6 +33,7 @@ type Tab =
   | "collections"
   | "broadcast"
   | "contact"
+  | "sizeCharts"
   | "settings";
 
 const TABS: { id: Tab; label: string; icon: React.ComponentType<{ size?: number }> }[] = [
@@ -40,6 +43,7 @@ const TABS: { id: Tab; label: string; icon: React.ComponentType<{ size?: number 
   { id: "collections", label: "Collections", icon: Layers },
   { id: "broadcast", label: "Promo email", icon: Mail },
   { id: "contact", label: "Contact", icon: Inbox },
+  { id: "sizeCharts", label: "Size charts", icon: Ruler },
   { id: "settings", label: "Settings", icon: Settings },
 ];
 
@@ -195,6 +199,13 @@ export default function AdminDashboard() {
           )}
           {tab === "broadcast" && <BroadcastTab onError={(m) => setError(m)} />}
           {tab === "contact" && <ContactTab onError={(m) => setError(m)} />}
+          {tab === "sizeCharts" && (
+            <SizeChartsTab
+              products={products ?? []}
+              onChanged={refresh}
+              onError={(m) => setError(m)}
+            />
+          )}
           {tab === "settings" && <SettingsTab onError={(m) => setError(m)} />}
         </>
       )}

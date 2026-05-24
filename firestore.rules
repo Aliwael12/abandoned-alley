@@ -81,6 +81,12 @@ service cloud.firestore {
       allow create, update, delete: if true;
     }
 
+    // Size charts: storefront reads assigned charts; admin writes.
+    match /sizeCharts/{handle} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
     // Contact messages: public submit (validated), open reads for admin list.
     // Lock down with Admin SDK before launch to protect submitter PII.
     match /contact/{messageId} {

@@ -11,8 +11,11 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 type Patch = Partial<
-  Pick<Product, "title" | "description" | "price" | "disabled" | "media">
-> & { image?: string };
+  Pick<
+    Product,
+    "title" | "description" | "price" | "disabled" | "media" | "sizeChartId"
+  >
+> & { image?: string; clearSizeChart?: boolean };
 
 function sanitizeMedia(raw: unknown): Media[] | null {
   if (!Array.isArray(raw)) return null;
@@ -90,6 +93,13 @@ export async function PATCH(
     next.media = cleaned;
   } else if (typeof body.image === "string" && body.image.trim()) {
     next.media = [{ type: "image", src: body.image.trim(), alt: next.title }];
+  }
+  if (body.clearSizeChart) {
+    delete next.sizeChartId;
+  } else if (typeof body.sizeChartId === "string") {
+    const id = body.sizeChartId.trim();
+    if (id) next.sizeChartId = id;
+    else delete next.sizeChartId;
   }
 
   try {

@@ -11,18 +11,23 @@ export default function SettingsTab({ onError }: Props) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
-  const [value, setValue] = useState("");
+  const [metro, setMetro] = useState("");
+  const [outer, setOuter] = useState("");
 
   useEffect(() => {
     let cancelled = false;
     fetch("/api/admin/settings", { cache: "no-store" })
       .then(async (r) => {
         if (!r.ok) throw new Error((await r.json())?.error ?? "Load failed");
-        return (await r.json()) as { shippingFee: number };
+        return (await r.json()) as {
+          metroShippingFee: number;
+          outerShippingFee: number;
+        };
       })
       .then((data) => {
         if (cancelled) return;
-        setValue(String(data.shippingFee ?? 0));
+        setMetro(String(data.metroShippingFee ?? 0));
+        setOuter(String(data.outerShippingFee ?? 0));
       })
       .catch((err) => {
         if (cancelled) return;
@@ -37,9 +42,10 @@ export default function SettingsTab({ onError }: Props) {
   }, [onError]);
 
   async function save() {
-    const num = Number(value);
-    if (!Number.isFinite(num) || num < 0) {
-      onError("Enter a valid non-negative number");
+    const m = Number(metro);
+    const o = Number(outer);
+    if (!Number.isFinite(m) || m < 0 || !Number.isFinite(o) || o < 0) {
+      onError("Enter valid non-negative numbers");
       return;
     }
     setSaving(true);
@@ -47,7 +53,7 @@ export default function SettingsTab({ onError }: Props) {
       const res = await fetch("/api/admin/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ shippingFee: num }),
+        body: JSON.stringify({ metroShippingFee: m, outerShippingFee: o }),
       });
       if (!res.ok) throw new Error((await res.json())?.error ?? "Save failed");
       setSavedAt(Date.now());
@@ -67,26 +73,47 @@ export default function SettingsTab({ onError }: Props) {
         Store settings
       </h2>
 
-      <div className="glass rounded-2xl p-6 flex flex-col gap-4">
+      <div className="glass rounded-2xl p-6 flex flex-col gap-5">
         <label className="flex flex-col gap-2">
           <span className="text-[11px] tracking-[0.3em] uppercase text-white/60">
-            Shipping fee (EGP)
+            Cairo / Giza shipping fee (EGP)
           </span>
           <input
             type="number"
             step="0.01"
             min="0"
-            value={value}
+            value={metro}
             onChange={(e) => {
-              setValue(e.target.value);
+              setMetro(e.target.value);
               setSavedAt(null);
             }}
             disabled={loading}
             className={inputCls}
           />
           <span className="text-xs text-white/50">
-            Applied to every new order, shown to the customer at checkout, and sent to
-            Droppin as the delivery cost.
+            Orders to Cairo or Giza. Pushed to Droppin automatically.
+          </span>
+        </label>
+
+        <label className="flex flex-col gap-2">
+          <span className="text-[11px] tracking-[0.3em] uppercase text-white/60">
+            Other governorates shipping fee (EGP)
+          </span>
+          <input
+            type="number"
+            step="0.01"
+            min="0"
+            value={outer}
+            onChange={(e) => {
+              setOuter(e.target.value);
+              setSavedAt(null);
+            }}
+            disabled={loading}
+            className={inputCls}
+          />
+          <span className="text-xs text-white/50">
+            Orders to any other Egyptian governorate (3–5 business days). Pushed
+            to Droppin manually from the order page.
           </span>
         </label>
 

@@ -25,6 +25,8 @@ export type Product = {
   variants: ProductVariant[];
   collection: string;
   disabled?: boolean;
+  /** Handle of the assigned size chart in Firestore. */
+  sizeChartId?: string;
 };
 
 export const products: Product[] = [

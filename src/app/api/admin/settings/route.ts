@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/admin-auth";
-import { getShippingFee, setShippingFee } from "@/lib/settings-server";
+import {
+  getDefaultSizeChartHandle,
+  getShippingFees,
+  setDefaultSizeChartHandle,
+  setShippingFees,
+} from "@/lib/settings-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -9,8 +14,15 @@ export async function GET() {
   if (!(await isAdmin())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const shippingFee = await getShippingFee();
-  return NextResponse.json({ shippingFee });
+  const [fees, defaultSizeChartHandle] = await Promise.all([
+    getShippingFees(),
+    getDefaultSizeChartHandle(),
+  ]);
+  return NextResponse.json({
+    metroShippingFee: fees.metro,
+    outerShippingFee: fees.outer,
+    defaultSizeChartHandle,
+  });
 }
 
 export async function PUT(request: Request) {
@@ -25,18 +37,45 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const raw = (body as { shippingFee?: unknown })?.shippingFee;
-  const value = Number(raw);
-  if (!Number.isFinite(value) || value < 0) {
-    return NextResponse.json({ error: "Invalid shipping fee" }, { status: 400 });
+  const b = (body ?? {}) as {
+    metroShippingFee?: unknown;
+    outerShippingFee?: unknown;
+    defaultSizeChartHandle?: unknown;
+  };
+  const metro = Number(b.metroShippingFee);
+  const outer = Number(b.outerShippingFee);
+  const hasDefaultChart = b.defaultSizeChartHandle !== undefined;
+  const defaultSizeChartHandle =
+    typeof b.defaultSizeChartHandle === "string"
+      ? b.defaultSizeChartHandle.trim()
+      : "";
+  if (!Number.isFinite(metro) || metro < 0) {
+    return NextResponse.json(
+      { error: "Invalid Cairo/Giza shipping fee" },
+      { status: 400 }
+    );
+  }
+  if (!Number.isFinite(outer) || outer < 0) {
+    return NextResponse.json(
+      { error: "Invalid other-governorates shipping fee" },
+      { status: 400 }
+    );
   }
 
   try {
-    await setShippingFee(value);
+    await setShippingFees({ metro, outer });
+    if (hasDefaultChart) {
+      await setDefaultSizeChartHandle(defaultSizeChartHandle || null);
+    }
   } catch (err) {
-    console.error("setShippingFee failed:", err);
+    console.error("setShippingFees failed:", err);
     return NextResponse.json({ error: "Failed to save" }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true, shippingFee: value });
+  return NextResponse.json({
+    ok: true,
+    metroShippingFee: metro,
+    outerShippingFee: outer,
+    ...(hasDefaultChart ? { defaultSizeChartHandle: defaultSizeChartHandle || null } : {}),
+  });
 }

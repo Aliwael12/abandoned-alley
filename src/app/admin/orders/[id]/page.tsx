@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import PushToDroppinButton from "./PushToDroppinButton";
 import { requireAdmin } from "@/lib/admin-auth";
 import { getOrderById } from "@/lib/orders-server";
 import { getAllProducts } from "@/lib/products-server";
@@ -201,12 +202,32 @@ export default async function OrderDetailPage({
               </div>
             )}
           </>
-        ) : order.droppin.error ? (
-          <p className="text-sm text-red-300/90">
-            Push failed: {order.droppin.error}
-          </p>
         ) : (
-          <p className="text-sm text-white/50">Not pushed to Droppin yet.</p>
+          <>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-white/60 uppercase tracking-[0.2em] text-xs">
+                Zone
+              </span>
+              <span className="text-white/90">
+                {order.shippingZone === "metro"
+                  ? "Cairo / Giza"
+                  : order.shippingZone === "egypt"
+                  ? `Other governorate (${order.shipping.state})`
+                  : "International"}
+              </span>
+            </div>
+            <p className="text-sm text-white/60">
+              {order.droppinAutoPush
+                ? "This order is auto-pushed to Droppin. It hasn't been recorded yet — push manually if needed."
+                : "Not auto-pushed (3–5 day governorate). Push it to Droppin when ready."}
+            </p>
+            {order.droppin.error && (
+              <p className="text-sm text-red-300/90">
+                Last attempt failed: {order.droppin.error}
+              </p>
+            )}
+            <PushToDroppinButton orderId={order.id} />
+          </>
         )}
       </section>
 

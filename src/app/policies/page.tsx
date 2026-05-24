@@ -7,7 +7,7 @@ const sections = [
   },
   {
     title: "Shipping",
-    body: "Orders ship within 3 business days. Standard delivery is 5-10 business days; express is 2-4. International rates calculated at checkout.",
+    body: "We currently deliver within Egypt only. Orders to Cairo and Giza are dispatched right away; other governorates take an estimated 3-5 business days. Shipping is calculated at checkout based on your governorate.",
   },
   {
     title: "Returns",

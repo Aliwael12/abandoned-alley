@@ -1,12 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "@/lib/cart";
-import { Loader2 } from "lucide-react";
+import { Loader2, Clock, Info } from "lucide-react";
 import { getStoredAttribution } from "@/components/SessionTracker";
+import {
+  COUNTRY_EGYPT,
+  COUNTRY_OTHER,
+  EGYPT_GOVERNORATES,
+  feeForZone,
+  resolveZone,
+  type ShippingFees,
+} from "@/lib/shipping";
 
 type FormState = {
   name: string;
@@ -14,7 +22,7 @@ type FormState = {
   phone: string;
   address: string;
   city: string;
-  state: string;
+  governorate: string;
   zip: string;
   country: string;
   notes: string;
@@ -26,9 +34,9 @@ const initial: FormState = {
   phone: "",
   address: "",
   city: "",
-  state: "",
+  governorate: "",
   zip: "",
-  country: "",
+  country: COUNTRY_EGYPT,
   notes: "",
 };
 
@@ -40,8 +48,8 @@ export default function CheckoutClient() {
   const [form, setForm] = useState<FormState>(initial);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [shippingFee, setShippingFee] = useState<number | null>(null);
-  const [shippingFeeFailed, setShippingFeeFailed] = useState(false);
+  const [fees, setFees] = useState<ShippingFees | null>(null);
+  const [feesFailed, setFeesFailed] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -57,18 +65,31 @@ export default function CheckoutClient() {
     let cancelled = false;
     fetch("/api/shipping-fee", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error("fee fetch failed"))))
-      .then((data: { shippingFee: number }) => {
+      .then((data: { metroShippingFee: number; outerShippingFee: number }) => {
         if (cancelled) return;
-        setShippingFee(Number(data.shippingFee) || 0);
+        setFees({
+          metro: Number(data.metroShippingFee) || 0,
+          outer: Number(data.outerShippingFee) || 0,
+        });
       })
       .catch(() => {
         if (cancelled) return;
-        setShippingFeeFailed(true);
+        setFeesFailed(true);
       });
     return () => {
       cancelled = true;
     };
   }, []);
+
+  const zone = useMemo(
+    () => resolveZone(form.country, form.governorate),
+    [form.country, form.governorate]
+  );
+  const isEgypt = form.country === COUNTRY_EGYPT;
+  const isInternational = form.country === COUNTRY_OTHER;
+  // Fee is known only once a governorate has been picked for an Egyptian order.
+  const shippingFee =
+    fees && isEgypt && form.governorate ? feeForZone(zone, fees) : null;
 
   const subtotal = items.reduce((n, i) => n + i.price * i.quantity, 0);
   const total = shippingFee !== null ? subtotal + shippingFee : subtotal;
@@ -77,8 +98,23 @@ export default function CheckoutClient() {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
+  const canSubmit =
+    !submitting &&
+    fees !== null &&
+    isEgypt &&
+    !!form.governorate &&
+    shippingFee !== null;
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (isInternational) {
+      setError("We currently deliver within Egypt only.");
+      return;
+    }
+    if (!form.governorate) {
+      setError("Please select your governorate.");
+      return;
+    }
     setError(null);
     setSubmitting(true);
     try {
@@ -90,9 +126,9 @@ export default function CheckoutClient() {
           shipping: {
             address: form.address,
             city: form.city,
-            state: form.state,
+            state: form.governorate,
             zip: form.zip,
-            country: form.country,
+            country: COUNTRY_EGYPT,
           },
           notes: form.notes || undefined,
           items: items.map((i) => ({
@@ -108,10 +144,10 @@ export default function CheckoutClient() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error ?? "Order failed");
-      const total = subtotal + (shippingFee ?? 0);
+      const orderTotal = subtotal + (shippingFee ?? 0);
       clear();
       router.push(
-        `/checkout/success?id=${encodeURIComponent(data.orderId)}&total=${total}&currency=EGP`
+        `/checkout/success?id=${encodeURIComponent(data.orderId)}&total=${orderTotal}&currency=EGP`
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -148,6 +184,8 @@ export default function CheckoutClient() {
 
   const inputCls =
     "bg-white/5 border border-white/15 rounded-md h-12 px-4 outline-none focus:border-white/40 transition w-full";
+  const selectCls = `${inputCls} appearance-none text-white`;
+  const optionCls = "bg-[#0a0a0a] text-white";
 
   return (
     <div className="grid lg:grid-cols-[1fr_420px] gap-8 items-start">
@@ -193,75 +231,129 @@ export default function CheckoutClient() {
           <h2 className="font-[family-name:var(--font-bebas)] text-2xl tracking-[0.18em]">
             Shipping
           </h2>
-          <input
-            required
-            placeholder="Street address"
-            value={form.address}
-            onChange={(e) => update("address", e.target.value)}
-            className={inputCls}
-            autoComplete="street-address"
-          />
-          <div className="grid md:grid-cols-2 gap-4">
-            <input
+
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[11px] tracking-[0.3em] uppercase text-white/50">
+              Country
+            </span>
+            <select
               required
-              placeholder="City"
-              value={form.city}
-              onChange={(e) => update("city", e.target.value)}
-              className={inputCls}
-              autoComplete="address-level2"
-            />
-            <input
-              required
-              placeholder="State / Region"
-              value={form.state}
-              onChange={(e) => update("state", e.target.value)}
-              className={inputCls}
-              autoComplete="address-level1"
-            />
-          </div>
-          <div className="grid md:grid-cols-2 gap-4">
-            <input
-              required
-              placeholder="ZIP / Postal code"
-              value={form.zip}
-              onChange={(e) => update("zip", e.target.value)}
-              className={inputCls}
-              autoComplete="postal-code"
-            />
-            <input
-              required
-              placeholder="Country"
               value={form.country}
-              onChange={(e) => update("country", e.target.value)}
-              className={inputCls}
+              onChange={(e) => {
+                update("country", e.target.value);
+                if (e.target.value !== COUNTRY_EGYPT) update("governorate", "");
+                setError(null);
+              }}
+              className={selectCls}
               autoComplete="country-name"
-            />
-          </div>
-          <textarea
-            placeholder="Order notes (optional)"
-            rows={3}
-            value={form.notes}
-            onChange={(e) => update("notes", e.target.value)}
-            className="bg-white/5 border border-white/15 rounded-md p-4 outline-none focus:border-white/40 transition resize-none"
-          />
+            >
+              <option className={optionCls} value={COUNTRY_EGYPT}>
+                Egypt
+              </option>
+              <option className={optionCls} value={COUNTRY_OTHER}>
+                Outside Egypt
+              </option>
+            </select>
+          </label>
+
+          {isInternational && (
+            <div className="flex items-start gap-2.5 rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-4 py-3 text-sm text-white/80">
+              <Info size={16} className="mt-0.5 shrink-0 text-[var(--accent)]" />
+              <span>
+                We currently deliver within Egypt only. Checkout is unavailable
+                for international addresses.
+              </span>
+            </div>
+          )}
+
+          {isEgypt && (
+            <>
+              <input
+                required
+                placeholder="Street address"
+                value={form.address}
+                onChange={(e) => update("address", e.target.value)}
+                className={inputCls}
+                autoComplete="street-address"
+              />
+              <div className="grid md:grid-cols-2 gap-4">
+                <input
+                  required
+                  placeholder="City / Area"
+                  value={form.city}
+                  onChange={(e) => update("city", e.target.value)}
+                  className={inputCls}
+                  autoComplete="address-level2"
+                />
+                <label className="flex flex-col gap-1.5">
+                  <select
+                    required
+                    value={form.governorate}
+                    onChange={(e) => {
+                      update("governorate", e.target.value);
+                      setError(null);
+                    }}
+                    className={selectCls}
+                    autoComplete="address-level1"
+                  >
+                    <option className={optionCls} value="" disabled>
+                      Select governorate
+                    </option>
+                    {EGYPT_GOVERNORATES.map((g) => (
+                      <option key={g} className={optionCls} value={g}>
+                        {g}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <input
+                placeholder="ZIP / Postal code (optional)"
+                value={form.zip}
+                onChange={(e) => update("zip", e.target.value)}
+                className={inputCls}
+                autoComplete="postal-code"
+              />
+
+              {zone === "egypt" && (
+                <div className="flex items-start gap-2.5 rounded-md border border-white/15 bg-white/5 px-4 py-3 text-sm text-white/75">
+                  <Clock size={16} className="mt-0.5 shrink-0 text-white/60" />
+                  <span>
+                    Estimated delivery to {form.governorate}:{" "}
+                    <strong className="text-white">3–5 business days</strong>.
+                  </span>
+                </div>
+              )}
+
+              <textarea
+                placeholder="Order notes (optional)"
+                rows={3}
+                value={form.notes}
+                onChange={(e) => update("notes", e.target.value)}
+                className="bg-white/5 border border-white/15 rounded-md p-4 outline-none focus:border-white/40 transition resize-none"
+              />
+            </>
+          )}
         </section>
 
-        {error && (
-          <p className="text-sm text-[var(--accent)]">{error}</p>
-        )}
+        {error && <p className="text-sm text-[var(--accent)]">{error}</p>}
 
         <button
           type="submit"
-          disabled={submitting || shippingFee === null}
+          disabled={!canSubmit}
           className="w-full bg-white text-black py-4 rounded-lg font-[family-name:var(--font-bebas)] tracking-[0.2em] uppercase hover:bg-white/90 transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {submitting && <Loader2 className="animate-spin" size={16} />}
           {submitting
             ? "Placing order…"
-            : shippingFee === null
-            ? shippingFeeFailed
+            : isInternational
+            ? "Egypt delivery only"
+            : fees === null
+            ? feesFailed
               ? "Shipping unavailable — refresh"
               : "Loading…"
+            : !form.governorate
+            ? "Select governorate to continue"
             : `Place order — EGP ${total.toFixed(2)}`}
         </button>
 
@@ -317,9 +409,13 @@ export default function CheckoutClient() {
           <span>
             {shippingFee !== null
               ? `EGP ${shippingFee.toFixed(2)}`
-              : shippingFeeFailed
+              : isInternational
+              ? "Unavailable"
+              : feesFailed
               ? "—"
-              : "…"}
+              : form.governorate
+              ? "…"
+              : "Select governorate"}
           </span>
         </div>
         <div className="flex items-center justify-between">

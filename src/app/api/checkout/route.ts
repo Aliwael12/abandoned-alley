@@ -14,7 +14,13 @@ import {
   isDroppinConfigured,
   pushPackages,
 } from "@/lib/droppin";
-import { getShippingFee } from "@/lib/settings-server";
+import { getShippingFees } from "@/lib/settings-server";
+import {
+  COUNTRY_EGYPT,
+  feeForZone,
+  isEgyptGovernorate,
+  resolveZone,
+} from "@/lib/shipping";
 
 export const runtime = "nodejs";
 
@@ -79,9 +85,18 @@ function validate(body: unknown): IncomingOrder | string {
     zip: String(shipping.zip ?? "").trim(),
     country: String(shipping.country ?? "").trim(),
   };
+  // ZIP is optional (rarely used in Egypt); everything else is required.
   for (const [k, v] of Object.entries(ship)) {
-    if (!v) return `Shipping ${k} required`;
+    if (k !== "zip" && !v) return `Shipping ${k} required`;
   }
+  if (resolveZone(ship.country, ship.state) === "international") {
+    return "We currently deliver within Egypt only.";
+  }
+  if (!isEgyptGovernorate(ship.state)) {
+    return "Please select a valid Egyptian governorate.";
+  }
+  // The server is authoritative about the destination country.
+  ship.country = COUNTRY_EGYPT;
 
   const items = b.items;
   if (!Array.isArray(items) || items.length === 0) return "Cart is empty";
@@ -146,7 +161,9 @@ export async function POST(request: Request) {
   }
 
   const subtotal = parsed.items.reduce((n, i) => n + i.price * i.quantity, 0);
-  const shippingFee = await getShippingFee();
+  const zone = resolveZone(parsed.shipping.country, parsed.shipping.state);
+  const fees = await getShippingFees();
+  const shippingFee = feeForZone(zone, fees);
 
   const SOCIAL_HOSTS: Record<string, string> = {
     "instagram.com": "instagram",
@@ -194,6 +211,8 @@ export async function POST(request: Request) {
     notes: parsed.notes ?? null,
     subtotal,
     shippingFee,
+    shippingZone: zone,
+    droppinAutoPush: zone === "metro",
     currency: "EGP",
     status: "pending",
     attribution: attributionDoc,
@@ -245,7 +264,9 @@ export async function POST(request: Request) {
     console.error("Resend errors:", emailErrors);
   }
 
-  if (isDroppinConfigured()) {
+  // Cairo / Giza orders are pushed to Droppin automatically. Orders to other
+  // governorates are held for the admin to push manually from the dashboard.
+  if (zone === "metro" && isDroppinConfigured()) {
     try {
       const pkg = buildPackageFromOrder({
         id: orderId,

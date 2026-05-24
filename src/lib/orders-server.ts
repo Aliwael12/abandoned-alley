@@ -1,5 +1,17 @@
-import { Timestamp, doc, getDoc } from "firebase/firestore";
+import {
+  Timestamp,
+  doc,
+  getDoc,
+  serverTimestamp,
+  updateDoc,
+} from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import {
+  buildPackageFromOrder,
+  isDroppinConfigured,
+  pushPackages,
+} from "@/lib/droppin";
+import type { ShippingZone } from "@/lib/shipping";
 
 export type OrderItem = {
   productHandle: string;
@@ -28,6 +40,8 @@ export type OrderDetail = {
   shippingFee: number;
   currency: string;
   status: string;
+  shippingZone: ShippingZone;
+  droppinAutoPush: boolean;
   createdAt: number | null;
   droppin: {
     packageId: number | null;
@@ -81,6 +95,14 @@ export async function getOrderById(id: string): Promise<OrderDetail | null> {
     shippingFee: Number(data.shippingFee ?? 0),
     currency: String(data.currency ?? "EGP"),
     status: String(data.status ?? "pending"),
+    shippingZone:
+      data.shippingZone === "egypt" ||
+      data.shippingZone === "international" ||
+      data.shippingZone === "metro"
+        ? (data.shippingZone as ShippingZone)
+        : "metro",
+    droppinAutoPush:
+      typeof data.droppinAutoPush === "boolean" ? data.droppinAutoPush : true,
     createdAt: tsToMillis(data.createdAt),
     droppin: {
       packageId:
@@ -94,4 +116,68 @@ export async function getOrderById(id: string): Promise<OrderDetail | null> {
       pushedAt: tsToMillis(data.droppinPushedAt),
     },
   };
+}
+
+export type PushOrderResult =
+  | { ok: true; trackingNumber: string }
+  | { ok: false; error: string };
+
+/**
+ * Build a Droppin package from a stored order and push it, persisting the
+ * outcome back onto the order document. Used by the admin "Push to Droppin"
+ * action for orders that weren't pushed automatically at checkout.
+ */
+export async function pushOrderToDroppin(
+  id: string
+): Promise<PushOrderResult> {
+  if (!isDroppinConfigured()) {
+    return { ok: false, error: "Droppin is not configured." };
+  }
+
+  const order = await getOrderById(id);
+  if (!order) return { ok: false, error: "Order not found." };
+  if (order.droppin.trackingNumber) {
+    return { ok: false, error: "Order is already on Droppin." };
+  }
+
+  try {
+    const pkg = buildPackageFromOrder({
+      id: order.id,
+      customer: order.customer,
+      shipping: order.shipping,
+      items: order.items,
+      subtotal: order.subtotal,
+      shippingFee: order.shippingFee,
+      notes: order.notes,
+    });
+    const result = await pushPackages([pkg]);
+    const created = result.createdPackages?.[0];
+    if (result.success && created) {
+      await updateDoc(doc(db, "orders", id), {
+        droppinPackageId: created.id,
+        droppinTrackingNumber: created.trackingNumber,
+        droppinStatus: created.status,
+        droppinPushedAt: serverTimestamp(),
+        droppinError: null,
+      });
+      return { ok: true, trackingNumber: created.trackingNumber };
+    }
+    const error = result.error || "Unknown push failure";
+    await updateDoc(doc(db, "orders", id), {
+      droppinError: error,
+      droppinPushAttemptedAt: serverTimestamp(),
+    });
+    return { ok: false, error };
+  } catch (err) {
+    const error = err instanceof Error ? err.message : String(err);
+    try {
+      await updateDoc(doc(db, "orders", id), {
+        droppinError: error,
+        droppinPushAttemptedAt: serverTimestamp(),
+      });
+    } catch {
+      // best-effort
+    }
+    return { ok: false, error };
+  }
 }

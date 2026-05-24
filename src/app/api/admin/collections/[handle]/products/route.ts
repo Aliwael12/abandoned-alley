@@ -6,6 +6,8 @@ import {
   getProductByHandle,
   upsertProduct,
 } from "@/lib/products-server";
+import { getDefaultSizeChartHandle } from "@/lib/settings-server";
+import { getSizeChartByHandle } from "@/lib/size-charts-server";
 import type { Product } from "@/lib/products";
 
 export const runtime = "nodejs";
@@ -119,6 +121,11 @@ export async function POST(
         options: { Size: sz },
       })),
     };
+
+    const defaultChart = await getDefaultSizeChartHandle();
+    if (defaultChart && (await getSizeChartByHandle(defaultChart))) {
+      product.sizeChartId = defaultChart;
+    }
 
     try {
       await upsertProduct(product);

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/admin-auth";
 import { getAllProducts, upsertProduct } from "@/lib/products-server";
+import { getDefaultSizeChartHandle } from "@/lib/settings-server";
+import { getSizeChartByHandle } from "@/lib/size-charts-server";
 import type { Media, Product } from "@/lib/products";
 
 export const runtime = "nodejs";
@@ -84,6 +86,7 @@ export async function POST(request: Request) {
   const handle = slugify(handleInput || title);
   if (!handle) return NextResponse.json({ error: "Could not derive handle" }, { status: 400 });
 
+  const sizeValues = ["S", "M", "L", "XL"];
   const product: Product = {
     handle,
     title,
@@ -97,8 +100,8 @@ export async function POST(request: Request) {
         : image
         ? [{ type: "image", src: image, alt: title }]
         : [],
-    options: [{ name: "Size", values: ["S", "M", "L", "XL"] }],
-    variants: ["S", "M", "L", "XL"].map((sz) => ({
+    options: [{ name: "Size", values: sizeValues }],
+    variants: sizeValues.map((sz) => ({
       id: `${handle}-${sz.toLowerCase()}`,
       title: sz,
       price,
@@ -106,6 +109,18 @@ export async function POST(request: Request) {
     })),
     disabled: Boolean(body.disabled),
   };
+
+  const explicitChart =
+    typeof body.sizeChartId === "string" ? body.sizeChartId.trim() : "";
+  if (explicitChart) {
+    const chart = await getSizeChartByHandle(explicitChart);
+    if (chart) product.sizeChartId = explicitChart;
+  } else {
+    const defaultChart = await getDefaultSizeChartHandle();
+    if (defaultChart && (await getSizeChartByHandle(defaultChart))) {
+      product.sizeChartId = defaultChart;
+    }
+  }
 
   try {
     await upsertProduct(product);

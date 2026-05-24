@@ -27,6 +27,10 @@ function normalize(raw: Record<string, unknown>): Product | null {
     variants: Array.isArray(raw.variants) ? (raw.variants as Product["variants"]) : [],
     collection: String(raw.collection ?? ""),
     disabled: Boolean(raw.disabled),
+    sizeChartId:
+      typeof raw.sizeChartId === "string" && raw.sizeChartId.trim()
+        ? raw.sizeChartId.trim()
+        : undefined,
   };
 }
 
@@ -73,4 +77,24 @@ export async function upsertProduct(p: Product): Promise<void> {
 
 export async function deleteProduct(handle: string): Promise<void> {
   await deleteDoc(doc(db, COL, handle));
+}
+
+/** Set `sizeChartId` on the given products; clear it on others that used this chart. */
+export async function assignSizeChartToProducts(
+  chartHandle: string,
+  productHandles: string[]
+): Promise<void> {
+  const wanted = new Set(productHandles);
+  const all = await getAllProducts();
+  const updates = all.filter(
+    (p) =>
+      p.sizeChartId === chartHandle || wanted.has(p.handle)
+  );
+  for (const p of updates) {
+    const nextId = wanted.has(p.handle) ? chartHandle : undefined;
+    if (p.sizeChartId === nextId) continue;
+    const next = { ...p, sizeChartId: nextId };
+    if (!nextId) delete (next as { sizeChartId?: string }).sizeChartId;
+    await upsertProduct(next);
+  }
 }

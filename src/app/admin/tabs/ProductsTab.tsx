@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import {
   ArrowDown,
@@ -22,9 +22,14 @@ type Props = {
   onError: (msg: string) => void;
 };
 
-type EditState = Partial<Pick<Product, "title" | "description" | "price">> & {
+type EditState = Partial<
+  Pick<Product, "title" | "description" | "price" | "sizeChartId">
+> & {
   media?: Media[];
+  clearSizeChart?: boolean;
 };
+
+type SizeChartOption = { handle: string; name: string };
 
 const fmtUsd = (n: number) =>
   n.toLocaleString("en-US", { style: "currency", currency: "EGP" });
@@ -196,6 +201,25 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
     collection: "general",
     media: [] as Media[],
   });
+  const [sizeCharts, setSizeCharts] = useState<SizeChartOption[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/admin/size-charts", { cache: "no-store" })
+      .then(async (r) => {
+        if (!r.ok) return;
+        const data = (await r.json()) as {
+          charts: { handle: string; name: string }[];
+        };
+        if (!cancelled) {
+          setSizeCharts(data.charts.map((c) => ({ handle: c.handle, name: c.name })));
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function startEdit(p: Product) {
     setEditing(p.handle);
@@ -204,6 +228,8 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
       description: p.description,
       price: p.price,
       media: p.media,
+      sizeChartId: p.sizeChartId ?? "",
+      clearSizeChart: false,
     });
   }
 
@@ -422,6 +448,30 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
                         media={draft.media ?? []}
                         onChange={(media) => setDraft({ ...draft, media })}
                       />
+                      <label className="flex flex-col gap-2">
+                        <span className="text-[11px] tracking-[0.3em] uppercase text-white/60">
+                          Size chart
+                        </span>
+                        <select
+                          value={draft.clearSizeChart ? "" : draft.sizeChartId ?? ""}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            setDraft({
+                              ...draft,
+                              sizeChartId: v,
+                              clearSizeChart: !v,
+                            });
+                          }}
+                          className={inputCls}
+                        >
+                          <option value="">None</option>
+                          {sizeCharts.map((c) => (
+                            <option key={c.handle} value={c.handle}>
+                              {c.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
                     </>
                   ) : (
                     <>
@@ -438,6 +488,13 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
                       <p className="text-xs text-white/50 line-clamp-2">{p.description}</p>
                       <p className="text-sm">{fmtUsd(p.price)}</p>
                       <p className="text-[10px] text-white/40 font-mono">/{p.handle}</p>
+                      {p.sizeChartId && (
+                        <p className="text-[10px] text-white/50">
+                          Size chart:{" "}
+                          {sizeCharts.find((c) => c.handle === p.sizeChartId)?.name ??
+                            p.sizeChartId}
+                        </p>
+                      )}
                     </>
                   )}
                 </div>
