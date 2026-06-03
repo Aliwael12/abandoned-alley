@@ -4,8 +4,9 @@ import { Product } from "@/lib/products";
 import type { SizeChart } from "@/lib/size-charts";
 import SizeChartPanel from "@/components/SizeChartPanel";
 import { useCart } from "@/lib/cart";
+import { trackPixel, PIXEL_CURRENCY } from "@/lib/pixel";
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Minus, Plus } from "lucide-react";
 import Link from "next/link";
@@ -38,6 +39,20 @@ export default function ProductDetail({
 
   const coverImage = product.media.find((m) => m.type === "image")?.src ?? "";
 
+  // ViewContent: fires once when the product detail page is opened.
+  useEffect(() => {
+    trackPixel("ViewContent", {
+      content_ids: [product.handle],
+      content_name: product.title,
+      content_type: "product",
+      value: matchedVariant.price,
+      currency: PIXEL_CURRENCY,
+    });
+    // Intentionally keyed to the product only — we don't re-fire when the
+    // shopper switches variant/size on the same product page.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product.handle]);
+
   const onAdd = () => {
     add(
       {
@@ -50,6 +65,14 @@ export default function ProductDetail({
       },
       qty
     );
+    trackPixel("AddToCart", {
+      content_ids: [matchedVariant.id],
+      content_name: product.title,
+      content_type: "product",
+      contents: [{ id: matchedVariant.id, quantity: qty }],
+      value: matchedVariant.price * qty,
+      currency: PIXEL_CURRENCY,
+    });
   };
 
   const activeMedia = product.media[active];

@@ -1,12 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-
-declare global {
-  interface Window {
-    fbq?: (...args: unknown[]) => void;
-  }
-}
+import { trackPixel } from "@/lib/pixel";
 
 export default function PurchaseTracker({
   orderId,
@@ -29,8 +24,8 @@ export default function PurchaseTracker({
 
     let tries = 0;
     const fire = () => {
-      if (window.fbq) {
-        window.fbq("track", "Purchase", {
+      if (typeof window.fbq === "function") {
+        trackPixel("Purchase", {
           value,
           currency,
           content_ids: [orderId],

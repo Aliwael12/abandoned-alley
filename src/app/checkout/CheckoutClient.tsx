@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "@/lib/cart";
+import { trackPixel, PIXEL_CURRENCY } from "@/lib/pixel";
 import { Loader2, Clock, Info } from "lucide-react";
 import { getStoredAttribution } from "@/components/SessionTracker";
 import {
@@ -94,6 +95,24 @@ export default function CheckoutClient() {
   const subtotal = items.reduce((n, i) => n + i.price * i.quantity, 0);
   const total = shippingFee !== null ? subtotal + shippingFee : subtotal;
 
+  // InitiateCheckout: fires once, after hydration, when the page loads with a
+  // non-empty cart. Guarded so re-renders (typing, fee fetch) don't re-fire it.
+  const initiateCheckoutFired = useRef(false);
+  useEffect(() => {
+    if (!hydrated) return;
+    if (items.length === 0) return;
+    if (initiateCheckoutFired.current) return;
+    initiateCheckoutFired.current = true;
+    trackPixel("InitiateCheckout", {
+      content_ids: items.map((i) => i.variantId),
+      contents: items.map((i) => ({ id: i.variantId, quantity: i.quantity })),
+      content_type: "product",
+      num_items: items.reduce((n, i) => n + i.quantity, 0),
+      value: subtotal,
+      currency: PIXEL_CURRENCY,
+    });
+  }, [hydrated, items, subtotal]);
+
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
   }
@@ -117,6 +136,17 @@ export default function CheckoutClient() {
     }
     setError(null);
     setSubmitting(true);
+    // AddPaymentInfo: the shopper has completed the form and committed to the
+    // order. This is a cash-on-delivery flow (no card-entry step), so submit is
+    // the point at which they provide their payment/fulfilment details.
+    trackPixel("AddPaymentInfo", {
+      content_ids: items.map((i) => i.variantId),
+      contents: items.map((i) => ({ id: i.variantId, quantity: i.quantity })),
+      content_type: "product",
+      num_items: items.reduce((n, i) => n + i.quantity, 0),
+      value: subtotal + (shippingFee ?? 0),
+      currency: PIXEL_CURRENCY,
+    });
     try {
       const res = await fetch("/api/checkout", {
         method: "POST",
