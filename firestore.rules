@@ -47,9 +47,12 @@ service cloud.firestore {
         request.resource.data.subtotal is number &&
         request.resource.data.subtotal >= 0 &&
         request.resource.data.subtotal <= 100000 &&
+        request.resource.data.shippingZone is string &&
+        request.resource.data.droppinAutoPush is bool &&
         request.resource.data.status == 'pending' &&
         request.resource.data.keys().hasOnly([
           'customer','shipping','items','notes','subtotal','shippingFee',
+          'shippingZone','droppinAutoPush',
           'currency','status','attribution','createdAt'
         ]);
       allow read: if true;
