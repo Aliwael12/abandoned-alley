@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { addDoc, collection, doc, serverTimestamp, updateDoc } from "firebase/firestore";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import {
   resend,
@@ -9,12 +9,9 @@ import {
   adminOrderHtml,
   type OrderForEmail,
 } from "@/lib/email";
-import {
-  buildPackageFromOrder,
-  isDroppinConfigured,
-  pushPackages,
-} from "@/lib/droppin";
 import { getShippingFees } from "@/lib/settings-server";
+import { getAllProducts } from "@/lib/products-server";
+import { sizeOfOrderItem, stockForSize } from "@/lib/inventory";
 import {
   COUNTRY_EGYPT,
   feeForZone,
@@ -160,6 +157,45 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: parsed }, { status: 400 });
   }
 
+  // Stock guard: reject the order if any line exceeds the available per-size
+  // stock. This is the authoritative check — the storefront UI also caps qty,
+  // but a client could bypass it. Aggregate per product+size first so multiple
+  // lines of the same variant are summed.
+  try {
+    const products = await getAllProducts();
+    const byHandle = new Map(products.map((p) => [p.handle, p]));
+    const wanted = new Map<string, number>(); // `${handle}::${size}` -> qty
+    const keyOf = (h: string, s: string) => `${h}::${s}`;
+    for (const it of parsed.items) {
+      const product = byHandle.get(it.productHandle);
+      const size = sizeOfOrderItem(it, product);
+      if (!size) continue;
+      const k = keyOf(it.productHandle, size);
+      wanted.set(k, (wanted.get(k) ?? 0) + it.quantity);
+    }
+    for (const [k, qty] of wanted) {
+      const [handle, size] = k.split("::");
+      const product = byHandle.get(handle);
+      const have = stockForSize(product?.stock, size);
+      if (have < qty) {
+        const name = product?.title ?? handle;
+        return NextResponse.json(
+          {
+            error:
+              have <= 0
+                ? `${name} (${size}) is sold out.`
+                : `Only ${have} of ${name} (${size}) left.`,
+          },
+          { status: 409 }
+        );
+      }
+    }
+  } catch (err) {
+    console.error("Stock check failed:", err);
+    // Fail open rather than block checkout on a transient read error; approval
+    // will still catch any genuine shortfall.
+  }
+
   const subtotal = parsed.items.reduce((n, i) => n + i.price * i.quantity, 0);
   const zone = resolveZone(parsed.shipping.country, parsed.shipping.state);
   const fees = await getShippingFees();
@@ -264,47 +300,9 @@ export async function POST(request: Request) {
     console.error("Resend errors:", emailErrors);
   }
 
-  // Cairo / Giza orders are pushed to Droppin automatically. Orders to other
-  // governorates are held for the admin to push manually from the dashboard.
-  if (zone === "metro" && isDroppinConfigured()) {
-    try {
-      const pkg = buildPackageFromOrder({
-        id: orderId,
-        customer: parsed.customer,
-        shipping: parsed.shipping,
-        items: parsed.items,
-        subtotal,
-        shippingFee,
-        notes: parsed.notes ?? null,
-      });
-      const result = await pushPackages([pkg]);
-      const created = result.createdPackages?.[0];
-      if (result.success && created) {
-        await updateDoc(doc(db, "orders", orderId), {
-          droppinPackageId: created.id,
-          droppinTrackingNumber: created.trackingNumber,
-          droppinStatus: created.status,
-          droppinPushedAt: serverTimestamp(),
-        });
-      } else {
-        await updateDoc(doc(db, "orders", orderId), {
-          droppinError: result.error || "Unknown push failure",
-          droppinPushAttemptedAt: serverTimestamp(),
-        });
-        console.error("Droppin push failed:", result.error);
-      }
-    } catch (err) {
-      console.error("Droppin push error:", err);
-      try {
-        await updateDoc(doc(db, "orders", orderId), {
-          droppinError: err instanceof Error ? err.message : String(err),
-          droppinPushAttemptedAt: serverTimestamp(),
-        });
-      } catch {
-        // best-effort
-      }
-    }
-  }
+  // Orders are NOT dispatched at checkout anymore. They wait as "pending" until
+  // an admin approves them, which deducts stock and dispatches to the carrier
+  // (Cairo / Giza -> Droppin). See src/lib/order-actions-server.ts.
 
   return NextResponse.json({ ok: true, orderId });
 }

@@ -1,11 +1,17 @@
+import type { Carrier, OrderStatus } from "@/lib/order-status";
+
 export type OrderRow = {
   id: string;
   customerName: string;
   customerEmail: string;
   subtotal: number;
-  status: string;
+  status: OrderStatus;
+  rawStatus: string;
+  governorate: string;
+  carrier: Carrier;
   itemCount: number;
   createdAt: number | null;
+  deliveredAt: number | null;
 };
 
 export type OrdersResponse = {

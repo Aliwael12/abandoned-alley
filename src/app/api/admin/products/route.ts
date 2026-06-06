@@ -107,6 +107,8 @@ export async function POST(request: Request) {
       price,
       options: { Size: sz },
     })),
+    // New products start sold out (0 per size) until the admin sets real stock.
+    stock: Object.fromEntries(sizeValues.map((sz) => [sz, 0])),
     disabled: Boolean(body.disabled),
   };
 

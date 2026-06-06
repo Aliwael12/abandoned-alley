@@ -10,6 +10,9 @@ export type ProductVariant = {
   options: Record<string, string>;
 };
 
+/** Per-size inventory: size label -> available units. Missing size = 0. */
+export type StockMap = Record<string, number>;
+
 export type Media =
   | { type: "image"; src: string; alt?: string }
   | { type: "video"; src: string; poster?: string };
@@ -25,6 +28,8 @@ export type Product = {
   variants: ProductVariant[];
   collection: string;
   disabled?: boolean;
+  /** Per-size stock, keyed by Size option value (e.g. { S: 12, M: 0 }). */
+  stock?: StockMap;
   /** Handle of the assigned size chart in Firestore. */
   sizeChartId?: string;
 };
@@ -50,6 +55,7 @@ export const products: Product[] = [
       { id: "bddw-m", title: "M", price: 65, options: { Size: "M" } },
       { id: "bddw-l", title: "L", price: 65, options: { Size: "L" } },
     ],
+    stock: { S: 8, M: 12, L: 5 },
   },
   {
     handle: "white-ddw-tee",
@@ -70,6 +76,7 @@ export const products: Product[] = [
       { id: "wddw-m", title: "M", price: 65, options: { Size: "M" } },
       { id: "wddw-l", title: "L", price: 65, options: { Size: "L" } },
     ],
+    stock: { S: 2, M: 0, L: 7 },
   },
 ];
 

@@ -5,7 +5,8 @@ import {
   getProductByHandle,
   upsertProduct,
 } from "@/lib/products-server";
-import type { Media, Product } from "@/lib/products";
+import { normalizeStock, productSizes } from "@/lib/inventory";
+import type { Media, Product, StockMap } from "@/lib/products";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,7 +16,7 @@ type Patch = Partial<
     Product,
     "title" | "description" | "price" | "disabled" | "media" | "sizeChartId"
   >
-> & { image?: string; clearSizeChart?: boolean };
+> & { image?: string; clearSizeChart?: boolean; stock?: StockMap };
 
 function sanitizeMedia(raw: unknown): Media[] | null {
   if (!Array.isArray(raw)) return null;
@@ -100,6 +101,15 @@ export async function PATCH(
     const id = body.sizeChartId.trim();
     if (id) next.sizeChartId = id;
     else delete next.sizeChartId;
+  }
+  if (body.stock !== undefined) {
+    const cleaned = normalizeStock(body.stock);
+    // Only keep counts for sizes this product actually sells, and ensure every
+    // size has an explicit entry (missing -> 0).
+    const sizes = productSizes(next);
+    const stock: StockMap = {};
+    for (const size of sizes) stock[size] = cleaned[size] ?? 0;
+    next.stock = stock;
   }
 
   try {

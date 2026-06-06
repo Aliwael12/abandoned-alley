@@ -1,6 +1,7 @@
 "use client";
 
 import { Product } from "@/lib/products";
+import { isProductSoldOut } from "@/lib/inventory";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -9,6 +10,7 @@ export default function ProductCard({ product }: { product: Product }) {
   const coverEntry =
     head && head.type === "image" ? head : product.media.find((m) => m.type === "image");
   const cover = coverEntry?.src ?? "";
+  const soldOut = isProductSoldOut(product);
   return (
     <Link
       href={`/products/${product.handle}`}
@@ -21,9 +23,14 @@ export default function ProductCard({ product }: { product: Product }) {
             alt={product.title}
             fill
             sizes="(min-width:1024px) 25vw, (min-width:640px) 33vw, 50vw"
-            className="object-cover product-card-img"
+            className={`object-cover product-card-img ${soldOut ? "opacity-50" : ""}`}
             unoptimized
           />
+        )}
+        {soldOut && (
+          <span className="absolute top-3 left-3 px-2 py-1 text-[10px] tracking-[0.2em] uppercase bg-black/70 border border-white/20 rounded text-white/80">
+            Sold out
+          </span>
         )}
       </div>
       <div className="mt-3 flex items-center justify-between">

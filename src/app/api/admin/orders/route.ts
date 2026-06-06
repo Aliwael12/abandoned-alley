@@ -8,6 +8,12 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { isAdmin } from "@/lib/admin-auth";
+import {
+  carrierForGovernorate,
+  normalizeStatus,
+  type Carrier,
+  type OrderStatus,
+} from "@/lib/order-status";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,9 +23,13 @@ type OrderRow = {
   customerName: string;
   customerEmail: string;
   subtotal: number;
-  status: string;
+  status: OrderStatus;
+  rawStatus: string;
+  governorate: string;
+  carrier: Carrier;
   itemCount: number;
   createdAt: number | null;
+  deliveredAt: number | null;
 };
 
 export async function GET() {
@@ -38,21 +48,29 @@ export async function GET() {
   const rows: OrderRow[] = snap.docs.map((d) => {
     const data = d.data() as Record<string, unknown>;
     const customer = (data.customer ?? {}) as Record<string, unknown>;
+    const shipping = (data.shipping ?? {}) as Record<string, unknown>;
     const items = Array.isArray(data.items) ? (data.items as { quantity: number }[]) : [];
-    const ts = data.createdAt;
-    let createdAt: number | null = null;
-    if (ts instanceof Timestamp) createdAt = ts.toMillis();
-    else if (typeof ts === "object" && ts !== null && "seconds" in ts) {
-      createdAt = (ts as { seconds: number }).seconds * 1000;
-    }
+    const toMillis = (ts: unknown): number | null => {
+      if (ts instanceof Timestamp) return ts.toMillis();
+      if (typeof ts === "object" && ts !== null && "seconds" in ts) {
+        return (ts as { seconds: number }).seconds * 1000;
+      }
+      return null;
+    };
+    const governorate = String(shipping.state ?? "");
+    const rawStatus = String(data.status ?? "pending");
     return {
       id: d.id,
       customerName: String(customer.name ?? ""),
       customerEmail: String(customer.email ?? ""),
       subtotal: Number(data.subtotal ?? 0),
-      status: String(data.status ?? "pending"),
+      status: normalizeStatus(rawStatus),
+      rawStatus,
+      governorate,
+      carrier: carrierForGovernorate(governorate),
       itemCount: items.reduce((n, i) => n + Number(i.quantity ?? 0), 0),
-      createdAt,
+      createdAt: toMillis(data.createdAt),
+      deliveredAt: toMillis(data.deliveredAt),
     };
   });
 

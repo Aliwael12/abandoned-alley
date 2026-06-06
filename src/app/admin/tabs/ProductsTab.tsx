@@ -14,7 +14,13 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import type { Media, Product } from "@/lib/products";
+import type { Media, Product, StockMap } from "@/lib/products";
+import {
+  LOW_STOCK_THRESHOLD,
+  productSizes,
+  stockBadge,
+  stockForSize,
+} from "@/lib/inventory";
 
 type Props = {
   products: Product[];
@@ -27,6 +33,7 @@ type EditState = Partial<
 > & {
   media?: Media[];
   clearSizeChart?: boolean;
+  stock?: StockMap;
 };
 
 type SizeChartOption = { handle: string; name: string };
@@ -189,6 +196,118 @@ function MediaEditor({
   );
 }
 
+function StockEditor({
+  sizes,
+  stock,
+  onChange,
+}: {
+  sizes: string[];
+  stock: StockMap;
+  onChange: (next: StockMap) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="text-[11px] tracking-[0.3em] uppercase text-white/60">
+        Stock per size
+      </div>
+      {sizes.length === 0 ? (
+        <p className="text-xs text-white/50 py-1">
+          This product has no sizes to stock.
+        </p>
+      ) : (
+        <div className="flex flex-wrap gap-3">
+          {sizes.map((size) => {
+            const qty = stockForSize(stock, size);
+            const badge = stockBadge(qty);
+            const ring =
+              badge === "soldout"
+                ? "border-[var(--accent)]/60"
+                : badge === "low"
+                  ? "border-amber-400/60"
+                  : "border-white/15";
+            return (
+              <label
+                key={size}
+                className={`flex flex-col gap-1 rounded-md border ${ring} bg-white/5 px-3 py-2`}
+              >
+                <span className="text-[10px] tracking-[0.2em] uppercase text-white/60">
+                  {size}
+                </span>
+                <input
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={qty}
+                  onChange={(e) => {
+                    const n = Math.max(0, Math.floor(Number(e.target.value)));
+                    onChange({
+                      ...stock,
+                      [size]: Number.isFinite(n) ? n : 0,
+                    });
+                  }}
+                  className="w-20 bg-transparent border border-white/15 rounded h-9 px-2 text-sm outline-none focus:border-white/40 transition"
+                />
+                {badge !== "ok" && (
+                  <span
+                    className={`text-[9px] tracking-[0.2em] uppercase ${
+                      badge === "soldout"
+                        ? "text-[var(--accent)]"
+                        : "text-amber-400"
+                    }`}
+                  >
+                    {badge === "soldout" ? "Sold out" : "Low"}
+                  </span>
+                )}
+              </label>
+            );
+          })}
+        </div>
+      )}
+      <p className="text-[10px] text-white/40">
+        Low-stock warning at or below {LOW_STOCK_THRESHOLD} units. A size at 0 is
+        sold out on the storefront.
+      </p>
+    </div>
+  );
+}
+
+function StockSummary({ product }: { product: Product }) {
+  const sizes = productSizes(product);
+  if (sizes.length === 0) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className="text-[10px] tracking-[0.2em] uppercase text-white/40 mr-1">
+        Stock
+      </span>
+      {sizes.map((size) => {
+        const qty = stockForSize(product.stock, size);
+        const badge = stockBadge(qty);
+        const cls =
+          badge === "soldout"
+            ? "border-[var(--accent)]/50 text-[var(--accent)]"
+            : badge === "low"
+              ? "border-amber-400/50 text-amber-300"
+              : "border-white/15 text-white/70";
+        return (
+          <span
+            key={size}
+            className={`px-1.5 py-0.5 text-[10px] rounded border ${cls}`}
+            title={
+              badge === "soldout"
+                ? `${size}: sold out`
+                : badge === "low"
+                  ? `${size}: low (${qty})`
+                  : `${size}: ${qty} in stock`
+            }
+          >
+            {size} {qty}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function ProductsTab({ products, onChanged, onError }: Props) {
   const [editing, setEditing] = useState<string | null>(null);
   const [draft, setDraft] = useState<EditState>({});
@@ -223,6 +342,8 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
 
   function startEdit(p: Product) {
     setEditing(p.handle);
+    const stock: StockMap = {};
+    for (const size of productSizes(p)) stock[size] = stockForSize(p.stock, size);
     setDraft({
       title: p.title,
       description: p.description,
@@ -230,6 +351,7 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
       media: p.media,
       sizeChartId: p.sizeChartId ?? "",
       clearSizeChart: false,
+      stock,
     });
   }
 
@@ -472,6 +594,11 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
                           ))}
                         </select>
                       </label>
+                      <StockEditor
+                        sizes={productSizes(p)}
+                        stock={draft.stock ?? {}}
+                        onChange={(stock) => setDraft({ ...draft, stock })}
+                      />
                     </>
                   ) : (
                     <>
@@ -488,6 +615,7 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
                       <p className="text-xs text-white/50 line-clamp-2">{p.description}</p>
                       <p className="text-sm">{fmtUsd(p.price)}</p>
                       <p className="text-[10px] text-white/40 font-mono">/{p.handle}</p>
+                      <StockSummary product={p} />
                       {p.sizeChartId && (
                         <p className="text-[10px] text-white/50">
                           Size chart:{" "}

@@ -56,7 +56,23 @@ service cloud.firestore {
           'currency','status','attribution','createdAt'
         ]);
       allow read: if true;
-      allow update, delete: if false;
+      // Admin lifecycle actions (approve / deliver / cancel) and carrier
+      // dispatch run through the app's server routes using the Web SDK, so they
+      // need update access. Immutable fields (customer, items, totals) cannot be
+      // changed; only the status, lifecycle timestamps, and droppin* shipping
+      // fields may be written. Same MVP trade-off as products/settings — move
+      // the admin write path to the Admin SDK before launch.
+      allow update: if
+        request.resource.data.customer == resource.data.customer &&
+        request.resource.data.items == resource.data.items &&
+        request.resource.data.subtotal == resource.data.subtotal &&
+        request.resource.data.status in ['pending','approved','delivered','cancelled'] &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status','approvedAt','deliveredAt','cancelledAt','stockDeducted',
+          'droppinPackageId','droppinTrackingNumber','droppinStatus',
+          'droppinPushedAt','droppinError','droppinPushAttemptedAt'
+        ]);
+      allow delete: if false;
     }
 
     // Subscribers: signup is public; reads needed for broadcast list.

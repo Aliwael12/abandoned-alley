@@ -14,8 +14,10 @@ import {
   RefreshCw,
   Ruler,
   Settings,
+  ShoppingBag,
 } from "lucide-react";
 import OverviewTab from "./tabs/OverviewTab";
+import OrdersTab from "./tabs/OrdersTab";
 import AnalyticsTab from "./tabs/AnalyticsTab";
 import ProductsTab from "./tabs/ProductsTab";
 import CollectionsTab from "./tabs/CollectionsTab";
@@ -28,6 +30,7 @@ import type { CollectionMeta, OrdersResponse } from "./types";
 
 type Tab =
   | "overview"
+  | "orders"
   | "analytics"
   | "products"
   | "collections"
@@ -38,6 +41,7 @@ type Tab =
 
 const TABS: { id: Tab; label: string; icon: React.ComponentType<{ size?: number }> }[] = [
   { id: "overview", label: "Overview", icon: BarChart3 },
+  { id: "orders", label: "Orders", icon: ShoppingBag },
   { id: "analytics", label: "Analytics", icon: LineChart },
   { id: "products", label: "Products", icon: Boxes },
   { id: "collections", label: "Collections", icon: Layers },
@@ -181,6 +185,9 @@ export default function AdminDashboard() {
       ) : (
         <>
           {tab === "overview" && <OverviewTab data={orders} />}
+          {tab === "orders" && (
+            <OrdersTab onChanged={refresh} onError={(m) => setError(m)} />
+          )}
           {tab === "analytics" && <AnalyticsTab />}
           {tab === "products" && (
             <ProductsTab

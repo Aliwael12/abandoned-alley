@@ -9,6 +9,7 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { products as STATIC_PRODUCTS, type Product } from "@/lib/products";
+import { normalizeStock } from "@/lib/inventory";
 
 const COL = "products";
 
@@ -27,6 +28,7 @@ function normalize(raw: Record<string, unknown>): Product | null {
     variants: Array.isArray(raw.variants) ? (raw.variants as Product["variants"]) : [],
     collection: String(raw.collection ?? ""),
     disabled: Boolean(raw.disabled),
+    stock: normalizeStock(raw.stock),
     sizeChartId:
       typeof raw.sizeChartId === "string" && raw.sizeChartId.trim()
         ? raw.sizeChartId.trim()

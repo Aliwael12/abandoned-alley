@@ -2,6 +2,7 @@
 
 import { Product } from "@/lib/products";
 import type { SizeChart } from "@/lib/size-charts";
+import { isProductSoldOut, isSizeSoldOut, stockForSize } from "@/lib/inventory";
 import SizeChartPanel from "@/components/SizeChartPanel";
 import { useCart } from "@/lib/cart";
 import { trackPixel, PIXEL_CURRENCY } from "@/lib/pixel";
@@ -22,12 +23,39 @@ export default function ProductDetail({
   const [active, setActive] = useState(0);
   const [qty, setQty] = useState(1);
 
+  const soldOut = useMemo(() => isProductSoldOut(product), [product]);
+
   const initialOptions = useMemo(() => {
     const o: Record<string, string> = {};
-    for (const opt of product.options) o[opt.name] = opt.values[0];
+    for (const opt of product.options) {
+      if (opt.name === "Size") {
+        // Prefer the first size that's actually in stock.
+        const firstAvailable =
+          opt.values.find((v) => !isSizeSoldOut(product, v)) ?? opt.values[0];
+        o[opt.name] = firstAvailable;
+      } else {
+        o[opt.name] = opt.values[0];
+      }
+    }
     return o;
   }, [product]);
   const [selected, setSelected] = useState<Record<string, string>>(initialOptions);
+
+  const selectedSize = selected["Size"] ?? "";
+  const selectedSizeSoldOut =
+    !!selectedSize && isSizeSoldOut(product, selectedSize);
+  // Units available for the chosen size; caps the quantity stepper and add.
+  const available = selectedSize ? stockForSize(product.stock, selectedSize) : 0;
+
+  // Switch the selected size and, in the same event, pull the quantity down if
+  // the new size has less stock than the current qty (kept out of an effect).
+  function selectOption(name: string, value: string) {
+    setSelected({ ...selected, [name]: value });
+    if (name === "Size") {
+      const avail = stockForSize(product.stock, value);
+      if (avail > 0 && qty > avail) setQty(avail);
+    }
+  }
 
   const matchedVariant = useMemo(() => {
     return (
@@ -54,6 +82,12 @@ export default function ProductDetail({
   }, [product.handle]);
 
   const onAdd = () => {
+    if (soldOut || selectedSizeSoldOut) return;
+    // Never add more than what's in stock for this size.
+    if (available > 0 && qty > available) {
+      setQty(available);
+      return;
+    }
     add(
       {
         productHandle: product.handle,
@@ -172,62 +206,90 @@ export default function ProductDetail({
 
           {sizeChart && <SizeChartPanel chart={sizeChart} />}
 
-          {product.options.map((opt) => (
-            <div key={opt.name} className="flex flex-col gap-3">
-              <p className="text-xs tracking-[0.25em] uppercase text-white/60">
-                {opt.name}: <span className="text-white">{selected[opt.name]}</span>
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {opt.values.map((v) => (
-                  <button
-                    key={v}
-                    onClick={() => setSelected({ ...selected, [opt.name]: v })}
-                    className={`min-w-12 h-11 px-4 border rounded-md tracking-[0.1em] uppercase text-sm transition ${
-                      selected[opt.name] === v
-                        ? "border-white bg-white text-black"
-                        : "border-white/20 text-white hover:border-white/60"
-                    }`}
-                  >
-                    {v}
-                  </button>
-                ))}
+          {product.options.map((opt) => {
+            const isSize = opt.name === "Size";
+            return (
+              <div key={opt.name} className="flex flex-col gap-3">
+                <p className="text-xs tracking-[0.25em] uppercase text-white/60">
+                  {opt.name}: <span className="text-white">{selected[opt.name]}</span>
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {opt.values.map((v) => {
+                    const valueSoldOut = isSize && isSizeSoldOut(product, v);
+                    const isSelected = selected[opt.name] === v;
+                    return (
+                      <button
+                        key={v}
+                        type="button"
+                        disabled={valueSoldOut}
+                        onClick={() => !valueSoldOut && selectOption(opt.name, v)}
+                        title={valueSoldOut ? `${v} — sold out` : undefined}
+                        className={`relative min-w-12 h-11 px-4 border rounded-md tracking-[0.1em] uppercase text-sm transition ${
+                          valueSoldOut
+                            ? "border-white/10 text-white/30 line-through cursor-not-allowed"
+                            : isSelected
+                              ? "border-white bg-white text-black"
+                              : "border-white/20 text-white hover:border-white/60"
+                        }`}
+                      >
+                        {v}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
-          <div className="flex items-center gap-4">
-            <div className="flex items-center border border-white/20 rounded-md h-12">
-              <button
-                onClick={() => setQty(Math.max(1, qty - 1))}
-                className="w-10 h-full grid place-items-center hover:bg-white/5"
-                aria-label="Decrease quantity"
-              >
-                <Minus size={14} />
-              </button>
-              <span className="w-10 text-center">{qty}</span>
-              <button
-                onClick={() => setQty(qty + 1)}
-                className="w-10 h-full grid place-items-center hover:bg-white/5"
-                aria-label="Increase quantity"
-              >
-                <Plus size={14} />
-              </button>
+          {soldOut ? (
+            <div className="h-12 grid place-items-center border border-white/15 rounded-md font-[family-name:var(--font-bebas)] tracking-[0.25em] uppercase text-white/50">
+              Sold out
             </div>
-            <button
-              type="button"
-              onClick={onAdd}
-              className="flex-1 h-12 bg-white text-black rounded-md font-[family-name:var(--font-bebas)] tracking-[0.25em] uppercase hover:bg-white/90 transition"
-            >
-              Add to cart
-            </button>
-          </div>
-          <button
-            type="button"
-            onClick={onAdd}
-            className="h-12 border border-white/30 rounded-md font-[family-name:var(--font-bebas)] tracking-[0.25em] uppercase hover:bg-white/10 transition"
-          >
-            Buy it now
-          </button>
+          ) : (
+            <>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center border border-white/20 rounded-md h-12">
+                  <button
+                    onClick={() => setQty(Math.max(1, qty - 1))}
+                    className="w-10 h-full grid place-items-center hover:bg-white/5"
+                    aria-label="Decrease quantity"
+                  >
+                    <Minus size={14} />
+                  </button>
+                  <span className="w-10 text-center">{qty}</span>
+                  <button
+                    onClick={() => setQty((q) => (available > 0 ? Math.min(available, q + 1) : q + 1))}
+                    disabled={available > 0 && qty >= available}
+                    className="w-10 h-full grid place-items-center hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed"
+                    aria-label="Increase quantity"
+                  >
+                    <Plus size={14} />
+                  </button>
+                </div>
+                {available > 0 && available <= 5 && (
+                  <span className="text-xs text-amber-300/90">
+                    Only {available} left
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={onAdd}
+                  disabled={selectedSizeSoldOut}
+                  className="flex-1 h-12 bg-white text-black rounded-md font-[family-name:var(--font-bebas)] tracking-[0.25em] uppercase hover:bg-white/90 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {selectedSizeSoldOut ? `${selectedSize} sold out` : "Add to cart"}
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={onAdd}
+                disabled={selectedSizeSoldOut}
+                className="h-12 border border-white/30 rounded-md font-[family-name:var(--font-bebas)] tracking-[0.25em] uppercase hover:bg-white/10 transition disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Buy it now
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

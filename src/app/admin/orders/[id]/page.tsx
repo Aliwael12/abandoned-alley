@@ -3,9 +3,16 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import PushToDroppinButton from "./PushToDroppinButton";
+import OrderActions from "./OrderActions";
 import { requireAdmin } from "@/lib/admin-auth";
 import { getOrderById } from "@/lib/orders-server";
 import { getAllProducts } from "@/lib/products-server";
+import {
+  carrierForGovernorate,
+  CARRIER_LABEL,
+  normalizeStatus,
+  STATUS_LABEL,
+} from "@/lib/order-status";
 import type { Product } from "@/lib/products";
 
 export const metadata = { title: "Order — Abandoned Alley Admin" };
@@ -28,6 +35,8 @@ export default async function OrderDetailPage({
   const productMap = new Map<string, Product>(allProducts.map((p) => [p.handle, p]));
 
   const itemCount = order.items.reduce((n, i) => n + i.quantity, 0);
+  const status = normalizeStatus(order.status);
+  const carrier = carrierForGovernorate(order.shipping.state);
 
   return (
     <div className="max-w-[1100px] mx-auto px-4 md:px-8 py-12 flex flex-col gap-8">
@@ -49,13 +58,23 @@ export default async function OrderDetailPage({
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <span className="px-3 py-1 text-[11px] tracking-[0.2em] uppercase border border-white/15 rounded">
-            {order.status}
+            {STATUS_LABEL[status]}
+          </span>
+          <span className="px-3 py-1 text-[11px] tracking-[0.2em] uppercase border border-white/15 rounded text-white/70">
+            {CARRIER_LABEL[carrier]} · {order.shipping.state || "—"}
           </span>
           <span className="text-xs text-white/60">
             {order.createdAt ? new Date(order.createdAt).toLocaleString() : "—"}
           </span>
         </div>
       </header>
+
+      <section className="glass rounded-2xl p-6 flex flex-col gap-3">
+        <h2 className="font-[family-name:var(--font-bebas)] text-2xl tracking-[0.18em]">
+          Order actions
+        </h2>
+        <OrderActions orderId={order.id} status={status} />
+      </section>
 
       <div className="grid md:grid-cols-2 gap-6">
         <section className="glass rounded-2xl p-6 flex flex-col gap-3">
@@ -209,17 +228,17 @@ export default async function OrderDetailPage({
                 Zone
               </span>
               <span className="text-white/90">
-                {order.shippingZone === "metro"
-                  ? "Cairo / Giza"
-                  : order.shippingZone === "egypt"
-                  ? `Other governorate (${order.shipping.state})`
-                  : "International"}
+                {/* Derived from the actual governorate so it can never disagree
+                    with the carrier badge above (Cairo/Giza -> Droppin). */}
+                {carrier === "droppin"
+                  ? `Cairo / Giza (${order.shipping.state || "—"})`
+                  : `Other governorate (${order.shipping.state || "—"})`}
               </span>
             </div>
             <p className="text-sm text-white/60">
-              {order.droppinAutoPush
-                ? "This order is auto-pushed to Droppin. It hasn't been recorded yet — push manually if needed."
-                : "Not auto-pushed (3–5 day governorate). Push it to Droppin when ready."}
+              {carrier === "droppin"
+                ? "Cairo / Giza orders dispatch to Droppin automatically when you approve them. Use the button below to push or retry manually."
+                : `This order routes to ${CARRIER_LABEL[carrier]} (${order.shipping.state}). ShipBlu dispatch isn't wired up yet — push to Droppin manually only if needed.`}
             </p>
             {order.droppin.error && (
               <p className="text-sm text-red-300/90">
