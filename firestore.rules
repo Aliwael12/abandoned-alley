@@ -52,7 +52,7 @@ service cloud.firestore {
         request.resource.data.status == 'pending' &&
         request.resource.data.keys().hasOnly([
           'customer','shipping','items','notes','subtotal','shippingFee',
-          'shippingZone','droppinAutoPush',
+          'shippingZone','droppinAutoPush','shipblu',
           'currency','status','attribution','createdAt'
         ]);
       allow read: if true;
@@ -70,7 +70,9 @@ service cloud.firestore {
         request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'status','approvedAt','deliveredAt','cancelledAt','stockDeducted',
           'droppinPackageId','droppinTrackingNumber','droppinStatus',
-          'droppinPushedAt','droppinError','droppinPushAttemptedAt'
+          'droppinPushedAt','droppinError','droppinPushAttemptedAt',
+          'shipbluOrderId','shipbluTrackingNumber','shipbluStatus',
+          'shipbluPushedAt','shipbluError','shipbluPushAttemptedAt'
         ]);
       allow delete: if false;
     }

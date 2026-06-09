@@ -3,6 +3,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import PushToDroppinButton from "./PushToDroppinButton";
+import PushToShipBluButton from "./PushToShipBluButton";
 import OrderActions from "./OrderActions";
 import { requireAdmin } from "@/lib/admin-auth";
 import { getOrderById } from "@/lib/orders-server";
@@ -173,82 +174,146 @@ export default async function OrderDetailPage({
         </div>
       </section>
 
-      <section className="glass rounded-2xl p-6 flex flex-col gap-3">
-        <h2 className="font-[family-name:var(--font-bebas)] text-2xl tracking-[0.18em]">
-          Shipping (Droppin)
-        </h2>
-        {order.droppin.trackingNumber ? (
-          <>
-            <div className="flex justify-between text-sm">
-              <span className="text-white/60 uppercase tracking-[0.2em] text-xs">
-                Tracking
-              </span>
-              <a
-                href={`https://api.droppin-eg.com/api/packages/track/${order.droppin.trackingNumber}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-mono text-white/90 hover:text-white transition"
-              >
-                {order.droppin.trackingNumber}
-              </a>
-            </div>
-            {order.droppin.status && (
+      {carrier === "droppin" ? (
+        <section className="glass rounded-2xl p-6 flex flex-col gap-3">
+          <h2 className="font-[family-name:var(--font-bebas)] text-2xl tracking-[0.18em]">
+            Shipping (Droppin)
+          </h2>
+          {order.droppin.trackingNumber ? (
+            <>
               <div className="flex justify-between text-sm">
                 <span className="text-white/60 uppercase tracking-[0.2em] text-xs">
-                  Status
+                  Tracking
                 </span>
-                <span>{order.droppin.status}</span>
+                <a
+                  href={`https://api.droppin-eg.com/api/packages/track/${order.droppin.trackingNumber}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-mono text-white/90 hover:text-white transition"
+                >
+                  {order.droppin.trackingNumber}
+                </a>
               </div>
-            )}
-            {order.droppin.packageId !== null && (
-              <div className="flex justify-between text-sm">
+              {order.droppin.status && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-white/60 uppercase tracking-[0.2em] text-xs">
+                    Status
+                  </span>
+                  <span>{order.droppin.status}</span>
+                </div>
+              )}
+              {order.droppin.packageId !== null && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-white/60 uppercase tracking-[0.2em] text-xs">
+                    Package ID
+                  </span>
+                  <span className="font-mono text-white/70">
+                    {order.droppin.packageId}
+                  </span>
+                </div>
+              )}
+              {order.droppin.pushedAt && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-white/60 uppercase tracking-[0.2em] text-xs">
+                    Pushed
+                  </span>
+                  <span className="text-white/70">
+                    {new Date(order.droppin.pushedAt).toLocaleString()}
+                  </span>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <div className="flex items-center justify-between text-sm">
                 <span className="text-white/60 uppercase tracking-[0.2em] text-xs">
-                  Package ID
+                  Zone
                 </span>
-                <span className="font-mono text-white/70">
-                  {order.droppin.packageId}
-                </span>
-              </div>
-            )}
-            {order.droppin.pushedAt && (
-              <div className="flex justify-between text-sm">
-                <span className="text-white/60 uppercase tracking-[0.2em] text-xs">
-                  Pushed
-                </span>
-                <span className="text-white/70">
-                  {new Date(order.droppin.pushedAt).toLocaleString()}
+                <span className="text-white/90">
+                  Cairo / Giza ({order.shipping.state || "—"})
                 </span>
               </div>
-            )}
-          </>
-        ) : (
-          <>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-white/60 uppercase tracking-[0.2em] text-xs">
-                Zone
-              </span>
-              <span className="text-white/90">
-                {/* Derived from the actual governorate so it can never disagree
-                    with the carrier badge above (Cairo/Giza -> Droppin). */}
-                {carrier === "droppin"
-                  ? `Cairo / Giza (${order.shipping.state || "—"})`
-                  : `Other governorate (${order.shipping.state || "—"})`}
-              </span>
-            </div>
-            <p className="text-sm text-white/60">
-              {carrier === "droppin"
-                ? "Cairo / Giza orders dispatch to Droppin automatically when you approve them. Use the button below to push or retry manually."
-                : `This order routes to ${CARRIER_LABEL[carrier]} (${order.shipping.state}). ShipBlu dispatch isn't wired up yet — push to Droppin manually only if needed.`}
-            </p>
-            {order.droppin.error && (
-              <p className="text-sm text-red-300/90">
-                Last attempt failed: {order.droppin.error}
+              <p className="text-sm text-white/60">
+                Cairo / Giza orders dispatch to Droppin automatically when you
+                approve them. Use the button below to push or retry manually.
               </p>
-            )}
-            <PushToDroppinButton orderId={order.id} />
-          </>
-        )}
-      </section>
+              {order.droppin.error && (
+                <p className="text-sm text-red-300/90">
+                  Last attempt failed: {order.droppin.error}
+                </p>
+              )}
+              <PushToDroppinButton orderId={order.id} />
+            </>
+          )}
+        </section>
+      ) : (
+        <section className="glass rounded-2xl p-6 flex flex-col gap-3">
+          <h2 className="font-[family-name:var(--font-bebas)] text-2xl tracking-[0.18em]">
+            Shipping (ShipBlu)
+          </h2>
+          {order.shipblu.trackingNumber ? (
+            <>
+              <div className="flex justify-between text-sm">
+                <span className="text-white/60 uppercase tracking-[0.2em] text-xs">
+                  Tracking
+                </span>
+                <span className="font-mono text-white/90">
+                  {order.shipblu.trackingNumber}
+                </span>
+              </div>
+              {order.shipblu.status && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-white/60 uppercase tracking-[0.2em] text-xs">
+                    Status
+                  </span>
+                  <span>{order.shipblu.status}</span>
+                </div>
+              )}
+              {order.shipblu.pushedAt && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-white/60 uppercase tracking-[0.2em] text-xs">
+                    Pushed
+                  </span>
+                  <span className="text-white/70">
+                    {new Date(order.shipblu.pushedAt).toLocaleString()}
+                  </span>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-white/60 uppercase tracking-[0.2em] text-xs">
+                  Destination
+                </span>
+                <span className="text-white/90 text-right">
+                  {order.shipbluZone
+                    ? `${order.shipbluZone.zoneName}, ${order.shipbluZone.cityName}`
+                    : order.shipping.state || "—"}
+                </span>
+              </div>
+              {order.shipbluZone ? (
+                <p className="text-sm text-white/60">
+                  Approving this order dispatches it to ShipBlu. Use the button
+                  below to push or retry manually.
+                </p>
+              ) : (
+                <p className="text-sm text-amber-300/90">
+                  This {order.shipping.state} order has no ShipBlu zone (placed
+                  before zone selection, or an unserved governorate). It can&apos;t
+                  be dispatched to ShipBlu automatically.
+                </p>
+              )}
+              {order.shipblu.error && (
+                <p className="text-sm text-red-300/90">
+                  Last attempt failed: {order.shipblu.error}
+                </p>
+              )}
+              {order.shipbluZone && <PushToShipBluButton orderId={order.id} />}
+            </>
+          )}
+        </section>
+      )}
 
       <section className="glass rounded-2xl p-6 flex flex-col gap-3">
         <h2 className="font-[family-name:var(--font-bebas)] text-2xl tracking-[0.18em]">

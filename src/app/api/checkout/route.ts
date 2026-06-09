@@ -13,6 +13,13 @@ import { getShippingFees } from "@/lib/settings-server";
 import { getAllProducts } from "@/lib/products-server";
 import { sizeOfOrderItem, stockForSize } from "@/lib/inventory";
 import {
+  getCities,
+  getZones,
+  isShipBluConfigured,
+  isShipBluServed,
+  shipbluGovernorateId,
+} from "@/lib/shipblu";
+import {
   COUNTRY_EGYPT,
   feeForZone,
   isEgyptGovernorate,
@@ -42,6 +49,13 @@ type AttributionIn = {
   };
 };
 
+type ShipBluIn = {
+  cityId: number;
+  cityName: string;
+  zoneId: number;
+  zoneName: string;
+};
+
 type IncomingOrder = {
   customer: { name: string; email: string; phone: string };
   shipping: {
@@ -51,6 +65,7 @@ type IncomingOrder = {
     zip: string;
     country: string;
   };
+  shipblu?: ShipBluIn;
   notes?: string;
   items: IncomingItem[];
   attribution?: AttributionIn;
@@ -115,6 +130,23 @@ function validate(body: unknown): IncomingOrder | string {
     });
   }
 
+  // ShipBlu zone selection (optional; only for ShipBlu-served governorates).
+  let shipblu: ShipBluIn | undefined;
+  const sbRaw = b.shipblu;
+  if (sbRaw && typeof sbRaw === "object") {
+    const s = sbRaw as Record<string, unknown>;
+    const cityId = Number(s.cityId);
+    const zoneId = Number(s.zoneId);
+    if (Number.isInteger(cityId) && cityId > 0 && Number.isInteger(zoneId) && zoneId > 0) {
+      shipblu = {
+        cityId,
+        zoneId,
+        cityName: String(s.cityName ?? "").slice(0, 120),
+        zoneName: String(s.zoneName ?? "").slice(0, 120),
+      };
+    }
+  }
+
   let attribution: AttributionIn | undefined;
   const attrRaw = b.attribution;
   if (attrRaw && typeof attrRaw === "object") {
@@ -138,6 +170,7 @@ function validate(body: unknown): IncomingOrder | string {
   return {
     customer: { name, email, phone },
     shipping: ship,
+    shipblu,
     notes: typeof b.notes === "string" ? b.notes.trim().slice(0, 1000) : undefined,
     items: cleanItems,
     attribution,
@@ -155,6 +188,48 @@ export async function POST(request: Request) {
   const parsed = validate(body);
   if (typeof parsed === "string") {
     return NextResponse.json({ error: parsed }, { status: 400 });
+  }
+
+  // ShipBlu zone guard (authoritative — the UI gate is client-side only).
+  // ShipBlu serves the non-metro governorates; metro (Cairo/Giza) go to Droppin.
+  const orderZone = resolveZone(parsed.shipping.country, parsed.shipping.state);
+  const shipbluServed =
+    orderZone === "egypt" && isShipBluServed(parsed.shipping.state);
+  if (shipbluServed && isShipBluConfigured()) {
+    if (!parsed.shipblu) {
+      return NextResponse.json(
+        { error: "Please select your city and area / zone." },
+        { status: 400 }
+      );
+    }
+    // The submitted city + zone must genuinely belong to this governorate, so a
+    // crafted/stale request can't route a package to the wrong neighborhood.
+    try {
+      const govId = shipbluGovernorateId(parsed.shipping.state);
+      const cities = govId ? await getCities(govId) : [];
+      if (!cities.some((c) => c.id === parsed.shipblu!.cityId)) {
+        return NextResponse.json(
+          { error: "Selected city is not valid for this governorate." },
+          { status: 400 }
+        );
+      }
+      const zones = await getZones(parsed.shipblu.cityId);
+      if (!zones.some((z) => z.id === parsed.shipblu!.zoneId)) {
+        return NextResponse.json(
+          { error: "Selected area / zone is not valid for this city." },
+          { status: 400 }
+        );
+      }
+    } catch (err) {
+      console.error("ShipBlu zone validation failed:", err);
+      return NextResponse.json(
+        { error: "Could not verify delivery zone. Please try again." },
+        { status: 502 }
+      );
+    }
+  } else {
+    // Not a ShipBlu order — never persist a stray zone (metro/unserved/intl).
+    parsed.shipblu = undefined;
   }
 
   // Stock guard: reject the order if any line exceeds the available per-size
@@ -249,6 +324,8 @@ export async function POST(request: Request) {
     shippingFee,
     shippingZone: zone,
     droppinAutoPush: zone === "metro",
+    // ShipBlu zone selection captured at checkout (non-metro governorates).
+    shipblu: parsed.shipblu ?? null,
     currency: "EGP",
     status: "pending",
     attribution: attributionDoc,

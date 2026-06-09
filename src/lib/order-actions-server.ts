@@ -23,7 +23,11 @@ import {
 import { carrierForGovernorate } from "@/lib/order-status";
 import { normalizeStock, sizeOfOrderItem } from "@/lib/inventory";
 import type { Product, StockMap } from "@/lib/products";
-import { getOrderById, pushOrderToDroppin } from "@/lib/orders-server";
+import {
+  getOrderById,
+  pushOrderToDroppin,
+  pushOrderToShipBlu,
+} from "@/lib/orders-server";
 
 export type ActionResult =
   | { ok: true; status: OrderStatus; dispatch?: { ok: boolean; error?: string } }
@@ -208,8 +212,8 @@ export async function approveOrder(id: string): Promise<ActionResult> {
       const result = await pushOrderToDroppin(id);
       dispatch = result.ok ? { ok: true } : { ok: false, error: result.error };
     } else {
-      // ShipBlu dispatch pending API integration — approved without a push.
-      dispatch = { ok: false, error: "ShipBlu dispatch not yet available." };
+      const result = await pushOrderToShipBlu(id);
+      dispatch = result.ok ? { ok: true } : { ok: false, error: result.error };
     }
   } catch (err) {
     dispatch = {
