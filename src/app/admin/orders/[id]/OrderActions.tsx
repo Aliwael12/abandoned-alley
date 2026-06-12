@@ -2,10 +2,23 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { CheckCircle2, Loader2, PackageCheck, XCircle } from "lucide-react";
+import {
+  CheckCircle2,
+  Loader2,
+  PackageCheck,
+  RotateCcw,
+  XCircle,
+} from "lucide-react";
 import type { OrderStatus } from "@/lib/order-status";
 
-type Action = "approve" | "deliver" | "cancel";
+type Action = "approve" | "deliver" | "cancel" | "refund";
+
+const ACTION_LABEL: Record<Action, string> = {
+  approve: "Approve",
+  deliver: "Mark delivered",
+  cancel: "Cancel",
+  refund: "Refund",
+};
 
 export default function OrderActions({
   orderId,
@@ -19,9 +32,12 @@ export default function OrderActions({
   const [error, setError] = useState<string | null>(null);
 
   async function run(action: Action) {
-    const label =
-      action === "approve" ? "Approve" : action === "deliver" ? "Mark delivered" : "Cancel";
-    if (!confirm(`${label} this order?`)) return;
+    const label = ACTION_LABEL[action];
+    const prompt =
+      action === "refund"
+        ? "Refund this order? This restores the ordered items to stock and marks the order refunded."
+        : `${label} this order?`;
+    if (!confirm(prompt)) return;
     setBusy(action);
     setError(null);
     try {
@@ -46,8 +62,12 @@ export default function OrderActions({
   const canApprove = status === "pending";
   const canDeliver = status === "approved";
   const canCancel = status !== "cancelled" && status !== "delivered";
+  // A refund closes out an order and returns its stock — available for any
+  // order that isn't already closed (pending, approved, or delivered). A
+  // refunded order normalizes to "cancelled", so this hides once refunded.
+  const canRefund = status !== "cancelled";
 
-  if (!canApprove && !canDeliver && !canCancel) {
+  if (!canApprove && !canDeliver && !canCancel && !canRefund) {
     return (
       <p className="text-sm text-white/50">
         No further actions available for a {status} order.
@@ -100,10 +120,29 @@ export default function OrderActions({
             Cancel
           </button>
         )}
+        {canRefund && (
+          <button
+            onClick={() => run("refund")}
+            disabled={busy !== null}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md border border-amber-400/40 text-amber-300 hover:bg-amber-400/10 text-xs tracking-[0.2em] uppercase disabled:opacity-50 transition"
+          >
+            {busy === "refund" ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <RotateCcw size={14} />
+            )}
+            Refund
+          </button>
+        )}
       </div>
       {canApprove && (
         <p className="text-[11px] text-white/40">
           Approving deducts stock and dispatches Cairo / Giza orders to Droppin.
+        </p>
+      )}
+      {canRefund && (
+        <p className="text-[11px] text-white/40">
+          Refunding marks the order refunded and returns its items to stock.
         </p>
       )}
       {error && <p className="text-sm text-amber-300/90">{error}</p>}

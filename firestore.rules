@@ -66,9 +66,9 @@ service cloud.firestore {
         request.resource.data.customer == resource.data.customer &&
         request.resource.data.items == resource.data.items &&
         request.resource.data.subtotal == resource.data.subtotal &&
-        request.resource.data.status in ['pending','approved','delivered','cancelled'] &&
+        request.resource.data.status in ['pending','approved','delivered','cancelled','refunded'] &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'status','approvedAt','deliveredAt','cancelledAt','stockDeducted',
+          'status','approvedAt','deliveredAt','cancelledAt','refundedAt','stockDeducted',
           'droppinPackageId','droppinTrackingNumber','droppinStatus',
           'droppinPushedAt','droppinError','droppinPushAttemptedAt',
           'shipbluOrderId','shipbluTrackingNumber','shipbluStatus',

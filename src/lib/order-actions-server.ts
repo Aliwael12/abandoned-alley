@@ -30,7 +30,12 @@ import {
 } from "@/lib/orders-server";
 
 export type ActionResult =
-  | { ok: true; status: OrderStatus; dispatch?: { ok: boolean; error?: string } }
+  | {
+      ok: true;
+      // "refunded" is a distinct stored status that normalizes to "cancelled".
+      status: OrderStatus | "refunded";
+      dispatch?: { ok: boolean; error?: string };
+    }
   | { ok: false; error: string };
 
 type RawOrderItem = {
@@ -257,10 +262,21 @@ export async function deliverOrder(id: string): Promise<ActionResult> {
 }
 
 /**
- * Cancel an order. If it had already deducted stock (approved/delivered), the
- * stock is restored atomically. Cancelling a pending order changes no stock.
+ * Close out an order to a terminal state (cancelled or refunded), restoring any
+ * stock that had already been deducted. Cancel and refund are the same stock
+ * operation — they differ only in the status persisted and the meaning to the
+ * merchant (a refund returns the customer's money), so they share this body.
+ *
+ * The write is idempotent: once the order already normalizes to cancelled
+ * (which includes "refunded"), it is left untouched so stock can never be
+ * restored twice. Restoring a still-pending order is a no-op because its stock
+ * was never deducted.
  */
-export async function cancelOrder(id: string): Promise<ActionResult> {
+async function closeOrder(
+  id: string,
+  to: { status: "cancelled" | "refunded"; timestampField: string },
+  failMessage: string
+): Promise<ActionResult> {
   const orderRef = doc(db, "orders", id);
   try {
     await runTransaction(db, async (tx) => {
@@ -268,7 +284,7 @@ export async function cancelOrder(id: string): Promise<ActionResult> {
       if (!orderSnap.exists()) throw new Error("Order not found.");
       const order = orderSnap.data() as Record<string, unknown>;
       const status = normalizeStatus(order.status as string);
-      if (status === "cancelled") return; // idempotent
+      if (status === "cancelled") return; // idempotent (covers refunded too)
 
       const restore = isStockReserved(order.status as string);
 
@@ -306,20 +322,46 @@ export async function cancelOrder(id: string): Promise<ActionResult> {
       }
 
       tx.update(orderRef, {
-        status: "cancelled",
-        cancelledAt: serverTimestamp(),
+        status: to.status,
+        [to.timestampField]: serverTimestamp(),
       });
     });
-    return { ok: true, status: "cancelled" };
+    return { ok: true, status: to.status };
   } catch (err) {
     return {
       ok: false,
-      error: err instanceof Error ? err.message : "Cancel failed.",
+      error: err instanceof Error ? err.message : failMessage,
     };
   }
 }
 
-export type OrderAction = "approve" | "deliver" | "cancel";
+/**
+ * Cancel an order. If it had already deducted stock (approved/delivered), the
+ * stock is restored atomically. Cancelling a pending order changes no stock.
+ */
+export async function cancelOrder(id: string): Promise<ActionResult> {
+  return closeOrder(
+    id,
+    { status: "cancelled", timestampField: "cancelledAt" },
+    "Cancel failed."
+  );
+}
+
+/**
+ * Refund an order: mark it refunded and restore stock. Stock was deducted at
+ * approval, so refunding an approved/delivered order returns each ordered
+ * product+size back to inventory (the same restock as cancellation). Refunding
+ * a pending order — which never deducted stock — only flips the status.
+ */
+export async function refundOrder(id: string): Promise<ActionResult> {
+  return closeOrder(
+    id,
+    { status: "refunded", timestampField: "refundedAt" },
+    "Refund failed."
+  );
+}
+
+export type OrderAction = "approve" | "deliver" | "cancel" | "refund";
 
 export async function runOrderAction(
   action: OrderAction,
@@ -332,6 +374,8 @@ export async function runOrderAction(
       return deliverOrder(id);
     case "cancel":
       return cancelOrder(id);
+    case "refund":
+      return refundOrder(id);
     default:
       return { ok: false, error: "Unknown action." };
   }

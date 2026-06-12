@@ -3,7 +3,7 @@ import { Resend } from "resend";
 export const resend = new Resend(process.env.RESEND_API_KEY!);
 
 export const EMAIL_FROM = process.env.EMAIL_FROM ?? "Abandoned Alley <onboarding@resend.dev>";
-export const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "abandonedalley@gmail.com";
+export const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "abandonedalleystore@gmail.com";
 
 export type OrderItemForEmail = {
   title: string;
@@ -24,10 +24,14 @@ export type OrderForEmail = {
     zip: string;
     country: string;
   };
+  /** ShipBlu city/zone chosen at checkout, for non-metro governorates. */
+  shipblu?: { cityName: string; zoneName: string } | null;
   notes?: string;
   items: OrderItemForEmail[];
   subtotal: number;
   shippingFee: number;
+  /** ISO-ish display string for when the order was placed. */
+  placedAt?: string;
 };
 
 const escape = (s: string) =>
@@ -86,6 +90,12 @@ export function customerOrderHtml(order: OrderForEmail) {
 export function adminOrderHtml(order: OrderForEmail) {
   const ship = order.shipping;
   const total = order.subtotal + order.shippingFee;
+  const itemCount = order.items.reduce((n, i) => n + i.quantity, 0);
+  const metaRow = (label: string, value: string) => `
+      <tr>
+        <td style="padding:4px 0;color:#888;text-transform:uppercase;letter-spacing:0.18em;font-size:11px;vertical-align:top;">${label}</td>
+        <td style="padding:4px 0 4px 16px;color:#eee;font-size:13px;text-align:right;">${value}</td>
+      </tr>`;
   return `
   <div style="background:#0a0a0a;color:#eee;font-family:Helvetica,Arial,sans-serif;padding:32px;max-width:600px;margin:auto;">
     <h2 style="margin:0 0 16px;">New order #${escape(order.id)}</h2>
@@ -93,6 +103,19 @@ export function adminOrderHtml(order: OrderForEmail) {
       <strong>${escape(order.customerName)}</strong><br/>
       ${escape(order.customerEmail)} &middot; ${escape(order.customerPhone)}
     </p>
+    <table style="width:100%;border-collapse:collapse;margin-top:16px;">
+      ${order.placedAt ? metaRow("Placed", escape(order.placedAt)) : ""}
+      ${metaRow("Items", String(itemCount))}
+      ${metaRow("Governorate", escape(ship.state || "—"))}
+      ${
+        order.shipblu
+          ? metaRow(
+              "ShipBlu zone",
+              `${escape(order.shipblu.zoneName)}, ${escape(order.shipblu.cityName)}`
+            )
+          : ""
+      }
+    </table>
     <table style="width:100%;border-collapse:collapse;margin-top:24px;">
       ${itemsHtml(order.items)}
       <tr>

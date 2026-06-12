@@ -347,10 +347,18 @@ export async function POST(request: Request) {
     customerEmail: parsed.customer.email,
     customerPhone: parsed.customer.phone,
     shipping: parsed.shipping,
+    shipblu: parsed.shipblu
+      ? { cityName: parsed.shipblu.cityName, zoneName: parsed.shipblu.zoneName }
+      : null,
     notes: parsed.notes,
     items: parsed.items,
     subtotal,
     shippingFee,
+    placedAt: new Date().toLocaleString("en-GB", {
+      timeZone: "Africa/Cairo",
+      dateStyle: "medium",
+      timeStyle: "short",
+    }),
   };
 
   const results = await Promise.allSettled([
@@ -364,7 +372,9 @@ export async function POST(request: Request) {
     resend.emails.send({
       from: EMAIL_FROM,
       to: ADMIN_EMAIL,
-      subject: `New order #${orderId} — EGP ${(subtotal + shippingFee).toFixed(2)}`,
+      subject: `New order — ${parsed.customer.name} (${parsed.shipping.state}) — EGP ${(
+        subtotal + shippingFee
+      ).toFixed(2)}`,
       html: adminOrderHtml(emailPayload),
       replyTo: parsed.customer.email,
     }),

@@ -234,11 +234,17 @@ export default function OverviewTab({ data }: { data: OrdersResponse | null }) {
           <p className="text-sm text-white/50 py-6">No orders in this range.</p>
         ) : (
           <div
-            className="grid gap-2 items-end h-40"
+            className="grid gap-1 sm:gap-2 items-end h-40"
             style={{ gridTemplateColumns: `repeat(${buckets.length}, minmax(0, 1fr))` }}
           >
             {buckets.map((b, i) => {
               const height = Math.max(2, (b.revenue / maxRevenue) * 100);
+              // On narrow screens, ~40px-wide "Mon DD" labels collide once there
+              // are more than a handful of bars. Show at most ~6 labels on mobile
+              // (every Nth bar, always the last); show all from sm up.
+              const mobileStride = Math.ceil(buckets.length / 6);
+              const showOnMobile =
+                i % mobileStride === 0 || i === buckets.length - 1;
               return (
                 <div key={i} className="flex flex-col items-center gap-2 h-full min-w-0">
                   <div className="flex-1 w-full flex items-end">
@@ -248,7 +254,11 @@ export default function OverviewTab({ data }: { data: OrdersResponse | null }) {
                       title={`${b.label}: ${fmtUsd(b.revenue)} (${b.count} orders)`}
                     />
                   </div>
-                  <p className="text-[10px] text-white/50 truncate w-full text-center">
+                  <p
+                    className={`text-[10px] text-white/50 truncate w-full text-center ${
+                      showOnMobile ? "" : "hidden sm:block"
+                    }`}
+                  >
                     {b.label}
                   </p>
                 </div>
@@ -265,9 +275,53 @@ export default function OverviewTab({ data }: { data: OrdersResponse | null }) {
         {filtered.length === 0 ? (
           <p className="text-sm text-white/50 py-6">No orders in this range.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
+          <>
+            {/* Mobile: stacked order cards */}
+            <ul className="md:hidden flex flex-col gap-2">
+              {filtered.slice(0, 50).map((o) => (
+                <li key={o.id}>
+                  <Link
+                    href={`/admin/orders/${o.id}`}
+                    className="rounded-xl border border-white/10 p-3 flex flex-col gap-2 hover:bg-white/5 transition"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono text-xs text-white/60">
+                        #{o.id.slice(0, 8)}
+                      </span>
+                      <span className="text-sm font-medium">
+                        {fmtUsd(o.subtotal)}
+                      </span>
+                    </div>
+                    <div className="min-w-0">
+                      <div className="truncate">{o.customerName}</div>
+                      <div className="text-xs text-white/40 truncate">
+                        {o.customerEmail}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span
+                        className={`px-2 py-0.5 text-[10px] tracking-[0.15em] uppercase border rounded ${STATUS_STYLES[o.status]}`}
+                      >
+                        {STATUS_LABEL[o.status]}
+                      </span>
+                      <span className="text-[11px] text-white/50">
+                        {o.itemCount} item{o.itemCount === 1 ? "" : "s"}
+                      </span>
+                      <span className="text-[11px] text-white/40">
+                        {o.createdAt
+                          ? new Date(o.createdAt).toLocaleDateString()
+                          : "—"}
+                      </span>
+                    </div>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+
+            {/* Desktop: full table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
                 <tr className="text-[10px] tracking-[0.2em] uppercase text-white/40 border-b border-white/10">
                   <th className="text-left py-2 pr-4">Order</th>
                   <th className="text-left py-2 pr-4">Customer</th>
@@ -324,8 +378,9 @@ export default function OverviewTab({ data }: { data: OrdersResponse | null }) {
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
+              </table>
+            </div>
+          </>
         )}
       </section>
     </div>

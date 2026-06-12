@@ -11,8 +11,8 @@ import { getAllProducts } from "@/lib/products-server";
 import {
   carrierForGovernorate,
   CARRIER_LABEL,
+  displayStatusLabel,
   normalizeStatus,
-  STATUS_LABEL,
 } from "@/lib/order-status";
 import type { Product } from "@/lib/products";
 
@@ -42,11 +42,11 @@ export default async function OrderDetailPage({
   return (
     <div className="max-w-[1100px] mx-auto px-4 md:px-8 py-12 flex flex-col gap-8">
       <Link
-        href="/admin"
+        href="/admin?tab=orders"
         className="inline-flex items-center gap-2 text-xs tracking-[0.2em] uppercase text-white/60 hover:text-white transition self-start"
       >
         <ArrowLeft size={14} />
-        Back to dashboard
+        Back to orders
       </Link>
 
       <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
@@ -59,7 +59,7 @@ export default async function OrderDetailPage({
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <span className="px-3 py-1 text-[11px] tracking-[0.2em] uppercase border border-white/15 rounded">
-            {STATUS_LABEL[status]}
+            {displayStatusLabel(order.status)}
           </span>
           <span className="px-3 py-1 text-[11px] tracking-[0.2em] uppercase border border-white/15 rounded text-white/70">
             {CARRIER_LABEL[carrier]} · {order.shipping.state || "—"}
@@ -119,7 +119,46 @@ export default async function OrderDetailPage({
         <h2 className="font-[family-name:var(--font-bebas)] text-2xl tracking-[0.18em] mb-4">
           Items ({itemCount})
         </h2>
-        <div className="overflow-x-auto">
+        {/* Mobile: stacked item cards */}
+        <ul className="md:hidden flex flex-col gap-3">
+          {order.items.map((it) => {
+            const p = productMap.get(it.productHandle);
+            const img = p?.media.find((m) => m.type === "image");
+            return (
+              <li
+                key={it.variantId}
+                className="flex gap-3 border-b border-white/5 pb-3 last:border-b-0 last:pb-0"
+              >
+                <div className="relative w-14 h-14 bg-white/5 rounded overflow-hidden shrink-0">
+                  {img && img.type === "image" && (
+                    <Image
+                      src={img.src}
+                      alt={it.title}
+                      fill
+                      sizes="56px"
+                      className="object-cover"
+                      unoptimized
+                    />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0 flex flex-col gap-1">
+                  <p className="text-sm text-white/90">{it.title}</p>
+                  <p className="text-xs text-white/60">{it.variantTitle}</p>
+                  <div className="flex items-center justify-between text-xs text-white/70 mt-1">
+                    <span>
+                      {it.quantity} × {fmt(it.price, order.currency)}
+                    </span>
+                    <span className="text-white/90">
+                      {fmt(it.price * it.quantity, order.currency)}
+                    </span>
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+        {/* Desktop: items table */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-[10px] tracking-[0.2em] uppercase text-white/40 border-b border-white/10">

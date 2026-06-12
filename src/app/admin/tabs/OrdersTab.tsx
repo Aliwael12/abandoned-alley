@@ -273,58 +273,60 @@ export default function OrdersTab({
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2">
         <input
           placeholder="Search name, email, id, governorate…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className={`${selectCls} flex-1 min-w-[180px]`}
+          className={`${selectCls} w-full sm:flex-1 sm:min-w-[180px]`}
         />
-        <select
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-          className={selectCls}
-          aria-label="Filter by status"
-        >
-          <option value="all">All statuses</option>
-          {ORDER_STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {STATUS_LABEL[s]}
-            </option>
-          ))}
-        </select>
-        <select
-          value={carrier}
-          onChange={(e) => setCarrier(e.target.value)}
-          className={selectCls}
-          aria-label="Filter by carrier"
-        >
-          <option value="all">All carriers</option>
-          <option value="droppin">{CARRIER_LABEL.droppin}</option>
-          <option value="shipblu">{CARRIER_LABEL.shipblu}</option>
-        </select>
-        <select
-          value={governorate}
-          onChange={(e) => setGovernorate(e.target.value)}
-          className={selectCls}
-          aria-label="Filter by governorate"
-        >
-          <option value="all">All governorates</option>
-          {governoratesPresent.map((g) => (
-            <option key={g} value={g}>
-              {g}
-            </option>
-          ))}
-        </select>
+        <div className="grid grid-cols-3 sm:flex sm:flex-wrap gap-2">
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            className={`${selectCls} min-w-0`}
+            aria-label="Filter by status"
+          >
+            <option value="all">All statuses</option>
+            {ORDER_STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {STATUS_LABEL[s]}
+              </option>
+            ))}
+          </select>
+          <select
+            value={carrier}
+            onChange={(e) => setCarrier(e.target.value)}
+            className={`${selectCls} min-w-0`}
+            aria-label="Filter by carrier"
+          >
+            <option value="all">All carriers</option>
+            <option value="droppin">{CARRIER_LABEL.droppin}</option>
+            <option value="shipblu">{CARRIER_LABEL.shipblu}</option>
+          </select>
+          <select
+            value={governorate}
+            onChange={(e) => setGovernorate(e.target.value)}
+            className={`${selectCls} min-w-0`}
+            aria-label="Filter by governorate"
+          >
+            <option value="all">All governorates</option>
+            {governoratesPresent.map((g) => (
+              <option key={g} value={g}>
+                {g}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Bulk action bar */}
       {someSelected && (
-        <div className="glass rounded-xl p-3 flex items-center gap-3 flex-wrap sticky top-2 z-10">
+        <div className="glass rounded-xl p-3 flex flex-col sm:flex-row sm:items-center gap-3 sm:flex-wrap sticky top-2 z-10">
           <span className="text-sm text-white/80">
             {selectedVisible.length} selected
           </span>
-          <div className="flex items-center gap-2 ml-auto">
+          <div className="flex items-center gap-2 flex-wrap sm:ml-auto">
             <button
               onClick={() => runBulk("approve")}
               disabled={busy}
@@ -401,9 +403,80 @@ export default function OrdersTab({
             No orders match these filters.
           </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
+          <>
+            {/* Mobile: select-all + stacked order cards */}
+            <div className="md:hidden flex flex-col gap-2">
+              <label className="flex items-center gap-2 px-1 pb-2 text-[10px] tracking-[0.2em] uppercase text-white/40">
+                <input
+                  type="checkbox"
+                  checked={allVisibleSelected}
+                  onChange={toggleAll}
+                  aria-label="Select all"
+                  className="accent-white"
+                />
+                Select all ({filtered.length})
+              </label>
+              {filtered.map((o) => {
+                const isSel = selected.has(o.id);
+                return (
+                  <div
+                    key={o.id}
+                    className={`rounded-xl border p-3 flex gap-3 transition ${
+                      isSel
+                        ? "border-white/30 bg-white/[0.07]"
+                        : "border-white/10"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isSel}
+                      onChange={() => toggleOne(o.id)}
+                      aria-label={`Select order ${o.id.slice(0, 8)}`}
+                      className="accent-white mt-1 shrink-0"
+                    />
+                    <Link
+                      href={`/admin/orders/${o.id}`}
+                      className="flex-1 min-w-0 flex flex-col gap-2"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-mono text-xs text-white/60">
+                          #{o.id.slice(0, 8)}
+                        </span>
+                        <span className="text-sm font-medium">
+                          {fmtEgp(o.subtotal)}
+                        </span>
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-white/90 truncate">
+                          {o.customerName || "—"}
+                        </div>
+                        <div className="text-xs text-white/40 truncate">
+                          {o.customerEmail}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <StatusBadge status={o.status} />
+                        <CarrierBadge carrier={o.carrier} />
+                        <span className="text-[11px] text-white/50">
+                          {o.governorate || "—"} · {o.itemCount} item
+                          {o.itemCount === 1 ? "" : "s"}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-white/40">
+                        {o.createdAt
+                          ? new Date(o.createdAt).toLocaleDateString()
+                          : "—"}
+                      </div>
+                    </Link>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop: full sortable table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
                 <tr className="text-[10px] tracking-[0.2em] uppercase text-white/40 border-b border-white/10">
                   <th className="py-2 px-2 w-8">
                     <input
@@ -499,8 +572,9 @@ export default function OrdersTab({
                   );
                 })}
               </tbody>
-            </table>
-          </div>
+              </table>
+            </div>
+          </>
         )}
       </div>
 

@@ -442,7 +442,7 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <h2 className="font-[family-name:var(--font-bebas)] text-2xl tracking-[0.18em]">
           Catalog ({products.length})
         </h2>
@@ -627,7 +627,7 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
                   )}
                 </div>
 
-                <div className="flex md:flex-col items-stretch gap-2 shrink-0">
+                <div className="flex flex-wrap md:flex-col md:flex-nowrap items-stretch gap-2 md:shrink-0">
                   {isEditing ? (
                     <>
                       <button

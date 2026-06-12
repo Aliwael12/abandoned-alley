@@ -5,7 +5,7 @@ import { runOrderAction, type OrderAction } from "@/lib/order-actions-server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const ACTIONS: OrderAction[] = ["approve", "deliver", "cancel"];
+const ACTIONS: OrderAction[] = ["approve", "deliver", "cancel", "refund"];
 
 function isAction(v: string): v is OrderAction {
   return (ACTIONS as string[]).includes(v);

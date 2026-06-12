@@ -71,6 +71,26 @@ export const STATUS_LABEL: Record<OrderStatus, string> = {
   cancelled: "Cancelled",
 };
 
+/**
+ * A refund is a cancellation that returns the customer's money. It normalizes
+ * to "cancelled" (so analytics and lifecycle treat it as a closed/voided order
+ * and its stock is restored), but we persist the literal "refunded" status and
+ * surface it distinctly in the admin so a refund reads as a refund. `true` here
+ * means the order's raw status is exactly "refunded".
+ */
+export function isRefundedStatus(raw: string | null | undefined): boolean {
+  return String(raw ?? "").trim().toLowerCase() === "refunded";
+}
+
+/**
+ * The label to show for a raw stored status. Like STATUS_LABEL but keeps the
+ * "Refunded" distinction that normalizeStatus collapses into "Cancelled".
+ */
+export function displayStatusLabel(raw: string | null | undefined): string {
+  if (isRefundedStatus(raw)) return "Refunded";
+  return STATUS_LABEL[normalizeStatus(raw)];
+}
+
 // ---------------------------------------------------------------------------
 // Carrier routing
 // ---------------------------------------------------------------------------
