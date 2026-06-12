@@ -156,6 +156,7 @@ export default function OrdersTab({
         (o) =>
           o.customerName.toLowerCase().includes(q) ||
           o.customerEmail.toLowerCase().includes(q) ||
+          o.customerPhone.toLowerCase().includes(q) ||
           o.id.toLowerCase().includes(q) ||
           o.governorate.toLowerCase().includes(q)
       );
@@ -275,7 +276,7 @@ export default function OrdersTab({
       {/* Filters */}
       <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2">
         <input
-          placeholder="Search name, email, id, governorate…"
+          placeholder="Search name, phone, email, id, governorate…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className={`${selectCls} w-full sm:flex-1 sm:min-w-[180px]`}
@@ -451,7 +452,7 @@ export default function OrdersTab({
                           {o.customerName || "—"}
                         </div>
                         <div className="text-xs text-white/40 truncate">
-                          {o.customerEmail}
+                          {o.customerPhone || "—"}
                         </div>
                       </div>
                       <div className="flex items-center gap-2 flex-wrap">
@@ -553,7 +554,7 @@ export default function OrdersTab({
                       <td className="py-3 pr-4">
                         <Link href={`/admin/orders/${o.id}`} className="block">
                           <div className="text-white/90">{o.customerName || "—"}</div>
-                          <div className="text-xs text-white/40">{o.customerEmail}</div>
+                          <div className="text-xs text-white/40">{o.customerPhone || "—"}</div>
                         </Link>
                       </td>
                       <td className="py-3 pr-4 text-white/80">{o.itemCount}</td>

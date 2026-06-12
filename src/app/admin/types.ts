@@ -4,6 +4,7 @@ export type OrderRow = {
   id: string;
   customerName: string;
   customerEmail: string;
+  customerPhone: string;
   subtotal: number;
   status: OrderStatus;
   rawStatus: string;

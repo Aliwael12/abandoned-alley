@@ -22,6 +22,7 @@ type OrderRow = {
   id: string;
   customerName: string;
   customerEmail: string;
+  customerPhone: string;
   subtotal: number;
   status: OrderStatus;
   rawStatus: string;
@@ -63,6 +64,7 @@ export async function GET() {
       id: d.id,
       customerName: String(customer.name ?? ""),
       customerEmail: String(customer.email ?? ""),
+      customerPhone: String(customer.phone ?? ""),
       subtotal: Number(data.subtotal ?? 0),
       status: normalizeStatus(rawStatus),
       rawStatus,
