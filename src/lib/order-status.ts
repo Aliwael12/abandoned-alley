@@ -95,24 +95,15 @@ export function displayStatusLabel(raw: string | null | undefined): string {
 // Carrier routing
 // ---------------------------------------------------------------------------
 
-export type Carrier = "droppin" | "shipblu";
+export type Carrier = "droppin";
 
 export const CARRIER_LABEL: Record<Carrier, string> = {
   droppin: "Droppin",
-  shipblu: "ShipBlu",
 };
 
-/**
- * Carrier is derived purely from the destination governorate:
- *   Cairo / Giza  -> Droppin
- *   everywhere else in Egypt -> ShipBlu
- * (ShipBlu dispatch isn't wired up yet — this only classifies the row.)
- */
-export function carrierForGovernorate(state: string): Carrier {
-  const g = state.trim();
-  return (METRO_GOVERNORATES as readonly string[]).includes(g)
-    ? "droppin"
-    : "shipblu";
+/** Every order ships with Droppin. */
+export function carrierForGovernorate(): Carrier {
+  return "droppin";
 }
 
 export function isMetroGovernorate(state: string): state is EgyptGovernorate {

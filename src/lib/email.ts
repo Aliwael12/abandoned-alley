@@ -24,8 +24,6 @@ export type OrderForEmail = {
     zip: string;
     country: string;
   };
-  /** ShipBlu city/zone chosen at checkout, for non-metro governorates. */
-  shipblu?: { cityName: string; zoneName: string } | null;
   notes?: string;
   items: OrderItemForEmail[];
   subtotal: number;
@@ -107,14 +105,6 @@ export function adminOrderHtml(order: OrderForEmail) {
       ${order.placedAt ? metaRow("Placed", escape(order.placedAt)) : ""}
       ${metaRow("Items", String(itemCount))}
       ${metaRow("Governorate", escape(ship.state || "—"))}
-      ${
-        order.shipblu
-          ? metaRow(
-              "ShipBlu zone",
-              `${escape(order.shipblu.zoneName)}, ${escape(order.shipblu.cityName)}`
-            )
-          : ""
-      }
     </table>
     <table style="width:100%;border-collapse:collapse;margin-top:24px;">
       ${itemsHtml(order.items)}

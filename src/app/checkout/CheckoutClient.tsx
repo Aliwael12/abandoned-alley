@@ -16,8 +16,6 @@ import {
   resolveZone,
   type ShippingFees,
 } from "@/lib/shipping";
-import { isShipBluServed } from "@/lib/shipblu";
-import ShipBluLocation, { type ShipBluSelection } from "./ShipBluLocation";
 
 type FormState = {
   name: string;
@@ -53,7 +51,6 @@ export default function CheckoutClient() {
   const [error, setError] = useState<string | null>(null);
   const [fees, setFees] = useState<ShippingFees | null>(null);
   const [feesFailed, setFeesFailed] = useState(false);
-  const [shipbluZone, setShipbluZone] = useState<ShipBluSelection | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -91,10 +88,6 @@ export default function CheckoutClient() {
   );
   const isEgypt = form.country === COUNTRY_EGYPT;
   const isInternational = form.country === COUNTRY_OTHER;
-  // ShipBlu handles non-metro governorates and needs a specific zone id chosen
-  // at checkout. (Metro = Cairo/Giza go to Droppin with the free-text address.)
-  const needsShipBluZone =
-    isEgypt && zone === "egypt" && isShipBluServed(form.governorate);
   // Fee is known only once a governorate has been picked for an Egyptian order.
   const shippingFee =
     fees && isEgypt && form.governorate ? feeForZone(zone, fees) : null;
@@ -129,8 +122,7 @@ export default function CheckoutClient() {
     fees !== null &&
     isEgypt &&
     !!form.governorate &&
-    shippingFee !== null &&
-    (!needsShipBluZone || shipbluZone !== null);
+    shippingFee !== null;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -140,10 +132,6 @@ export default function CheckoutClient() {
     }
     if (!form.governorate) {
       setError("Please select your governorate.");
-      return;
-    }
-    if (needsShipBluZone && !shipbluZone) {
-      setError("Please select your city and area / zone.");
       return;
     }
     setError(null);
@@ -172,16 +160,6 @@ export default function CheckoutClient() {
             zip: form.zip,
             country: COUNTRY_EGYPT,
           },
-          // ShipBlu zone selection (non-metro governorates only); used by the
-          // server to dispatch the delivery order on approval.
-          shipblu: shipbluZone
-            ? {
-                cityId: shipbluZone.cityId,
-                cityName: shipbluZone.cityName,
-                zoneId: shipbluZone.zoneId,
-                zoneName: shipbluZone.zoneName,
-              }
-            : undefined,
           notes: form.notes || undefined,
           items: items.map((i) => ({
             productHandle: i.productHandle,
@@ -343,7 +321,6 @@ export default function CheckoutClient() {
                     value={form.governorate}
                     onChange={(e) => {
                       update("governorate", e.target.value);
-                      setShipbluZone(null);
                       setError(null);
                     }}
                     className={selectCls}
@@ -360,16 +337,6 @@ export default function CheckoutClient() {
                   </select>
                 </label>
               </div>
-              {needsShipBluZone && (
-                <ShipBluLocation
-                  governorate={form.governorate}
-                  value={shipbluZone}
-                  onChange={setShipbluZone}
-                  selectCls={selectCls}
-                  optionCls={optionCls}
-                />
-              )}
-
               <input
                 placeholder="ZIP / Postal code (optional)"
                 value={form.zip}
@@ -417,8 +384,6 @@ export default function CheckoutClient() {
               : "Loading…"
             : !form.governorate
             ? "Select governorate to continue"
-            : needsShipBluZone && !shipbluZone
-            ? "Select city & area to continue"
             : `Place order — EGP ${total.toFixed(2)}`}
         </button>
 

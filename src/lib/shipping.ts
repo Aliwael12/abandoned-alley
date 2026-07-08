@@ -2,40 +2,22 @@
 // checkout/admin API routes. The server is authoritative; the client uses
 // these helpers only to preview the fee and delivery indicators.
 
-/** The 27 governorates of Egypt (English canonical names). */
+/**
+ * The delivery areas we serve, in the order they appear in the checkout
+ * dropdown. Every order is dispatched to Droppin, which accepts a free-text
+ * delivery address, so these are the only areas Droppin covers for us:
+ * Cairo, Giza, Alexandria, and the North Coast (Sahel).
+ */
 export const EGYPT_GOVERNORATES = [
   "Cairo",
   "Giza",
   "Alexandria",
-  "Dakahlia",
-  "Red Sea",
-  "Beheira",
-  "Fayoum",
-  "Gharbia",
-  "Ismailia",
-  "Menofia",
-  "Minya",
-  "Qaliubiya",
-  "New Valley",
-  "Suez",
-  "Aswan",
-  "Assiut",
-  "Beni Suef",
-  "Port Said",
-  "Damietta",
-  "Sharkia",
-  "South Sinai",
-  "Kafr El Sheikh",
-  "Matrouh",
-  "Luxor",
-  "Qena",
-  "North Sinai",
-  "Sohag",
+  "North Coast",
 ] as const;
 
 export type EgyptGovernorate = (typeof EGYPT_GOVERNORATES)[number];
 
-/** Governorates that get the metro rate and an automatic Droppin push. */
+/** Governorates that get the metro rate. Everything else gets the outer rate. */
 export const METRO_GOVERNORATES: readonly EgyptGovernorate[] = ["Cairo", "Giza"];
 
 /** Country select values. We only ship within Egypt. */
@@ -50,9 +32,10 @@ export function isEgyptGovernorate(value: string): value is EgyptGovernorate {
 
 /**
  * Resolve the shipping zone from the raw country / governorate values.
- * - "metro": Cairo or Giza — metro rate, auto-pushed to Droppin.
- * - "egypt": any other Egyptian governorate — outer rate, manual Droppin push.
+ * - "metro": Cairo or Giza — metro rate.
+ * - "egypt": Alexandria or North Coast — outer rate.
  * - "international": anything else — checkout is blocked.
+ * Every served order is dispatched to Droppin regardless of zone.
  */
 export function resolveZone(country: string, governorate: string): ShippingZone {
   const c = country.trim().toLowerCase();

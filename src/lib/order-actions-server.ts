@@ -20,14 +20,9 @@ import {
   isStockReserved,
   type OrderStatus,
 } from "@/lib/order-status";
-import { carrierForGovernorate } from "@/lib/order-status";
 import { normalizeStock, sizeOfOrderItem } from "@/lib/inventory";
 import type { Product, StockMap } from "@/lib/products";
-import {
-  getOrderById,
-  pushOrderToDroppin,
-  pushOrderToShipBlu,
-} from "@/lib/orders-server";
+import { pushOrderToDroppin } from "@/lib/orders-server";
 
 export type ActionResult =
   | {
@@ -204,22 +199,12 @@ export async function approveOrder(id: string): Promise<ActionResult> {
   }
 
   // Stock is committed and the order is approved. Dispatch is a best-effort
-  // side effect: a dispatch failure does not roll back the approval. Carrier is
-  // derived from the destination governorate — only Cairo/Giza go to Droppin
-  // here; everything else routes to ShipBlu, which isn't wired up yet.
+  // side effect: a dispatch failure does not roll back the approval. Every order
+  // ships with Droppin.
   let dispatch: { ok: boolean; error?: string } | undefined;
   try {
-    const order = await getOrderById(id);
-    const carrier = order
-      ? carrierForGovernorate(order.shipping.state)
-      : "shipblu";
-    if (carrier === "droppin") {
-      const result = await pushOrderToDroppin(id);
-      dispatch = result.ok ? { ok: true } : { ok: false, error: result.error };
-    } else {
-      const result = await pushOrderToShipBlu(id);
-      dispatch = result.ok ? { ok: true } : { ok: false, error: result.error };
-    }
+    const result = await pushOrderToDroppin(id);
+    dispatch = result.ok ? { ok: true } : { ok: false, error: result.error };
   } catch (err) {
     dispatch = {
       ok: false,

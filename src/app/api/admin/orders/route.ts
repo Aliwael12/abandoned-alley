@@ -69,7 +69,7 @@ export async function GET() {
       status: normalizeStatus(rawStatus),
       rawStatus,
       governorate,
-      carrier: carrierForGovernorate(governorate),
+      carrier: carrierForGovernorate(),
       itemCount: items.reduce((n, i) => n + Number(i.quantity ?? 0), 0),
       createdAt: toMillis(data.createdAt),
       deliveredAt: toMillis(data.deliveredAt),

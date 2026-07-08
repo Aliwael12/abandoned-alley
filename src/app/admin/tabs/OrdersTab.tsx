@@ -11,10 +11,8 @@ import {
   XCircle,
 } from "lucide-react";
 import {
-  CARRIER_LABEL,
   ORDER_STATUSES,
   STATUS_LABEL,
-  type Carrier,
   type OrderStatus,
 } from "@/lib/order-status";
 import { EGYPT_GOVERNORATES } from "@/lib/shipping";
@@ -27,7 +25,7 @@ const fmtEgp = (n: number) =>
     maximumFractionDigits: 0,
   });
 
-type SortKey = "date" | "total" | "governorate" | "carrier" | "status";
+type SortKey = "date" | "total" | "governorate" | "status";
 type SortDir = "asc" | "desc";
 
 type BulkAction = "approve" | "deliver" | "cancel";
@@ -53,27 +51,12 @@ const STATUS_STYLES: Record<OrderStatus, string> = {
   cancelled: "border-[var(--accent)]/50 text-[var(--accent)]",
 };
 
-const CARRIER_STYLES: Record<Carrier, string> = {
-  droppin: "border-violet-400/50 text-violet-300",
-  shipblu: "border-amber-400/50 text-amber-300",
-};
-
 function StatusBadge({ status }: { status: OrderStatus }) {
   return (
     <span
       className={`px-2 py-0.5 text-[10px] tracking-[0.15em] uppercase border rounded ${STATUS_STYLES[status]}`}
     >
       {STATUS_LABEL[status]}
-    </span>
-  );
-}
-
-function CarrierBadge({ carrier }: { carrier: Carrier }) {
-  return (
-    <span
-      className={`px-2 py-0.5 text-[10px] tracking-[0.15em] uppercase border rounded ${CARRIER_STYLES[carrier]}`}
-    >
-      {CARRIER_LABEL[carrier]}
     </span>
   );
 }
@@ -90,7 +73,6 @@ export default function OrdersTab({
   const [busy, setBusy] = useState(false);
 
   const [governorate, setGovernorate] = useState<string>("all");
-  const [carrier, setCarrier] = useState<string>("all");
   const [status, setStatus] = useState<string>("all");
   const [search, setSearch] = useState("");
 
@@ -148,7 +130,6 @@ export default function OrdersTab({
   const filtered = useMemo(() => {
     let rows = orders ?? [];
     if (governorate !== "all") rows = rows.filter((o) => o.governorate === governorate);
-    if (carrier !== "all") rows = rows.filter((o) => o.carrier === carrier);
     if (status !== "all") rows = rows.filter((o) => o.status === status);
     const q = search.trim().toLowerCase();
     if (q) {
@@ -168,8 +149,6 @@ export default function OrdersTab({
           return (a.subtotal - b.subtotal) * dir;
         case "governorate":
           return a.governorate.localeCompare(b.governorate) * dir;
-        case "carrier":
-          return a.carrier.localeCompare(b.carrier) * dir;
         case "status":
           return a.status.localeCompare(b.status) * dir;
         case "date":
@@ -178,7 +157,7 @@ export default function OrdersTab({
       }
     });
     return sorted;
-  }, [orders, governorate, carrier, status, search, sortKey, sortDir]);
+  }, [orders, governorate, status, search, sortKey, sortDir]);
 
   // Effective selection = chosen ids that are still visible under the current
   // filters. Derived at render time (no effect syncing stored state) so stale
@@ -281,7 +260,7 @@ export default function OrdersTab({
           onChange={(e) => setSearch(e.target.value)}
           className={`${selectCls} w-full sm:flex-1 sm:min-w-[180px]`}
         />
-        <div className="grid grid-cols-3 sm:flex sm:flex-wrap gap-2">
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value)}
@@ -294,16 +273,6 @@ export default function OrdersTab({
                 {STATUS_LABEL[s]}
               </option>
             ))}
-          </select>
-          <select
-            value={carrier}
-            onChange={(e) => setCarrier(e.target.value)}
-            className={`${selectCls} min-w-0`}
-            aria-label="Filter by carrier"
-          >
-            <option value="all">All carriers</option>
-            <option value="droppin">{CARRIER_LABEL.droppin}</option>
-            <option value="shipblu">{CARRIER_LABEL.shipblu}</option>
           </select>
           <select
             value={governorate}
@@ -457,7 +426,6 @@ export default function OrdersTab({
                       </div>
                       <div className="flex items-center gap-2 flex-wrap">
                         <StatusBadge status={o.status} />
-                        <CarrierBadge carrier={o.carrier} />
                         <span className="text-[11px] text-white/50">
                           {o.governorate || "—"} · {o.itemCount} item
                           {o.itemCount === 1 ? "" : "s"}
@@ -496,12 +464,6 @@ export default function OrdersTab({
                     active={sortKey === "governorate"}
                     dir={sortDir}
                     onClick={() => setSort("governorate")}
-                  />
-                  <SortableTh
-                    label="Carrier"
-                    active={sortKey === "carrier"}
-                    dir={sortDir}
-                    onClick={() => setSort("carrier")}
                   />
                   <SortableTh
                     label="Status"
@@ -560,9 +522,6 @@ export default function OrdersTab({
                       <td className="py-3 pr-4 text-white/80">{o.itemCount}</td>
                       <td className="py-3 pr-4 text-white/80">{o.governorate || "—"}</td>
                       <td className="py-3 pr-4">
-                        <CarrierBadge carrier={o.carrier} />
-                      </td>
-                      <td className="py-3 pr-4">
                         <StatusBadge status={o.status} />
                       </td>
                       <td className="py-3 pr-4 text-xs text-white/60">
@@ -581,8 +540,7 @@ export default function OrdersTab({
 
       <p className="text-[10px] text-white/40 inline-flex items-center gap-1.5">
         <Truck size={12} />
-        Cairo / Giza route to Droppin; all other governorates route to ShipBlu
-        (dispatch pending its API).
+        All orders dispatch to Droppin on approval.
       </p>
     </div>
   );
