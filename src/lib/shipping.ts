@@ -6,13 +6,14 @@
  * The delivery areas we serve, in the order they appear in the checkout
  * dropdown. Every order is dispatched to Droppin, which accepts a free-text
  * delivery address, so these are the only areas Droppin covers for us:
- * Cairo, Giza, Alexandria, and the North Coast (Sahel).
+ * Cairo, Giza, Alexandria, the North Coast (Sahel), and Marsa Matrouh.
  */
 export const EGYPT_GOVERNORATES = [
   "Cairo",
   "Giza",
   "Alexandria",
   "North Coast",
+  "Marsa Matrouh",
 ] as const;
 
 export type EgyptGovernorate = (typeof EGYPT_GOVERNORATES)[number];
@@ -33,7 +34,7 @@ export function isEgyptGovernorate(value: string): value is EgyptGovernorate {
 /**
  * Resolve the shipping zone from the raw country / governorate values.
  * - "metro": Cairo or Giza — metro rate.
- * - "egypt": Alexandria or North Coast — outer rate.
+ * - "egypt": Alexandria, North Coast, or Marsa Matrouh — outer rate.
  * - "international": anything else — checkout is blocked.
  * Every served order is dispatched to Droppin regardless of zone.
  */
