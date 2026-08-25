@@ -60,7 +60,7 @@ export default function ClosedPage() {
             ABANDONED ALLEY IS CLOSED
           </h1>
           <p className="font-[family-name:var(--font-rajdhani)] text-white/70 max-w-md">
-             We&apos;re back on August 25 at 12:00 PM.
+             We&apos;re back on August 26 at 12:00 PM.
           </p>
         </div>
 

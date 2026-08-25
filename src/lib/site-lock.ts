@@ -31,8 +31,8 @@ function zonedTimeToUtc(isoLocal: string, timeZone: string): number {
   return guessUtc - (asIfUtcInZone - guessUtc);
 }
 
-// August 25, 2026, 12:00 PM Cairo time.
-export const SITE_UNLOCK_AT = zonedTimeToUtc("2026-08-25T12:00:00", TIME_ZONE);
+// August 26, 2026, 12:00 PM Cairo time.
+export const SITE_UNLOCK_AT = zonedTimeToUtc("2026-08-26T12:00:00", TIME_ZONE);
 
 export function isSiteLocked(now: number = Date.now()): boolean {
   return now < SITE_UNLOCK_AT;
