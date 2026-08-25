@@ -43,6 +43,7 @@ export const metadata: Metadata = {
 };
 
 const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID ?? "840826755733594";
+const META_PIXEL_IDS = Array.from(new Set([META_PIXEL_ID, "1563567275028054"].filter(Boolean)));
 
 export default function RootLayout({
   children,
@@ -53,7 +54,7 @@ export default function RootLayout({
       className={`${bebas.variable} ${rajdhani.variable} ${audiowide.variable} ${marker.variable}`}
     >
       <body>
-        {META_PIXEL_ID && (
+        {META_PIXEL_IDS.length > 0 && (
           <>
             <Script id="meta-pixel" strategy="afterInteractive">
               {`!function(f,b,e,v,n,t,s)
@@ -64,18 +65,21 @@ n.queue=[];t=b.createElement(e);t.async=!0;
 t.src=v;s=b.getElementsByTagName(e)[0];
 s.parentNode.insertBefore(t,s)}(window, document,'script',
 'https://connect.facebook.net/en_US/fbevents.js');
-fbq('init', '${META_PIXEL_ID}');
+${META_PIXEL_IDS.map((id) => `fbq('init', '${id}');`).join("\n")}
 fbq('track', 'PageView');`}
             </Script>
             <noscript>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                height="1"
-                width="1"
-                style={{ display: "none" }}
-                alt=""
-                src={`https://www.facebook.com/tr?id=${META_PIXEL_ID}&ev=PageView&noscript=1`}
-              />
+              {META_PIXEL_IDS.map((id) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  key={id}
+                  height="1"
+                  width="1"
+                  style={{ display: "none" }}
+                  alt=""
+                  src={`https://www.facebook.com/tr?id=${id}&ev=PageView&noscript=1`}
+                />
+              ))}
             </noscript>
           </>
         )}
