@@ -65,7 +65,7 @@ export default function SettingsTab({ onError }: Props) {
   }
 
   const inputCls =
-    "bg-white/5 border border-white/15 rounded-md h-10 px-3 text-sm outline-none focus:border-white/40 transition w-full";
+    "bg-[var(--surface-card-alt)] border border-[var(--border-default)]  h-10 px-3 text-sm outline-none focus:border-[var(--border-strong)] transition w-full";
 
   return (
     <div className="flex flex-col gap-6 max-w-xl">
@@ -73,9 +73,9 @@ export default function SettingsTab({ onError }: Props) {
         Store settings
       </h2>
 
-      <div className="glass rounded-2xl p-6 flex flex-col gap-5">
+      <div className="glass  p-6 flex flex-col gap-5">
         <label className="flex flex-col gap-2">
-          <span className="text-[11px] tracking-[0.3em] uppercase text-white/60">
+          <span className="text-[11px] tracking-[0.3em] uppercase text-[var(--text-muted)]">
             Cairo / Giza shipping fee (EGP)
           </span>
           <input
@@ -90,13 +90,13 @@ export default function SettingsTab({ onError }: Props) {
             disabled={loading}
             className={inputCls}
           />
-          <span className="text-xs text-white/50">
+          <span className="text-xs text-[var(--text-muted)]">
             Orders to Cairo or Giza. Pushed to Droppin automatically.
           </span>
         </label>
 
         <label className="flex flex-col gap-2">
-          <span className="text-[11px] tracking-[0.3em] uppercase text-white/60">
+          <span className="text-[11px] tracking-[0.3em] uppercase text-[var(--text-muted)]">
             Other governorates shipping fee (EGP)
           </span>
           <input
@@ -111,7 +111,7 @@ export default function SettingsTab({ onError }: Props) {
             disabled={loading}
             className={inputCls}
           />
-          <span className="text-xs text-white/50">
+          <span className="text-xs text-[var(--text-muted)]">
             Orders to any other Egyptian governorate (3–5 business days). Pushed
             to Droppin manually from the order page.
           </span>
@@ -121,14 +121,14 @@ export default function SettingsTab({ onError }: Props) {
           <button
             onClick={save}
             disabled={saving || loading}
-            style={{ color: "#000" }}
-            className="bg-white px-5 py-2.5 rounded-md text-xs tracking-[0.2em] uppercase disabled:opacity-50 inline-flex items-center gap-2"
+            style={{ color: "var(--text-on-accent)" }}
+            className="bg-[var(--accent-default)] px-5 py-2.5  text-xs tracking-[0.2em] uppercase disabled:opacity-50 inline-flex items-center gap-2"
           >
             {saving && <Loader2 size={14} className="animate-spin" />}
             Save
           </button>
           {savedAt && (
-            <span className="text-xs text-white/60 inline-flex items-center gap-1.5">
+            <span className="text-xs text-[var(--text-muted)] inline-flex items-center gap-1.5">
               <Check size={12} />
               Saved
             </span>

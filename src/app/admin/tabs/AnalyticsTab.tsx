@@ -81,14 +81,14 @@ function formatShortDate(iso: string): string {
 function ChangeBadge({ pct }: { pct: number | null }) {
   if (pct === null) {
     return (
-      <span className="inline-flex items-center gap-1 text-[11px] text-white/40">
+      <span className="inline-flex items-center gap-1 text-[11px] text-[var(--text-muted)]">
         <Minus size={11} /> —
       </span>
     );
   }
   const up = pct >= 0;
   const Icon = up ? TrendingUp : TrendingDown;
-  const color = up ? "text-emerald-400" : "text-white/40";
+  const color = up ? "text-[var(--success-default)]" : "text-[var(--text-muted)]";
   const abs = Math.abs(pct);
   const display =
     abs >= 1000 ? `${(abs / 1000).toFixed(1)}K%` : `${abs.toFixed(abs < 10 ? 1 : 0)}%`;
@@ -100,7 +100,7 @@ function ChangeBadge({ pct }: { pct: number | null }) {
   );
 }
 
-function Sparkline({ values, color = "#ffffff" }: { values: number[]; color?: string }) {
+function Sparkline({ values, color = "var(--accent-default)" }: { values: number[]; color?: string }) {
   if (!values.length) return null;
   const w = 120;
   const h = 36;
@@ -137,9 +137,9 @@ function KpiCard({
   sparkColor?: string;
 }) {
   return (
-    <div className="glass rounded-2xl p-5 flex items-center justify-between gap-4">
+    <div className="glass  p-5 flex items-center justify-between gap-4">
       <div className="flex flex-col gap-2 min-w-0">
-        <p className="text-[10px] tracking-[0.3em] uppercase text-white/50 truncate">
+        <p className="text-[10px] tracking-[0.3em] uppercase text-[var(--text-muted)] truncate">
           {label}
         </p>
         <p className="font-[family-name:var(--font-bebas)] text-3xl tracking-[0.05em] leading-none">
@@ -149,7 +149,7 @@ function KpiCard({
       </div>
       {spark && spark.length > 1 && (
         <div className="shrink-0 opacity-90">
-          <Sparkline values={spark} color={sparkColor ?? "#ffffff"} />
+          <Sparkline values={spark} color={sparkColor ?? "var(--accent-default)"} />
         </div>
       )}
     </div>
@@ -210,9 +210,9 @@ function LineChart({
   });
 
   return (
-    <div className="glass rounded-2xl p-6">
+    <div className="glass  p-6">
       <div className="flex items-baseline justify-between gap-4 mb-1">
-        <h3 className="text-sm font-semibold tracking-wide text-white/80 underline decoration-dotted decoration-white/20 underline-offset-4">
+        <h3 className="text-sm font-semibold tracking-wide text-[var(--text-primary)] underline decoration-dotted decoration-[var(--border-strong)] underline-offset-4">
           {title}
         </h3>
       </div>
@@ -230,7 +230,7 @@ function LineChart({
               x2={w - pad.right}
               y1={g.y}
               y2={g.y}
-              stroke="rgba(255,255,255,0.08)"
+              stroke="var(--border-subtle)"
               strokeWidth={1}
             />
             <text
@@ -238,7 +238,7 @@ function LineChart({
               y={g.y + 3}
               textAnchor="end"
               fontSize={10}
-              fill="rgba(255,255,255,0.4)"
+              fill="var(--text-muted)"
             >
               {format(g.value)}
             </text>
@@ -256,7 +256,7 @@ function LineChart({
         <polyline
           points={lineFor(current)}
           fill="none"
-          stroke="#22a8ff"
+          stroke="var(--accent-default)"
           strokeWidth={2}
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -268,15 +268,15 @@ function LineChart({
             y={h - 6}
             textAnchor="middle"
             fontSize={10}
-            fill="rgba(255,255,255,0.45)"
+            fill="var(--text-muted)"
           >
             {t.label}
           </text>
         ))}
       </svg>
-      <div className="flex items-center gap-6 mt-3 text-[11px] text-white/55">
+      <div className="flex items-center gap-6 mt-3 text-[11px] text-[var(--text-muted)]">
         <span className="inline-flex items-center gap-2">
-          <span className="inline-block w-4 h-[2px] bg-[#22a8ff] rounded" />
+          <span className="inline-block w-4 h-[2px] bg-[var(--accent-default)] rounded" />
           {rangeLabel}
         </span>
         <span className="inline-flex items-center gap-2">
@@ -306,12 +306,12 @@ function BreakdownCard({
   const max = Math.max(1, ...rows.map((r) => Math.max(r.current, r.previous)));
   const empty = rows.length === 0;
   return (
-    <div className="glass rounded-2xl p-6">
-      <h3 className="text-sm font-semibold tracking-wide text-white/80 underline decoration-dotted decoration-white/20 underline-offset-4 mb-5">
+    <div className="glass  p-6">
+      <h3 className="text-sm font-semibold tracking-wide text-[var(--text-primary)] underline decoration-dotted decoration-[var(--border-strong)] underline-offset-4 mb-5">
         {title}
       </h3>
       {empty ? (
-        <p className="text-xs text-white/40 py-4">No data in this period.</p>
+        <p className="text-xs text-[var(--text-muted)] py-4">No data in this period.</p>
       ) : (
         <ul className="flex flex-col gap-4">
           {rows.slice(0, 8).map((r) => {
@@ -325,23 +325,23 @@ function BreakdownCard({
                 : ((r.current - r.previous) / r.previous) * 100;
             return (
               <li key={r.label} className="flex flex-col gap-1.5">
-                <p className="text-xs text-white/70 truncate">{r.label}</p>
+                <p className="text-xs text-[var(--text-muted)] truncate">{r.label}</p>
                 <div className="flex items-center gap-3">
                   <div
-                    className="h-2 rounded-sm bg-[#22a8ff]"
+                    className="h-2 rounded-sm bg-[var(--accent-default)]"
                     style={{ width: `${Math.max(2, currW)}%` }}
                   />
-                  <span className="text-xs text-white/80 tabular-nums">
+                  <span className="text-xs text-[var(--text-primary)] tabular-nums">
                     {format(r.current)}
                   </span>
                   <ChangeBadge pct={pct} />
                 </div>
                 <div className="flex items-center gap-3">
                   <div
-                    className="h-1.5 rounded-sm bg-[#22a8ff]/30"
+                    className="h-1.5 rounded-sm bg-[var(--accent-default)]/30"
                     style={{ width: `${Math.max(1, prevW)}%` }}
                   />
-                  <span className="text-[11px] text-white/40 tabular-nums">
+                  <span className="text-[11px] text-[var(--text-muted)] tabular-nums">
                     {format(r.previous)}
                   </span>
                 </div>
@@ -398,14 +398,14 @@ function AnalyticsView({
 
   if (loading && !data) {
     return (
-      <div className="flex items-center justify-center py-24 text-white/40">
+      <div className="flex items-center justify-center py-24 text-[var(--text-muted)]">
         <Loader2 size={20} className="animate-spin" />
       </div>
     );
   }
   if (error) {
     return (
-      <div className="glass rounded-md p-4 text-sm text-[var(--accent)]">
+      <div className="glass  p-4 text-sm text-[var(--accent)]">
         {error}
       </div>
     );
@@ -425,7 +425,7 @@ function AnalyticsView({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="text-sm text-white/60">
+      <div className="text-sm text-[var(--text-muted)]">
         {currentLabel} vs {previousLabel}
       </div>
 
@@ -435,56 +435,56 @@ function AnalyticsView({
           value={fmtEgp(kpis.grossSales.current)}
           pct={kpis.grossSales.changePct}
           spark={kpis.grossSales.sparkline}
-          sparkColor="#22a8ff"
+          sparkColor="var(--accent-default)"
         />
         <KpiCard
           label="Net sales"
           value={fmtEgp(kpis.netSales.current)}
           pct={kpis.netSales.changePct}
           spark={kpis.netSales.sparkline}
-          sparkColor="#22a8ff"
+          sparkColor="var(--accent-default)"
         />
         <KpiCard
           label="Orders"
           value={fmtCompact(kpis.orders.current)}
           pct={kpis.orders.changePct}
           spark={kpis.orders.sparkline}
-          sparkColor="#22a8ff"
+          sparkColor="var(--accent-default)"
         />
         <KpiCard
           label="Delivered orders"
           value={fmtCompact(kpis.deliveredOrders.current)}
           pct={kpis.deliveredOrders.changePct}
           spark={kpis.deliveredOrders.sparkline}
-          sparkColor="#22a8ff"
+          sparkColor="var(--accent-default)"
         />
         <KpiCard
           label="Sessions"
           value={fmtCompact(kpis.sessions.current)}
           pct={kpis.sessions.changePct}
           spark={kpis.sessions.sparkline}
-          sparkColor="#22a8ff"
+          sparkColor="var(--accent-default)"
         />
         <KpiCard
           label="Conversion rate"
           value={fmtPct(kpis.conversionRate.current, 2)}
           pct={kpis.conversionRate.changePct}
           spark={kpis.conversionRate.sparkline}
-          sparkColor="#22a8ff"
+          sparkColor="var(--accent-default)"
         />
         <KpiCard
           label="Average order value"
           value={fmtEgp(kpis.avgOrderValue.current)}
           pct={kpis.avgOrderValue.changePct}
           spark={kpis.avgOrderValue.sparkline}
-          sparkColor="#22a8ff"
+          sparkColor="var(--accent-default)"
         />
         <KpiCard
           label="Returning customer rate"
           value={fmtPct(kpis.returningCustomerRate.current, 2)}
           pct={kpis.returningCustomerRate.changePct}
           spark={kpis.returningCustomerRate.sparkline}
-          sparkColor="#22a8ff"
+          sparkColor="var(--accent-default)"
         />
       </section>
 

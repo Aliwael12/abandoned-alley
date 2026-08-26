@@ -35,10 +35,10 @@ export default function BroadcastTab({ onError }: { onError: (msg: string) => vo
   }
 
   const inputCls =
-    "bg-white/5 border border-white/15 rounded-md h-12 px-4 outline-none focus:border-white/40 transition w-full";
+    "bg-[var(--surface-card-alt)] border border-[var(--border-default)]  h-12 px-4 outline-none focus:border-[var(--border-strong)] transition w-full";
 
   return (
-    <div className="glass rounded-2xl p-6 flex flex-col gap-4 max-w-3xl">
+    <div className="glass  p-6 flex flex-col gap-4 max-w-3xl">
       <h2 className="font-[family-name:var(--font-bebas)] text-2xl tracking-[0.18em]">
         Send a promo
       </h2>
@@ -53,18 +53,18 @@ export default function BroadcastTab({ onError }: { onError: (msg: string) => vo
         rows={14}
         value={html}
         onChange={(e) => setHtml(e.target.value)}
-        className="bg-white/5 border border-white/15 rounded-md p-4 outline-none focus:border-white/40 transition resize-none font-mono text-sm"
+        className="bg-[var(--surface-card-alt)] border border-[var(--border-default)]  p-4 outline-none focus:border-[var(--border-strong)] transition resize-none font-mono text-sm"
       />
       <button
         onClick={send}
         disabled={submitting || !subject || !html}
-        style={{ color: "#000" }}
-        className="self-start bg-white px-6 py-3 rounded-md font-[family-name:var(--font-bebas)] tracking-[0.2em] uppercase disabled:opacity-50 inline-flex items-center gap-2"
+        style={{ color: "var(--text-on-accent)" }}
+        className="self-start bg-[var(--accent-default)] px-6 py-3  font-[family-name:var(--font-bebas)] tracking-[0.2em] uppercase disabled:opacity-50 inline-flex items-center gap-2"
       >
         {submitting ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
         {submitting ? "Sending…" : "Broadcast"}
       </button>
-      {result && <p className="text-sm text-white/70">{result}</p>}
+      {result && <p className="text-sm text-[var(--text-muted)]">{result}</p>}
     </div>
   );
 }

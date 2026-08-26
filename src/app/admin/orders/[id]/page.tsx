@@ -40,7 +40,7 @@ export default async function OrderDetailPage({
     <div className="max-w-[1100px] mx-auto px-4 md:px-8 py-12 flex flex-col gap-8">
       <Link
         href="/admin?tab=orders"
-        className="inline-flex items-center gap-2 text-xs tracking-[0.2em] uppercase text-white/60 hover:text-white transition self-start"
+        className="inline-flex items-center gap-2 text-xs tracking-[0.2em] uppercase text-[var(--text-muted)] hover:text-[var(--text-primary)] transition self-start"
       >
         <ArrowLeft size={14} />
         Back to orders
@@ -48,26 +48,26 @@ export default async function OrderDetailPage({
 
       <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div>
-          <p className="text-[11px] tracking-[0.4em] uppercase text-white/50">Order</p>
+          <p className="text-[11px] tracking-[0.4em] uppercase text-[var(--text-muted)]">Order</p>
           <h1 className="font-[family-name:var(--font-bebas)] text-4xl md:text-5xl tracking-[0.12em] uppercase">
             #{order.id.slice(0, 8)}
           </h1>
-          <p className="text-xs text-white/40 font-mono mt-1">{order.id}</p>
+          <p className="text-xs text-[var(--text-muted)] font-mono mt-1">{order.id}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <span className="px-3 py-1 text-[11px] tracking-[0.2em] uppercase border border-white/15 rounded">
+          <span className="px-3 py-1 text-[11px] tracking-[0.2em] uppercase border border-[var(--border-default)] rounded">
             {displayStatusLabel(order.status)}
           </span>
-          <span className="px-3 py-1 text-[11px] tracking-[0.2em] uppercase border border-white/15 rounded text-white/70">
+          <span className="px-3 py-1 text-[11px] tracking-[0.2em] uppercase border border-[var(--border-default)] rounded text-[var(--text-muted)]">
             {CARRIER_LABEL.droppin} · {order.shipping.state || "—"}
           </span>
-          <span className="text-xs text-white/60">
+          <span className="text-xs text-[var(--text-muted)]">
             {order.createdAt ? new Date(order.createdAt).toLocaleString() : "—"}
           </span>
         </div>
       </header>
 
-      <section className="glass rounded-2xl p-6 flex flex-col gap-3">
+      <section className="glass  p-6 flex flex-col gap-3">
         <h2 className="font-[family-name:var(--font-bebas)] text-2xl tracking-[0.18em]">
           Order actions
         </h2>
@@ -75,15 +75,15 @@ export default async function OrderDetailPage({
       </section>
 
       <div className="grid md:grid-cols-2 gap-6">
-        <section className="glass rounded-2xl p-6 flex flex-col gap-3">
+        <section className="glass  p-6 flex flex-col gap-3">
           <h2 className="font-[family-name:var(--font-bebas)] text-2xl tracking-[0.18em]">
             Customer
           </h2>
-          <p className="text-sm text-white/90">{order.customer.name || "—"}</p>
+          <p className="text-sm text-[var(--text-primary)]">{order.customer.name || "—"}</p>
           {order.customer.email && (
             <a
               href={`mailto:${order.customer.email}`}
-              className="text-sm text-white/70 hover:text-white transition break-all"
+              className="text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition break-all"
             >
               {order.customer.email}
             </a>
@@ -91,18 +91,18 @@ export default async function OrderDetailPage({
           {order.customer.phone && (
             <a
               href={`tel:${order.customer.phone}`}
-              className="text-sm text-white/70 hover:text-white transition"
+              className="text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition"
             >
               {order.customer.phone}
             </a>
           )}
         </section>
 
-        <section className="glass rounded-2xl p-6 flex flex-col gap-2">
+        <section className="glass  p-6 flex flex-col gap-2">
           <h2 className="font-[family-name:var(--font-bebas)] text-2xl tracking-[0.18em]">
             Shipping
           </h2>
-          <p className="text-sm text-white/90 leading-relaxed">
+          <p className="text-sm text-[var(--text-primary)] leading-relaxed">
             {order.shipping.address}
             <br />
             {order.shipping.city}, {order.shipping.state} {order.shipping.zip}
@@ -112,7 +112,7 @@ export default async function OrderDetailPage({
         </section>
       </div>
 
-      <section className="glass rounded-2xl p-6">
+      <section className="glass  p-6">
         <h2 className="font-[family-name:var(--font-bebas)] text-2xl tracking-[0.18em] mb-4">
           Items ({itemCount})
         </h2>
@@ -124,9 +124,9 @@ export default async function OrderDetailPage({
             return (
               <li
                 key={it.variantId}
-                className="flex gap-3 border-b border-white/5 pb-3 last:border-b-0 last:pb-0"
+                className="flex gap-3 border-b border-[var(--border-subtle)] pb-3 last:border-b-0 last:pb-0"
               >
-                <div className="relative w-14 h-14 bg-white/5 rounded overflow-hidden shrink-0">
+                <div className="relative w-14 h-14 bg-[var(--surface-card-alt)] rounded overflow-hidden shrink-0">
                   {img && img.type === "image" && (
                     <Image
                       src={img.src}
@@ -139,13 +139,13 @@ export default async function OrderDetailPage({
                   )}
                 </div>
                 <div className="flex-1 min-w-0 flex flex-col gap-1">
-                  <p className="text-sm text-white/90">{it.title}</p>
-                  <p className="text-xs text-white/60">{it.variantTitle}</p>
-                  <div className="flex items-center justify-between text-xs text-white/70 mt-1">
+                  <p className="text-sm text-[var(--text-primary)]">{it.title}</p>
+                  <p className="text-xs text-[var(--text-muted)]">{it.variantTitle}</p>
+                  <div className="flex items-center justify-between text-xs text-[var(--text-muted)] mt-1">
                     <span>
                       {it.quantity} × {fmt(it.price, order.currency)}
                     </span>
-                    <span className="text-white/90">
+                    <span className="text-[var(--text-primary)]">
                       {fmt(it.price * it.quantity, order.currency)}
                     </span>
                   </div>
@@ -158,7 +158,7 @@ export default async function OrderDetailPage({
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-[10px] tracking-[0.2em] uppercase text-white/40 border-b border-white/10">
+              <tr className="text-[10px] tracking-[0.2em] uppercase text-[var(--text-muted)] border-b border-[var(--border-subtle)]">
                 <th className="text-left py-2 pr-4">Product</th>
                 <th className="text-left py-2 pr-4">Variant</th>
                 <th className="text-right py-2 pr-4">Qty</th>
@@ -171,10 +171,10 @@ export default async function OrderDetailPage({
                 const p = productMap.get(it.productHandle);
                 const img = p?.media.find((m) => m.type === "image");
                 return (
-                  <tr key={it.variantId} className="border-b border-white/5 align-top">
+                  <tr key={it.variantId} className="border-b border-[var(--border-subtle)] align-top">
                     <td className="py-3 pr-4">
                       <div className="flex items-center gap-3">
-                        <div className="relative w-12 h-12 bg-white/5 rounded overflow-hidden shrink-0">
+                        <div className="relative w-12 h-12 bg-[var(--surface-card-alt)] rounded overflow-hidden shrink-0">
                           {img && img.type === "image" && (
                             <Image
                               src={img.src}
@@ -187,14 +187,14 @@ export default async function OrderDetailPage({
                           )}
                         </div>
                         <div className="min-w-0">
-                          <p className="text-white/90">{it.title}</p>
-                          <p className="text-[10px] text-white/40 font-mono">
+                          <p className="text-[var(--text-primary)]">{it.title}</p>
+                          <p className="text-[10px] text-[var(--text-muted)] font-mono">
                             /{it.productHandle}
                           </p>
                         </div>
                       </div>
                     </td>
-                    <td className="py-3 pr-4 text-white/70">{it.variantTitle}</td>
+                    <td className="py-3 pr-4 text-[var(--text-muted)]">{it.variantTitle}</td>
                     <td className="py-3 pr-4 text-right">{it.quantity}</td>
                     <td className="py-3 pr-4 text-right">
                       {fmt(it.price, order.currency)}
@@ -210,28 +210,28 @@ export default async function OrderDetailPage({
         </div>
       </section>
 
-      <section className="glass rounded-2xl p-6 flex flex-col gap-3">
+      <section className="glass  p-6 flex flex-col gap-3">
           <h2 className="font-[family-name:var(--font-bebas)] text-2xl tracking-[0.18em]">
             Shipping (Droppin)
           </h2>
           {order.droppin.trackingNumber ? (
             <>
               <div className="flex justify-between text-sm">
-                <span className="text-white/60 uppercase tracking-[0.2em] text-xs">
+                <span className="text-[var(--text-muted)] uppercase tracking-[0.2em] text-xs">
                   Tracking
                 </span>
                 <a
                   href={`https://api.droppin-eg.com/api/packages/track/${order.droppin.trackingNumber}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-mono text-white/90 hover:text-white transition"
+                  className="font-mono text-[var(--text-primary)] hover:text-[var(--text-primary)] transition"
                 >
                   {order.droppin.trackingNumber}
                 </a>
               </div>
               {order.droppin.status && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-white/60 uppercase tracking-[0.2em] text-xs">
+                  <span className="text-[var(--text-muted)] uppercase tracking-[0.2em] text-xs">
                     Status
                   </span>
                   <span>{order.droppin.status}</span>
@@ -239,20 +239,20 @@ export default async function OrderDetailPage({
               )}
               {order.droppin.packageId !== null && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-white/60 uppercase tracking-[0.2em] text-xs">
+                  <span className="text-[var(--text-muted)] uppercase tracking-[0.2em] text-xs">
                     Package ID
                   </span>
-                  <span className="font-mono text-white/70">
+                  <span className="font-mono text-[var(--text-muted)]">
                     {order.droppin.packageId}
                   </span>
                 </div>
               )}
               {order.droppin.pushedAt && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-white/60 uppercase tracking-[0.2em] text-xs">
+                  <span className="text-[var(--text-muted)] uppercase tracking-[0.2em] text-xs">
                     Pushed
                   </span>
-                  <span className="text-white/70">
+                  <span className="text-[var(--text-muted)]">
                     {new Date(order.droppin.pushedAt).toLocaleString()}
                   </span>
                 </div>
@@ -261,14 +261,14 @@ export default async function OrderDetailPage({
           ) : (
             <>
               <div className="flex items-center justify-between text-sm">
-                <span className="text-white/60 uppercase tracking-[0.2em] text-xs">
+                <span className="text-[var(--text-muted)] uppercase tracking-[0.2em] text-xs">
                   Destination
                 </span>
-                <span className="text-white/90">
+                <span className="text-[var(--text-primary)]">
                   {order.shipping.state || "—"}
                 </span>
               </div>
-              <p className="text-sm text-white/60">
+              <p className="text-sm text-[var(--text-muted)]">
                 Orders dispatch to Droppin automatically when you approve them.
                 Use the button below to push or retry manually.
               </p>
@@ -282,19 +282,19 @@ export default async function OrderDetailPage({
           )}
         </section>
 
-      <section className="glass rounded-2xl p-6 flex flex-col gap-3">
+      <section className="glass  p-6 flex flex-col gap-3">
         <h2 className="font-[family-name:var(--font-bebas)] text-2xl tracking-[0.18em]">
           Summary
         </h2>
         <div className="flex justify-between text-sm">
-          <span className="text-white/60 uppercase tracking-[0.2em] text-xs">Subtotal</span>
+          <span className="text-[var(--text-muted)] uppercase tracking-[0.2em] text-xs">Subtotal</span>
           <span>{fmt(order.subtotal, order.currency)}</span>
         </div>
         <div className="flex justify-between text-sm">
-          <span className="text-white/60 uppercase tracking-[0.2em] text-xs">Shipping</span>
+          <span className="text-[var(--text-muted)] uppercase tracking-[0.2em] text-xs">Shipping</span>
           <span>{fmt(order.shippingFee, order.currency)}</span>
         </div>
-        <div className="flex justify-between text-sm pt-2 border-t border-white/10">
+        <div className="flex justify-between text-sm pt-2 border-t border-[var(--border-subtle)]">
           <span className="font-[family-name:var(--font-bebas)] tracking-[0.2em] text-base">
             Total
           </span>
@@ -303,19 +303,19 @@ export default async function OrderDetailPage({
           </span>
         </div>
         <div className="flex justify-between text-sm">
-          <span className="text-white/60 uppercase tracking-[0.2em] text-xs">Items</span>
+          <span className="text-[var(--text-muted)] uppercase tracking-[0.2em] text-xs">Items</span>
           <span>{itemCount}</span>
         </div>
         <div className="flex justify-between text-sm">
-          <span className="text-white/60 uppercase tracking-[0.2em] text-xs">Currency</span>
+          <span className="text-[var(--text-muted)] uppercase tracking-[0.2em] text-xs">Currency</span>
           <span>{order.currency}</span>
         </div>
         {order.notes && (
-          <div className="mt-4 pt-4 border-t border-white/10">
-            <p className="text-[10px] tracking-[0.3em] uppercase text-white/50 mb-2">
+          <div className="mt-4 pt-4 border-t border-[var(--border-subtle)]">
+            <p className="text-[10px] tracking-[0.3em] uppercase text-[var(--text-muted)] mb-2">
               Notes
             </p>
-            <p className="text-sm text-white/80 whitespace-pre-wrap">{order.notes}</p>
+            <p className="text-sm text-[var(--text-primary)] whitespace-pre-wrap">{order.notes}</p>
           </div>
         )}
       </section>

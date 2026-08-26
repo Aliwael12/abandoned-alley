@@ -156,7 +156,7 @@ export default function AdminDashboard() {
     <div className="flex flex-col gap-6 md:gap-8">
       <header className="flex flex-row items-center justify-between gap-3 md:items-end">
         <div>
-          <p className="text-[10px] md:text-[11px] tracking-[0.4em] uppercase text-white/50">
+          <p className="text-[10px] md:text-[11px] tracking-[0.4em] uppercase text-[var(--text-muted)]">
             Control panel
           </p>
           <h1 className="font-[family-name:var(--font-bebas)] text-4xl md:text-5xl tracking-[0.18em] uppercase">
@@ -168,7 +168,7 @@ export default function AdminDashboard() {
             onClick={refresh}
             disabled={loading}
             aria-label="Refresh"
-            className="inline-flex items-center gap-2 px-3 md:px-4 py-2 border border-white/15 hover:border-white/40 rounded-md text-xs tracking-[0.2em] uppercase transition disabled:opacity-50"
+            className="inline-flex items-center gap-2 px-3 md:px-4 py-2 border border-[var(--border-default)] hover:border-[var(--border-strong)]  text-xs tracking-[0.2em] uppercase transition disabled:opacity-50"
           >
             <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
             <span className="hidden md:inline">Refresh</span>
@@ -176,7 +176,7 @@ export default function AdminDashboard() {
           <button
             onClick={logout}
             aria-label="Sign out"
-            className="inline-flex items-center gap-2 px-3 md:px-4 py-2 border border-white/15 hover:border-[var(--accent)] hover:text-[var(--accent)] rounded-md text-xs tracking-[0.2em] uppercase transition"
+            className="inline-flex items-center gap-2 px-3 md:px-4 py-2 border border-[var(--border-default)] hover:border-[var(--accent)] hover:text-[var(--accent)]  text-xs tracking-[0.2em] uppercase transition"
           >
             <LogOut size={14} />
             <span className="hidden md:inline">Sign out</span>
@@ -187,13 +187,13 @@ export default function AdminDashboard() {
       <TabNav tab={tab} onSelect={selectTab} />
 
       {error && (
-        <div className="glass rounded-md p-4 text-sm text-[var(--accent)]">
+        <div className="glass  p-4 text-sm text-[var(--accent)]">
           {error}
         </div>
       )}
 
       {loading && !orders && !products ? (
-        <div className="flex items-center justify-center py-24 text-white/40">
+        <div className="flex items-center justify-center py-24 text-[var(--text-muted)]">
           <Loader2 size={20} className="animate-spin" />
         </div>
       ) : (
@@ -281,7 +281,7 @@ function TabNav({
           onClick={() => setOpen((v) => !v)}
           aria-haspopup="menu"
           aria-expanded={open}
-          className="w-full flex items-center justify-between gap-2 px-4 py-3 border border-white/15 rounded-md text-xs tracking-[0.2em] uppercase text-white transition hover:border-white/40"
+          className="w-full flex items-center justify-between gap-2 px-4 py-3 border border-[var(--border-default)]  text-xs tracking-[0.2em] uppercase text-[var(--text-primary)] transition hover:border-[var(--border-strong)]"
         >
           <span className="inline-flex items-center gap-2">
             <ActiveIcon size={14} />
@@ -289,14 +289,14 @@ function TabNav({
           </span>
           <ChevronDown
             size={16}
-            className={`text-white/50 transition-transform ${open ? "rotate-180" : ""}`}
+            className={`text-[var(--text-muted)] transition-transform ${open ? "rotate-180" : ""}`}
           />
         </button>
 
         {open && (
           <div
             role="menu"
-            className="absolute left-0 right-0 z-30 mt-2 rounded-md border border-white/10 bg-[#0d0d0d]/95 backdrop-blur-xl shadow-2xl overflow-hidden"
+            className="absolute left-0 right-0 z-30 mt-2  border border-[var(--border-subtle)] bg-[var(--surface-card)]   overflow-hidden"
           >
             {TABS.map((t) => {
               const isActive = t.id === tab;
@@ -312,13 +312,13 @@ function TabNav({
                   }}
                   className={`w-full flex items-center gap-3 px-4 py-3 text-left text-xs tracking-[0.2em] uppercase transition ${
                     isActive
-                      ? "bg-white/10 text-white"
-                      : "text-white/60 hover:bg-white/5 hover:text-white"
+                      ? "bg-[var(--surface-raised)] text-[var(--text-primary)]"
+                      : "text-[var(--text-muted)] hover:bg-[var(--surface-card-alt)] hover:text-[var(--text-primary)]"
                   }`}
                 >
                   <Icon size={14} />
                   <span className="flex-1">{t.label}</span>
-                  {isActive && <Check size={14} className="text-white/70" />}
+                  {isActive && <Check size={14} className="text-[var(--text-muted)]" />}
                 </button>
               );
             })}
@@ -327,7 +327,7 @@ function TabNav({
       </div>
 
       {/* Desktop: underline tab bar */}
-      <nav className="hidden md:flex gap-1 border-b border-white/10">
+      <nav className="hidden md:flex gap-1 border-b border-[var(--border-subtle)]">
         {TABS.map((t) => {
           const isActive = tab === t.id;
           const Icon = t.icon;
@@ -336,13 +336,13 @@ function TabNav({
               key={t.id}
               onClick={() => onSelect(t.id)}
               className={`relative inline-flex items-center gap-2 px-5 py-3 text-xs tracking-[0.2em] uppercase transition ${
-                isActive ? "text-white" : "text-white/50 hover:text-white/80"
+                isActive ? "text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
               }`}
             >
               <Icon size={14} />
               {t.label}
               {isActive && (
-                <span className="absolute left-0 right-0 -bottom-px h-px bg-white" />
+                <span className="absolute left-0 right-0 -bottom-px h-px bg-[var(--accent-default)]" />
               )}
             </button>
           );

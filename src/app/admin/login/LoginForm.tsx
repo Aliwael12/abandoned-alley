@@ -39,14 +39,14 @@ export default function LoginForm() {
         placeholder="Password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
-        className="bg-white/5 border border-white/15 rounded-md h-12 px-4 outline-none focus:border-white/40 transition"
+        className="bg-[var(--surface-card-alt)] border border-[var(--border-default)]  h-12 px-4 outline-none focus:border-[var(--border-strong)] transition"
       />
       {error && <p className="text-xs text-[var(--accent)]">{error}</p>}
       <button
         type="submit"
         disabled={submitting}
-        style={{ color: "#000" }}
-        className="bg-white py-3 rounded-lg font-[family-name:var(--font-bebas)] tracking-[0.2em] uppercase hover:bg-white/90 transition disabled:opacity-60 flex items-center justify-center gap-2"
+        style={{ color: "var(--text-on-accent)" }}
+        className="bg-[var(--accent-default)] py-3  font-[family-name:var(--font-bebas)] tracking-[0.2em] uppercase hover:bg-[var(--accent-hover)] transition disabled:opacity-60 flex items-center justify-center gap-2"
       >
         {submitting && <Loader2 className="animate-spin" size={14} />}
         {submitting ? "Signing in…" : "Enter"}

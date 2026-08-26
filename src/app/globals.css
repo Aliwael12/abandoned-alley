@@ -1,20 +1,136 @@
 @import "tailwindcss";
 
+/* ==========================================================================
+   Abandoned Alley — design tokens
+   Source: design handoff (design_files/*.dc.html + design_system_reference)
+   ========================================================================== */
 :root {
-  --bg: #050505;
-  --fg: #ffffff;
-  --accent: #ff0044;
-  --muted: #999;
-  --border: rgba(255, 255, 255, 0.12);
+  /* Colors — storefront palette (Region/Home/Collections/Contact/Shop/Product/Cart) */
+  --surface-page: #fedc01;
+  --surface-raised: #d7e6dd;
+  --surface-card: #ffffff;
+  --surface-card-alt: #f3dfa0;
+  --text-primary: #1a1a1a;
+  --text-muted: #6b6660;
+  --text-on-accent: #ffffff;
+  --text-disabled: #1a1a1a4d;
+  --text-link: #5c2ca0;
+  --text-link-hover: #7a3fcb;
+  --border-default: #1a1a1a26;
+  --border-subtle: #1a1a1a12;
+  --border-strong: #1a1a1a4d;
+  --accent-default: #5c2ca0;
+  --accent-hover: #7a3fcb;
+  --accent-active: #48217d;
+  --accent-disabled: #5c2ca04d;
+  --graphic-yellow: #ffd400;
+  --graphic-red: #e72715;
+
+  /* seasonal category tints */
+  --tint-hoodies: #8b6f52;
+  --tint-tees: #f3dfa0;
+  --tint-bottoms: #ae9edd;
+  --tint-outerwear: #5c3a22;
+  --tint-accessories: #e8aab8;
+
+  /* Typography */
+  --font-display: var(--font-anton), Impact, sans-serif;
+  --font-body: var(--font-pragmatica), "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-mono: var(--font-space-mono), "Space Mono", monospace;
+  --font-numeric: var(--font-audiowide), "Audiowide", monospace;
+
+  --text-3xs: 11px;
+  --text-2xs: 12px;
+  --text-xs: 13px;
+  --text-sm: 15px;
+  --text-base: 16px;
+  --text-md: 18px;
+  --text-lg: 22px;
+  --text-xl: 28px;
+  --text-2xl: 34px;
+  --text-3xl: 40px;
+  --text-4xl: 52px;
+  --text-5xl: 68px;
+  --text-6xl: 88px;
+  --text-7xl: 112px;
+
+  --leading-display-tight: 0.95;
+  --leading-display: 1.05;
+  --leading-body-tight: 1.3;
+  --leading-body: 1.5;
+  --leading-body-loose: 1.6;
+
+  --tracking-tight: 0;
+  --tracking-default: 0.5px;
+  --tracking-label: 1.5px;
+  --tracking-nav: 2.8px;
+  --tracking-wide: 4px;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* Spacing (4px base scale) */
+  --space-0: 0;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+  --space-32: 128px;
+
+  --bp-tablet: 640px;
+  --bp-desktop: 1024px;
+  --bp-wide: 1440px;
+  --container-max: 1280px;
+
+  /* Borders / radius */
+  --border-width-hairline: 1px;
+  --border-width-default: 1px;
+  --border-width-strong: 2px;
+  --radius-none: 0px;
+  --radius-sm: 2px;
+  --radius-badge: 2px;
+  --shadow-card: none;
+  --shadow-focus: 0 0 0 2px var(--surface-page), 0 0 0 4px var(--accent-default);
+
+  /* Motion */
+  --duration-instant: 80ms;
+  --duration-fast: 150ms;
+  --duration-base: 220ms;
+  --duration-slow: 400ms;
+  --ease-mechanical: linear;
+  --ease-snap: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+
+  /* Admin-only semantic status colors (not part of the storefront palette) */
+  --success-default: #2f6b3f;
+  --warning-default: #8a6d1a;
+
+  /* Legacy variable aliases — the admin dashboard predates this token set and
+     references these names directly; keep them pointed at the new palette so
+     admin styling stays in sync without a full rewrite of every file. */
+  --bg: var(--surface-page);
+  --fg: var(--text-primary);
+  --muted: var(--text-muted);
+  --border: var(--border-default);
+  --accent: var(--graphic-red);
+  --font-bebas: var(--font-display);
+  --font-rajdhani: var(--font-body);
 }
 
 @theme inline {
-  --color-bg: var(--bg);
-  --color-fg: var(--fg);
-  --color-accent: var(--accent);
-  --font-display: "Bebas Neue", "Impact", sans-serif;
-  --font-body: "Rajdhani", system-ui, sans-serif;
-  --font-tech: "Audiowide", "Orbitron", monospace;
+  --color-bg: var(--surface-page);
+  --color-fg: var(--text-primary);
+  --color-accent: var(--accent-default);
 }
 
 * {
@@ -22,251 +138,355 @@
 }
 
 html {
-  background: #050505;
+  background: var(--surface-page);
 }
 
 body {
   margin: 0;
   padding: 0;
-  background: transparent;
-  color: #fff;
-  font-family: "Rajdhani", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--surface-page);
+  color: var(--text-primary);
+  font-family: var(--font-body);
   overflow-x: hidden;
   position: relative;
 }
 
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  font-family: "Bebas Neue", Impact, sans-serif;
-  font-weight: 400;
-  letter-spacing: 0.04em;
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: var(--weight-regular);
   margin: 0;
 }
 
 a {
-  color: inherit;
+  color: var(--text-link);
   text-decoration: none;
+}
+a:hover {
+  color: var(--text-link-hover);
 }
 
 button {
   font-family: inherit;
 }
 
-/* Site background video */
-.lightning-bg {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  overflow: hidden;
-  background: #050505;
-  pointer-events: none;
-  isolation: isolate;
-}
-
-/* Marquee */
-@keyframes marquee {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
-}
-
-.marquee-track {
-  display: flex;
-  width: max-content;
-  animation: marquee 30s linear infinite;
-}
-
-/* Enter button waves */
-@keyframes wave-rotate {
-  0% {
-    transform: translate(-50%, -75%) rotate(0deg);
-  }
-  100% {
-    transform: translate(-50%, -75%) rotate(360deg);
-  }
-}
-
-.enter-btn {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px 16px;
-  background: transparent;
-  border: 0;
-  font-size: 22px;
-  color: #fff;
-  text-transform: uppercase;
-  text-decoration: none;
-  font-family: "Bebas Neue", Impact, sans-serif;
-  letter-spacing: 0.18em;
-  transition: letter-spacing 0.3s ease;
-  z-index: 1;
-}
-.enter-btn:hover {
-  letter-spacing: 0.24em;
-}
-.enter-btn span.btn-text {
-  position: relative;
-  z-index: 3;
-  animation: smooth-pulse 1.5s ease-in-out infinite alternate;
-}
-@keyframes smooth-pulse {
-  0% {
-    opacity: 0.6;
-    text-shadow: 0 0 2px #fff;
-  }
-  100% {
-    opacity: 1;
-    text-shadow: 0 0 10px #fff, 0 0 22px rgba(255, 255, 255, 0.7);
-  }
-}
-/* Hide legacy decorations from the previous button design */
-.enter-btn .arrow,
-.enter-btn .wave {
-  display: none;
-}
-
-/* ENTER pulse on intro */
-@keyframes enter-pulse {
-  0% {
-    opacity: 0.55;
-    transform: scale(0.98);
-    text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1.02);
-    text-shadow: 0 0 15px rgba(255, 255, 255, 0.85),
-      0 0 25px rgba(255, 255, 255, 0.5);
-  }
-}
-
-.intro-enter-btn {
-  font-family: "Bebas Neue", Impact, sans-serif;
-  font-size: clamp(48px, 9vw, 96px);
-  letter-spacing: 0.18em;
-  background: none;
-  border: none;
-  color: #fff;
-  cursor: pointer;
-  animation: enter-pulse 1.5s infinite alternate ease-in-out;
-}
-
-/* Subtle scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
-  background: #0a0a0a;
+  background: var(--surface-page);
 }
 ::-webkit-scrollbar-thumb {
-  background: #2a2a2a;
+  background: var(--border-strong);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #3a3a3a;
+  background: var(--accent-default);
 }
 
-/* Glass utility */
-.glass {
-  background: rgba(15, 15, 15, 0.45);
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+/* ==========================================================================
+   Layout primitives
+   ========================================================================== */
+.aa-container {
+  max-width: var(--container-max);
+  margin: 0 auto;
+  padding: 0 var(--space-6);
 }
 
-/* Product card hover */
-.product-card-img {
-  transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+.aa-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: var(--space-6);
 }
-.product-card:hover .product-card-img {
-  transform: scale(1.06);
+@media (max-width: 1023px) {
+  .aa-grid { grid-template-columns: repeat(8, 1fr); }
+}
+@media (max-width: 639px) {
+  .aa-grid { grid-template-columns: repeat(4, 1fr); }
 }
 
-/* Menu fade in */
-.menu-anim > * {
-  opacity: 0;
-  transform: translateY(20px);
-  animation: menu-fade 0.6s forwards;
-}
-.menu-anim > *:nth-child(1) {
-  animation-delay: 0.2s;
-}
-.menu-anim > *:nth-child(2) {
-  animation-delay: 0.4s;
-}
-.menu-anim > *:nth-child(3) {
-  animation-delay: 0.6s;
-}
-.menu-anim > *:nth-child(4) {
-  animation-delay: 0.8s;
-}
-@keyframes menu-fade {
-  to {
-    opacity: 1;
-    transform: translateY(0);
+@media (max-width: 767px) {
+  .aa-footer-grid {
+    grid-template-columns: 1fr !important;
+    gap: var(--space-8) !important;
+  }
+  .aa-product-grid {
+    grid-template-columns: 1fr !important;
+    gap: var(--space-8) !important;
+  }
+  .aa-cart-grid {
+    grid-template-columns: 1fr !important;
   }
 }
 
-/* Speed flow arrow mask */
-.arrow-flow svg {
-  -webkit-mask-image: linear-gradient(
-    to right,
-    rgba(0, 0, 0, 0.1) 0%,
-    rgba(0, 0, 0, 1) 50%,
-    rgba(0, 0, 0, 0.1) 100%
-  );
-  mask-image: linear-gradient(
-    to right,
-    rgba(0, 0, 0, 0.1) 0%,
-    rgba(0, 0, 0, 1) 50%,
-    rgba(0, 0, 0, 0.1) 100%
-  );
-  -webkit-mask-size: 200% 100%;
-  mask-size: 200% 100%;
-  animation: speed-flow 1.2s infinite linear;
+/* ==========================================================================
+   Header — keep the nav/logo/actions from overflowing narrow viewports
+   ========================================================================== */
+.aa-header-grid > * {
+  min-width: 0;
 }
-@keyframes speed-flow {
-  0% {
-    -webkit-mask-position: 150% 0;
-    mask-position: 150% 0;
+@media (max-width: 640px) {
+  .aa-header-grid {
+    padding: var(--space-2) var(--space-3) !important;
+    gap: var(--space-2) !important;
   }
-  100% {
-    -webkit-mask-position: -50% 0;
-    mask-position: -50% 0;
+  .aa-header-nav {
+    gap: var(--space-3) !important;
+  }
+  .aa-header-nav .aa-nav-link {
+    font-size: var(--text-2xs) !important;
+    letter-spacing: var(--tracking-label) !important;
+  }
+  .aa-header-logo img,
+  .aa-header-logo div[data-logo-slot] {
+    width: 56px !important;
+    height: 56px !important;
+  }
+  .aa-header-actions {
+    gap: var(--space-2) !important;
+  }
+  .aa-header-actions .aa-badge {
+    padding: var(--space-1) var(--space-2) !important;
+    font-size: 10px !important;
   }
 }
 
-/* Page loader */
-.page-loader {
-  position: fixed;
-  inset: 0;
-  background: #050505;
-  display: flex;
+/* ==========================================================================
+   Region gate panels
+   ========================================================================== */
+.aa-region-panel {
+  border: 1px solid var(--border-default);
+  background: var(--surface-card);
+  transition: border-color var(--duration-fast) var(--ease-snap),
+    background-color var(--duration-fast) var(--ease-snap);
+  text-align: left;
+  font: inherit;
+}
+.aa-region-panel:hover { border-color: var(--accent-default); }
+.aa-region-panel:active { background: var(--surface-card-alt); }
+.aa-region-panel:disabled { cursor: default; }
+
+/* ==========================================================================
+   Typography classes
+   ========================================================================== */
+.aa-display-hero {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  line-height: var(--leading-display-tight);
+  letter-spacing: var(--tracking-tight);
+  font-size: var(--text-6xl);
+}
+.aa-display-h1 {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  line-height: var(--leading-display);
+  font-size: var(--text-3xl);
+}
+.aa-display-h2 {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  line-height: var(--leading-display);
+  font-size: var(--text-2xl);
+}
+.aa-display-h3 {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  line-height: var(--leading-display);
+  font-size: var(--text-lg);
+}
+.aa-eyebrow {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-label);
+  color: var(--text-muted);
+}
+.aa-nav-link {
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-nav);
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  transition: color var(--duration-fast) var(--ease-snap);
+}
+.aa-nav-link:hover { color: var(--accent-hover); }
+.aa-nav-link[data-active="true"] { color: var(--accent-default); }
+.aa-body {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: var(--leading-body);
+  color: var(--text-primary);
+}
+.aa-caption {
+  font-family: var(--font-body);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.aa-price {
+  font-family: var(--font-body);
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-base);
+  color: var(--text-primary);
+}
+.aa-numeric {
+  font-family: var(--font-numeric);
+  letter-spacing: var(--tracking-default);
+}
+
+/* ==========================================================================
+   Button
+   ========================================================================== */
+.aa-btn {
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-nav);
+  text-transform: uppercase;
+  white-space: nowrap;
+  border-radius: var(--radius-none);
+  cursor: pointer;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  z-index: 99998;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.4s ease;
+  gap: var(--space-2);
+  border: 1px solid transparent;
+  transition: background-color var(--duration-fast) var(--ease-snap),
+    color var(--duration-fast) var(--ease-snap),
+    border-color var(--duration-fast) var(--ease-snap),
+    box-shadow var(--duration-fast) var(--ease-snap);
 }
-.page-loader.active {
-  opacity: 1;
-  pointer-events: auto;
+.aa-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+.aa-btn:disabled {
+  cursor: not-allowed;
+}
+.aa-btn--sm { padding: var(--space-2) var(--space-4); font-size: var(--text-2xs); }
+.aa-btn--md { padding: var(--space-3) var(--space-6); }
+.aa-btn--lg { padding: var(--space-4) var(--space-8); font-size: var(--text-sm); }
+
+.aa-btn--primary {
+  background: var(--accent-default);
+  color: var(--text-on-accent);
+}
+.aa-btn--primary:hover:not(:disabled) { background: var(--accent-hover); }
+.aa-btn--primary:active:not(:disabled) { background: var(--accent-active); }
+.aa-btn--primary:disabled { background: var(--accent-disabled); color: var(--text-on-accent); }
+
+.aa-btn--secondary {
+  background: transparent;
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+.aa-btn--secondary:hover:not(:disabled) { border-color: var(--text-primary); }
+.aa-btn--secondary:active:not(:disabled) { border-color: var(--text-muted); color: var(--text-muted); }
+.aa-btn--secondary:disabled { border-color: var(--border-subtle); color: var(--text-disabled); }
+
+.aa-btn--ghost {
+  background: transparent;
+  color: var(--text-muted);
+}
+.aa-btn--ghost:hover:not(:disabled) { color: var(--text-primary); }
+.aa-btn--ghost:active:not(:disabled) { color: var(--accent-active); }
+.aa-btn--ghost:disabled { color: var(--text-disabled); }
+
+/* ==========================================================================
+   Input
+   ========================================================================== */
+.aa-input {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+  width: 100%;
+  color: var(--text-primary);
+  transition: border-color var(--duration-fast) var(--ease-snap);
+}
+.aa-input::placeholder { color: var(--text-muted); }
+.aa-input:hover { border-color: var(--border-strong); }
+.aa-input:focus {
+  outline: none;
+  border-color: var(--accent-default);
+  box-shadow: var(--shadow-focus);
+}
+.aa-input:disabled { background: var(--surface-page); }
+.aa-input--error { border-color: var(--graphic-red); }
+
+select.aa-input {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%231a1a1a' stroke-width='1.5' fill='none' fill-rule='evenodd'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--space-4) center;
+  padding-right: var(--space-8);
+  cursor: pointer;
 }
 
-/* Neon glass form */
-.neon-glass {
-  background: rgba(10, 10, 12, 0.3);
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 11px;
-  box-shadow: 0 0 18px rgba(255, 255, 255, 0.4);
+/* ==========================================================================
+   Card
+   ========================================================================== */
+.aa-card {
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-none);
+  padding: var(--space-6);
+}
+.aa-card--interactive {
+  cursor: pointer;
+  transition: border-color var(--duration-fast) var(--ease-snap);
+}
+.aa-card--interactive:hover { border-color: var(--border-strong); }
+.aa-card--interactive:active { border-color: var(--accent-default); }
+
+/* ==========================================================================
+   Badge
+   ========================================================================== */
+.aa-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  border-radius: var(--radius-badge);
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid transparent;
+}
+.aa-badge--neutral {
+  background: var(--surface-card-alt);
+  color: var(--text-muted);
+  border-color: var(--border-subtle);
+}
+.aa-badge--accent {
+  background: var(--accent-default);
+  color: var(--text-on-accent);
+}
+.aa-badge--outline {
+  background: transparent;
+  color: var(--accent-default);
+  border-color: var(--accent-default);
+}
+
+/* ==========================================================================
+   Admin — .glass is the legacy dark-glassmorphism card class; every admin
+   tab still uses it verbatim, so redefine it as a flat card matching the
+   new design system instead of touching every call site.
+   ========================================================================== */
+.glass {
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+}
+
+/* ==========================================================================
+   Logo color-cycle animation (Home hero + header flight)
+   ========================================================================== */
+@keyframes aaLogoColorCycle {
+  0% { filter: url(#aaRecolorRed); }
+  25% { filter: url(#aaRecolorYellow); }
+  50%, 75%, 100% { filter: url(#aaRecolorPurple); }
 }

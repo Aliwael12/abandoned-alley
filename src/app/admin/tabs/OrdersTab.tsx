@@ -45,9 +45,9 @@ type BulkResult = {
 };
 
 const STATUS_STYLES: Record<OrderStatus, string> = {
-  pending: "border-white/30 text-white/70",
-  approved: "border-sky-400/50 text-sky-300",
-  delivered: "border-emerald-400/50 text-emerald-300",
+  pending: "border-[var(--border-strong)] text-[var(--text-muted)]",
+  approved: "border-[var(--accent-default)]/50 text-[var(--accent-default)]",
+  delivered: "border-[var(--success-default)]/50 text-[var(--success-default)]",
   cancelled: "border-[var(--accent)]/50 text-[var(--accent)]",
 };
 
@@ -231,7 +231,7 @@ export default function OrdersTab({
   }
 
   const selectCls =
-    "bg-white/5 border border-white/15 rounded-md h-9 px-3 text-sm outline-none focus:border-white/40 transition";
+    "bg-[var(--surface-card-alt)] border border-[var(--border-default)]  h-9 px-3 text-sm outline-none focus:border-[var(--border-strong)] transition";
 
   return (
     <div className="flex flex-col gap-5">
@@ -245,7 +245,7 @@ export default function OrdersTab({
             load();
           }}
           disabled={loading || busy}
-          className="inline-flex items-center gap-2 px-4 py-2 border border-white/15 hover:border-white/40 rounded-md text-xs tracking-[0.2em] uppercase transition disabled:opacity-50"
+          className="inline-flex items-center gap-2 px-4 py-2 border border-[var(--border-default)] hover:border-[var(--border-strong)]  text-xs tracking-[0.2em] uppercase transition disabled:opacity-50"
         >
           <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
           Refresh
@@ -292,15 +292,15 @@ export default function OrdersTab({
 
       {/* Bulk action bar */}
       {someSelected && (
-        <div className="glass rounded-xl p-3 flex flex-col sm:flex-row sm:items-center gap-3 sm:flex-wrap sticky top-2 z-10">
-          <span className="text-sm text-white/80">
+        <div className="glass  p-3 flex flex-col sm:flex-row sm:items-center gap-3 sm:flex-wrap sticky top-2 z-10">
+          <span className="text-sm text-[var(--text-primary)]">
             {selectedVisible.length} selected
           </span>
           <div className="flex items-center gap-2 flex-wrap sm:ml-auto">
             <button
               onClick={() => runBulk("approve")}
               disabled={busy}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-sky-400/40 text-sky-300 hover:bg-sky-400/10 text-xs tracking-[0.15em] uppercase disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-3 py-2  border border-[var(--accent-default)]/40 text-[var(--accent-default)] hover:bg-[var(--accent-default)]/10 text-xs tracking-[0.15em] uppercase disabled:opacity-50"
             >
               {busy ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
               Approve
@@ -308,7 +308,7 @@ export default function OrdersTab({
             <button
               onClick={() => runBulk("deliver")}
               disabled={busy}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-emerald-400/40 text-emerald-300 hover:bg-emerald-400/10 text-xs tracking-[0.15em] uppercase disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-3 py-2  border border-[var(--success-default)]/40 text-[var(--success-default)] hover:bg-[var(--success-default)]/10 text-xs tracking-[0.15em] uppercase disabled:opacity-50"
             >
               {busy ? <Loader2 size={14} className="animate-spin" /> : <PackageCheck size={14} />}
               Mark delivered
@@ -316,7 +316,7 @@ export default function OrdersTab({
             <button
               onClick={() => runBulk("cancel")}
               disabled={busy}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-[var(--accent)]/40 text-[var(--accent)] hover:bg-[var(--accent)]/10 text-xs tracking-[0.15em] uppercase disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-3 py-2  border border-[var(--accent)]/40 text-[var(--accent)] hover:bg-[var(--accent)]/10 text-xs tracking-[0.15em] uppercase disabled:opacity-50"
             >
               {busy ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />}
               Cancel
@@ -324,7 +324,7 @@ export default function OrdersTab({
             <button
               onClick={() => setSelected(new Set())}
               disabled={busy}
-              className="px-3 py-2 rounded-md border border-white/15 hover:border-white/40 text-xs tracking-[0.15em] uppercase disabled:opacity-50"
+              className="px-3 py-2  border border-[var(--border-default)] hover:border-[var(--border-strong)] text-xs tracking-[0.15em] uppercase disabled:opacity-50"
             >
               Clear
             </button>
@@ -333,7 +333,7 @@ export default function OrdersTab({
       )}
 
       {lastResult && lastResult.failed === 0 && (
-        <p className="text-xs text-emerald-300">
+        <p className="text-xs text-[var(--success-default)]">
           {lastResult.succeeded} order{lastResult.succeeded === 1 ? "" : "s"}{" "}
           {lastResult.action === "approve"
             ? "approved"
@@ -345,8 +345,8 @@ export default function OrdersTab({
       )}
 
       {lastResult && lastResult.failed > 0 && (
-        <div className="glass rounded-xl p-3 flex flex-col gap-1.5">
-          <p className="text-xs text-white/80">
+        <div className="glass  p-3 flex flex-col gap-1.5">
+          <p className="text-xs text-[var(--text-primary)]">
             {lastResult.succeeded} succeeded, {lastResult.failed} failed:
           </p>
           <ul className="flex flex-col gap-1 max-h-40 overflow-y-auto">
@@ -354,7 +354,7 @@ export default function OrdersTab({
               .filter((r) => !r.ok)
               .map((r) => (
                 <li key={r.id} className="text-[11px] text-[var(--accent)]">
-                  <span className="font-mono text-white/60">#{r.id.slice(0, 8)}</span>{" "}
+                  <span className="font-mono text-[var(--text-muted)]">#{r.id.slice(0, 8)}</span>{" "}
                   {r.error ?? "Unknown error"}
                 </li>
               ))}
@@ -363,26 +363,26 @@ export default function OrdersTab({
       )}
 
       {/* Table */}
-      <div className="glass rounded-2xl p-2 sm:p-4">
+      <div className="glass  p-2 sm:p-4">
         {loading && !orders ? (
-          <div className="flex items-center justify-center py-16 text-white/40">
+          <div className="flex items-center justify-center py-16 text-[var(--text-muted)]">
             <Loader2 size={20} className="animate-spin" />
           </div>
         ) : filtered.length === 0 ? (
-          <p className="text-sm text-white/50 py-8 text-center">
+          <p className="text-sm text-[var(--text-muted)] py-8 text-center">
             No orders match these filters.
           </p>
         ) : (
           <>
             {/* Mobile: select-all + stacked order cards */}
             <div className="md:hidden flex flex-col gap-2">
-              <label className="flex items-center gap-2 px-1 pb-2 text-[10px] tracking-[0.2em] uppercase text-white/40">
+              <label className="flex items-center gap-2 px-1 pb-2 text-[10px] tracking-[0.2em] uppercase text-[var(--text-muted)]">
                 <input
                   type="checkbox"
                   checked={allVisibleSelected}
                   onChange={toggleAll}
                   aria-label="Select all"
-                  className="accent-white"
+                  className="accent-[var(--accent-default)]"
                 />
                 Select all ({filtered.length})
               </label>
@@ -391,10 +391,10 @@ export default function OrdersTab({
                 return (
                   <div
                     key={o.id}
-                    className={`rounded-xl border p-3 flex gap-3 transition ${
+                    className={` border p-3 flex gap-3 transition ${
                       isSel
-                        ? "border-white/30 bg-white/[0.07]"
-                        : "border-white/10"
+                        ? "border-[var(--border-strong)] bg-[var(--accent-default)]/[0.07]"
+                        : "border-[var(--border-subtle)]"
                     }`}
                   >
                     <input
@@ -402,14 +402,14 @@ export default function OrdersTab({
                       checked={isSel}
                       onChange={() => toggleOne(o.id)}
                       aria-label={`Select order ${o.id.slice(0, 8)}`}
-                      className="accent-white mt-1 shrink-0"
+                      className="accent-[var(--accent-default)] mt-1 shrink-0"
                     />
                     <Link
                       href={`/admin/orders/${o.id}`}
                       className="flex-1 min-w-0 flex flex-col gap-2"
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <span className="font-mono text-xs text-white/60">
+                        <span className="font-mono text-xs text-[var(--text-muted)]">
                           #{o.id.slice(0, 8)}
                         </span>
                         <span className="text-sm font-medium">
@@ -417,21 +417,21 @@ export default function OrdersTab({
                         </span>
                       </div>
                       <div className="min-w-0">
-                        <div className="text-white/90 truncate">
+                        <div className="text-[var(--text-primary)] truncate">
                           {o.customerName || "—"}
                         </div>
-                        <div className="text-xs text-white/40 truncate">
+                        <div className="text-xs text-[var(--text-muted)] truncate">
                           {o.customerPhone || "—"}
                         </div>
                       </div>
                       <div className="flex items-center gap-2 flex-wrap">
                         <StatusBadge status={o.status} />
-                        <span className="text-[11px] text-white/50">
+                        <span className="text-[11px] text-[var(--text-muted)]">
                           {o.governorate || "—"} · {o.itemCount} item
                           {o.itemCount === 1 ? "" : "s"}
                         </span>
                       </div>
-                      <div className="text-[11px] text-white/40">
+                      <div className="text-[11px] text-[var(--text-muted)]">
                         {o.createdAt
                           ? new Date(o.createdAt).toLocaleDateString()
                           : "—"}
@@ -446,14 +446,14 @@ export default function OrdersTab({
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                <tr className="text-[10px] tracking-[0.2em] uppercase text-white/40 border-b border-white/10">
+                <tr className="text-[10px] tracking-[0.2em] uppercase text-[var(--text-muted)] border-b border-[var(--border-subtle)]">
                   <th className="py-2 px-2 w-8">
                     <input
                       type="checkbox"
                       checked={allVisibleSelected}
                       onChange={toggleAll}
                       aria-label="Select all"
-                      className="accent-white"
+                      className="accent-[var(--accent-default)]"
                     />
                   </th>
                   <th className="text-left py-2 pr-4">Order</th>
@@ -492,8 +492,8 @@ export default function OrdersTab({
                   return (
                     <tr
                       key={o.id}
-                      className={`border-b border-white/5 transition ${
-                        isSel ? "bg-white/[0.07]" : "hover:bg-white/5"
+                      className={`border-b border-[var(--border-subtle)] transition ${
+                        isSel ? "bg-[var(--accent-default)]/[0.07]" : "hover:bg-[var(--surface-card-alt)]"
                       }`}
                     >
                       <td className="py-3 px-2">
@@ -502,29 +502,29 @@ export default function OrdersTab({
                           checked={isSel}
                           onChange={() => toggleOne(o.id)}
                           aria-label={`Select order ${o.id.slice(0, 8)}`}
-                          className="accent-white"
+                          className="accent-[var(--accent-default)]"
                         />
                       </td>
-                      <td className="py-3 pr-4 font-mono text-xs text-white/70">
+                      <td className="py-3 pr-4 font-mono text-xs text-[var(--text-muted)]">
                         <Link
                           href={`/admin/orders/${o.id}`}
-                          className="hover:text-white"
+                          className="hover:text-[var(--text-primary)]"
                         >
                           #{o.id.slice(0, 8)}
                         </Link>
                       </td>
                       <td className="py-3 pr-4">
                         <Link href={`/admin/orders/${o.id}`} className="block">
-                          <div className="text-white/90">{o.customerName || "—"}</div>
-                          <div className="text-xs text-white/40">{o.customerPhone || "—"}</div>
+                          <div className="text-[var(--text-primary)]">{o.customerName || "—"}</div>
+                          <div className="text-xs text-[var(--text-muted)]">{o.customerPhone || "—"}</div>
                         </Link>
                       </td>
-                      <td className="py-3 pr-4 text-white/80">{o.itemCount}</td>
-                      <td className="py-3 pr-4 text-white/80">{o.governorate || "—"}</td>
+                      <td className="py-3 pr-4 text-[var(--text-primary)]">{o.itemCount}</td>
+                      <td className="py-3 pr-4 text-[var(--text-primary)]">{o.governorate || "—"}</td>
                       <td className="py-3 pr-4">
                         <StatusBadge status={o.status} />
                       </td>
-                      <td className="py-3 pr-4 text-xs text-white/60">
+                      <td className="py-3 pr-4 text-xs text-[var(--text-muted)]">
                         {o.createdAt ? new Date(o.createdAt).toLocaleDateString() : "—"}
                       </td>
                       <td className="py-3 text-right">{fmtEgp(o.subtotal)}</td>
@@ -538,7 +538,7 @@ export default function OrdersTab({
         )}
       </div>
 
-      <p className="text-[10px] text-white/40 inline-flex items-center gap-1.5">
+      <p className="text-[10px] text-[var(--text-muted)] inline-flex items-center gap-1.5">
         <Truck size={12} />
         All orders dispatch to Droppin on approval.
       </p>
@@ -564,8 +564,8 @@ function SortableTh({
       <button
         type="button"
         onClick={onClick}
-        className={`inline-flex items-center gap-1 tracking-[0.2em] uppercase text-[10px] transition hover:text-white ${
-          active ? "text-white" : "text-white/40"
+        className={`inline-flex items-center gap-1 tracking-[0.2em] uppercase text-[10px] transition hover:text-[var(--text-primary)] ${
+          active ? "text-[var(--text-primary)]" : "text-[var(--text-muted)]"
         }`}
       >
         {label}

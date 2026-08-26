@@ -80,12 +80,12 @@ function MediaEditor({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="text-[11px] tracking-[0.3em] uppercase text-white/60">
+      <div className="text-[11px] tracking-[0.3em] uppercase text-[var(--text-muted)]">
         Images ({media.length})
       </div>
 
       {media.length === 0 ? (
-        <p className="text-xs text-white/50 py-2">
+        <p className="text-xs text-[var(--text-muted)] py-2">
           No images yet — add one below. The first image is the main card image.
         </p>
       ) : (
@@ -95,9 +95,9 @@ function MediaEditor({
             return (
               <li
                 key={`${i}-${m.src}`}
-                className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-md p-2"
+                className="flex items-center gap-3 bg-[var(--surface-card-alt)] border border-[var(--border-subtle)]  p-2"
               >
-                <div className="relative w-12 h-12 bg-white/5 rounded overflow-hidden shrink-0 grid place-items-center">
+                <div className="relative w-12 h-12 bg-[var(--surface-card-alt)] rounded overflow-hidden shrink-0 grid place-items-center">
                   {m.type === "image" ? (
                     <Image
                       src={m.src}
@@ -108,7 +108,7 @@ function MediaEditor({
                       unoptimized
                     />
                   ) : (
-                    <span className="text-[9px] tracking-[0.2em] uppercase text-white/60">
+                    <span className="text-[9px] tracking-[0.2em] uppercase text-[var(--text-muted)]">
                       Video
                     </span>
                   )}
@@ -116,11 +116,11 @@ function MediaEditor({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     {isMain && (
-                      <span className="px-1.5 py-0.5 text-[9px] tracking-[0.2em] uppercase border border-white/30 rounded text-white/80">
+                      <span className="px-1.5 py-0.5 text-[9px] tracking-[0.2em] uppercase border border-[var(--border-strong)] rounded text-[var(--text-primary)]">
                         Main
                       </span>
                     )}
-                    <code className="text-[11px] text-white/70 truncate font-mono">
+                    <code className="text-[11px] text-[var(--text-muted)] truncate font-mono">
                       {m.src}
                     </code>
                   </div>
@@ -131,7 +131,7 @@ function MediaEditor({
                     onClick={() => move(i, -1)}
                     disabled={i === 0}
                     aria-label="Move up"
-                    className="w-8 h-8 grid place-items-center border border-white/15 rounded hover:border-white/40 disabled:opacity-30 disabled:cursor-not-allowed"
+                    className="w-8 h-8 grid place-items-center border border-[var(--border-default)] rounded hover:border-[var(--border-strong)] disabled:opacity-30 disabled:cursor-not-allowed"
                   >
                     <ArrowUp size={12} />
                   </button>
@@ -140,7 +140,7 @@ function MediaEditor({
                     onClick={() => move(i, 1)}
                     disabled={i === media.length - 1}
                     aria-label="Move down"
-                    className="w-8 h-8 grid place-items-center border border-white/15 rounded hover:border-white/40 disabled:opacity-30 disabled:cursor-not-allowed"
+                    className="w-8 h-8 grid place-items-center border border-[var(--border-default)] rounded hover:border-[var(--border-strong)] disabled:opacity-30 disabled:cursor-not-allowed"
                   >
                     <ArrowDown size={12} />
                   </button>
@@ -150,7 +150,7 @@ function MediaEditor({
                     disabled={isMain}
                     aria-label="Set as main"
                     title="Set as main"
-                    className="w-8 h-8 grid place-items-center border border-white/15 rounded hover:border-white/40 disabled:opacity-30 disabled:cursor-not-allowed"
+                    className="w-8 h-8 grid place-items-center border border-[var(--border-default)] rounded hover:border-[var(--border-strong)] disabled:opacity-30 disabled:cursor-not-allowed"
                   >
                     <Star size={12} />
                   </button>
@@ -158,7 +158,7 @@ function MediaEditor({
                     type="button"
                     onClick={() => remove(i)}
                     aria-label="Remove"
-                    className="w-8 h-8 grid place-items-center border border-white/15 rounded hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                    className="w-8 h-8 grid place-items-center border border-[var(--border-default)] rounded hover:border-[var(--accent)] hover:text-[var(--accent)]"
                   >
                     <Trash2 size={12} />
                   </button>
@@ -180,13 +180,13 @@ function MediaEditor({
               add();
             }
           }}
-          className="bg-white/5 border border-white/15 rounded-md h-10 px-3 text-sm outline-none focus:border-white/40 transition flex-1"
+          className="bg-[var(--surface-card-alt)] border border-[var(--border-default)]  h-10 px-3 text-sm outline-none focus:border-[var(--border-strong)] transition flex-1"
         />
         <button
           type="button"
           onClick={add}
           disabled={!url.trim()}
-          className="px-4 py-2 border border-white/15 hover:border-white/40 rounded-md text-xs tracking-[0.2em] uppercase disabled:opacity-50 inline-flex items-center gap-2"
+          className="px-4 py-2 border border-[var(--border-default)] hover:border-[var(--border-strong)]  text-xs tracking-[0.2em] uppercase disabled:opacity-50 inline-flex items-center gap-2"
         >
           <Plus size={12} />
           Add
@@ -207,11 +207,11 @@ function StockEditor({
 }) {
   return (
     <div className="flex flex-col gap-3">
-      <div className="text-[11px] tracking-[0.3em] uppercase text-white/60">
+      <div className="text-[11px] tracking-[0.3em] uppercase text-[var(--text-muted)]">
         Stock per size
       </div>
       {sizes.length === 0 ? (
-        <p className="text-xs text-white/50 py-1">
+        <p className="text-xs text-[var(--text-muted)] py-1">
           This product has no sizes to stock.
         </p>
       ) : (
@@ -223,14 +223,14 @@ function StockEditor({
               badge === "soldout"
                 ? "border-[var(--accent)]/60"
                 : badge === "low"
-                  ? "border-amber-400/60"
-                  : "border-white/15";
+                  ? "border-[var(--warning-default)]/60"
+                  : "border-[var(--border-default)]";
             return (
               <label
                 key={size}
-                className={`flex flex-col gap-1 rounded-md border ${ring} bg-white/5 px-3 py-2`}
+                className={`flex flex-col gap-1  border ${ring} bg-[var(--surface-card-alt)] px-3 py-2`}
               >
-                <span className="text-[10px] tracking-[0.2em] uppercase text-white/60">
+                <span className="text-[10px] tracking-[0.2em] uppercase text-[var(--text-muted)]">
                   {size}
                 </span>
                 <input
@@ -245,14 +245,14 @@ function StockEditor({
                       [size]: Number.isFinite(n) ? n : 0,
                     });
                   }}
-                  className="w-20 bg-transparent border border-white/15 rounded h-9 px-2 text-sm outline-none focus:border-white/40 transition"
+                  className="w-20 bg-transparent border border-[var(--border-default)] rounded h-9 px-2 text-sm outline-none focus:border-[var(--border-strong)] transition"
                 />
                 {badge !== "ok" && (
                   <span
                     className={`text-[9px] tracking-[0.2em] uppercase ${
                       badge === "soldout"
                         ? "text-[var(--accent)]"
-                        : "text-amber-400"
+                        : "text-[var(--warning-default)]"
                     }`}
                   >
                     {badge === "soldout" ? "Sold out" : "Low"}
@@ -263,7 +263,7 @@ function StockEditor({
           })}
         </div>
       )}
-      <p className="text-[10px] text-white/40">
+      <p className="text-[10px] text-[var(--text-muted)]">
         Low-stock warning at or below {LOW_STOCK_THRESHOLD} units. A size at 0 is
         sold out on the storefront.
       </p>
@@ -276,7 +276,7 @@ function StockSummary({ product }: { product: Product }) {
   if (sizes.length === 0) return null;
   return (
     <div className="flex flex-wrap items-center gap-1.5">
-      <span className="text-[10px] tracking-[0.2em] uppercase text-white/40 mr-1">
+      <span className="text-[10px] tracking-[0.2em] uppercase text-[var(--text-muted)] mr-1">
         Stock
       </span>
       {sizes.map((size) => {
@@ -286,8 +286,8 @@ function StockSummary({ product }: { product: Product }) {
           badge === "soldout"
             ? "border-[var(--accent)]/50 text-[var(--accent)]"
             : badge === "low"
-              ? "border-amber-400/50 text-amber-300"
-              : "border-white/15 text-white/70";
+              ? "border-[var(--warning-default)]/50 text-[var(--warning-default)]"
+              : "border-[var(--border-default)] text-[var(--text-muted)]";
         return (
           <span
             key={size}
@@ -438,7 +438,7 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
   }
 
   const inputCls =
-    "bg-white/5 border border-white/15 rounded-md h-10 px-3 text-sm outline-none focus:border-white/40 transition w-full";
+    "bg-[var(--surface-card-alt)] border border-[var(--border-default)]  h-10 px-3 text-sm outline-none focus:border-[var(--border-strong)] transition w-full";
 
   return (
     <div className="flex flex-col gap-6">
@@ -448,11 +448,11 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
         </h2>
         <button
           onClick={() => setCreating((v) => !v)}
-          style={{ color: creating ? undefined : "#000" }}
+          style={{ color: creating ? undefined : "var(--text-on-accent)" }}
           className={
             creating
-              ? "inline-flex items-center gap-2 px-4 py-2 border border-white/15 hover:border-white/40 rounded-md text-xs tracking-[0.2em] uppercase transition"
-              : "inline-flex items-center gap-2 px-4 py-2 bg-white rounded-md text-xs tracking-[0.2em] uppercase transition"
+              ? "inline-flex items-center gap-2 px-4 py-2 border border-[var(--border-default)] hover:border-[var(--border-strong)]  text-xs tracking-[0.2em] uppercase transition"
+              : "inline-flex items-center gap-2 px-4 py-2 bg-[var(--accent-default)]  text-xs tracking-[0.2em] uppercase transition"
           }
         >
           {creating ? <X size={14} /> : <Plus size={14} />}
@@ -461,7 +461,7 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
       </div>
 
       {creating && (
-        <div className="glass rounded-2xl p-6 flex flex-col gap-4">
+        <div className="glass  p-6 flex flex-col gap-4">
           <input
             placeholder="Title"
             value={createDraft.title}
@@ -473,7 +473,7 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
             rows={3}
             value={createDraft.description}
             onChange={(e) => setCreateDraft({ ...createDraft, description: e.target.value })}
-            className="bg-white/5 border border-white/15 rounded-md p-3 text-sm outline-none focus:border-white/40 transition resize-none"
+            className="bg-[var(--surface-card-alt)] border border-[var(--border-default)]  p-3 text-sm outline-none focus:border-[var(--border-strong)] transition resize-none"
           />
           <div className="grid md:grid-cols-2 gap-4">
             <input
@@ -503,8 +503,8 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
               !createDraft.price ||
               createDraft.media.length === 0
             }
-            style={{ color: "#000" }}
-            className="self-start bg-white px-5 py-2.5 rounded-md text-xs tracking-[0.2em] uppercase disabled:opacity-50 inline-flex items-center gap-2"
+            style={{ color: "var(--text-on-accent)" }}
+            className="self-start bg-[var(--accent-default)] px-5 py-2.5  text-xs tracking-[0.2em] uppercase disabled:opacity-50 inline-flex items-center gap-2"
           >
             {busy === "__new__" && <Loader2 size={14} className="animate-spin" />}
             Create
@@ -514,7 +514,7 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
 
       <ul className="flex flex-col gap-4">
         {products.length === 0 ? (
-          <p className="text-sm text-white/50 py-6">
+          <p className="text-sm text-[var(--text-muted)] py-6">
             No products yet. Use the <em>New product</em> form above to add one.
           </p>
         ) : (
@@ -528,11 +528,11 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
             return (
               <li
                 key={p.handle}
-                className={`glass rounded-2xl p-5 flex flex-col md:flex-row gap-5 ${
+                className={`glass  p-5 flex flex-col md:flex-row gap-5 ${
                   p.disabled ? "opacity-60" : ""
                 }`}
               >
-                <div className="relative w-full md:w-32 h-40 md:h-32 bg-white/5 rounded-md overflow-hidden shrink-0">
+                <div className="relative w-full md:w-32 h-40 md:h-32 bg-[var(--surface-card-alt)]  overflow-hidden shrink-0">
                   {img && img.type === "image" && (
                     <Image
                       src={img.src}
@@ -557,7 +557,7 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
                         rows={3}
                         value={draft.description ?? ""}
                         onChange={(e) => setDraft({ ...draft, description: e.target.value })}
-                        className="bg-white/5 border border-white/15 rounded-md p-3 text-sm outline-none focus:border-white/40 transition resize-none"
+                        className="bg-[var(--surface-card-alt)] border border-[var(--border-default)]  p-3 text-sm outline-none focus:border-[var(--border-strong)] transition resize-none"
                       />
                       <input
                         type="number"
@@ -571,7 +571,7 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
                         onChange={(media) => setDraft({ ...draft, media })}
                       />
                       <label className="flex flex-col gap-2">
-                        <span className="text-[11px] tracking-[0.3em] uppercase text-white/60">
+                        <span className="text-[11px] tracking-[0.3em] uppercase text-[var(--text-muted)]">
                           Size chart
                         </span>
                         <select
@@ -607,17 +607,17 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
                           {p.title}
                         </h3>
                         {p.disabled && (
-                          <span className="px-2 py-0.5 text-[9px] tracking-[0.2em] uppercase border border-white/20 rounded text-white/60">
+                          <span className="px-2 py-0.5 text-[9px] tracking-[0.2em] uppercase border border-[var(--border-default)] rounded text-[var(--text-muted)]">
                             Hidden
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-white/50 line-clamp-2">{p.description}</p>
+                      <p className="text-xs text-[var(--text-muted)] line-clamp-2">{p.description}</p>
                       <p className="text-sm">{fmtUsd(p.price)}</p>
-                      <p className="text-[10px] text-white/40 font-mono">/{p.handle}</p>
+                      <p className="text-[10px] text-[var(--text-muted)] font-mono">/{p.handle}</p>
                       <StockSummary product={p} />
                       {p.sizeChartId && (
-                        <p className="text-[10px] text-white/50">
+                        <p className="text-[10px] text-[var(--text-muted)]">
                           Size chart:{" "}
                           {sizeCharts.find((c) => c.handle === p.sizeChartId)?.name ??
                             p.sizeChartId}
@@ -633,15 +633,15 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
                       <button
                         onClick={() => saveEdit(p.handle)}
                         disabled={busy === p.handle}
-                        style={{ color: "#000" }}
-                        className="px-4 py-2 bg-white rounded-md text-xs tracking-[0.2em] uppercase disabled:opacity-50 inline-flex items-center justify-center gap-2"
+                        style={{ color: "var(--text-on-accent)" }}
+                        className="px-4 py-2 bg-[var(--accent-default)]  text-xs tracking-[0.2em] uppercase disabled:opacity-50 inline-flex items-center justify-center gap-2"
                       >
                         {busy === p.handle && <Loader2 size={12} className="animate-spin" />}
                         Save
                       </button>
                       <button
                         onClick={() => setEditing(null)}
-                        className="px-4 py-2 border border-white/15 hover:border-white/40 rounded-md text-xs tracking-[0.2em] uppercase"
+                        className="px-4 py-2 border border-[var(--border-default)] hover:border-[var(--border-strong)]  text-xs tracking-[0.2em] uppercase"
                       >
                         Cancel
                       </button>
@@ -650,7 +650,7 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
                     <>
                       <button
                         onClick={() => startEdit(p)}
-                        className="px-3 py-2 border border-white/15 hover:border-white/40 rounded-md text-xs tracking-[0.2em] uppercase inline-flex items-center justify-center gap-2"
+                        className="px-3 py-2 border border-[var(--border-default)] hover:border-[var(--border-strong)]  text-xs tracking-[0.2em] uppercase inline-flex items-center justify-center gap-2"
                       >
                         <Pencil size={12} />
                         Edit
@@ -658,7 +658,7 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
                       <button
                         onClick={() => toggleDisabled(p)}
                         disabled={busy === p.handle}
-                        className="px-3 py-2 border border-white/15 hover:border-white/40 rounded-md text-xs tracking-[0.2em] uppercase inline-flex items-center justify-center gap-2 disabled:opacity-50"
+                        className="px-3 py-2 border border-[var(--border-default)] hover:border-[var(--border-strong)]  text-xs tracking-[0.2em] uppercase inline-flex items-center justify-center gap-2 disabled:opacity-50"
                       >
                         {p.disabled ? <Eye size={12} /> : <EyeOff size={12} />}
                         {p.disabled ? "Show" : "Hide"}
@@ -666,7 +666,7 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
                       <button
                         onClick={() => remove(p)}
                         disabled={busy === p.handle}
-                        className="px-3 py-2 border border-white/15 hover:border-[var(--accent)] hover:text-[var(--accent)] rounded-md text-xs tracking-[0.2em] uppercase inline-flex items-center justify-center gap-2 disabled:opacity-50"
+                        className="px-3 py-2 border border-[var(--border-default)] hover:border-[var(--accent)] hover:text-[var(--accent)]  text-xs tracking-[0.2em] uppercase inline-flex items-center justify-center gap-2 disabled:opacity-50"
                       >
                         <Trash2 size={12} />
                         Delete

@@ -1,11 +1,9 @@
 "use client";
 
-import dynamic from "next/dynamic";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { SITE_UNLOCK_AT } from "@/lib/site-lock";
-import { InstagramIcon, TiktokIcon } from "@/components/Socials";
-
-const Logo3D = dynamic(() => import("@/components/Logo3D"), { ssr: false });
+import { InstagramIcon } from "@/components/Socials";
 
 function getRemaining(target: number) {
   const diff = Math.max(0, target - Date.now());
@@ -35,70 +33,51 @@ export default function ClosedPage() {
   }, []);
 
   const unit = (value: number, label: string) => (
-    <div className="flex flex-col items-center gap-1">
-      <span className="font-[family-name:var(--font-bebas)] text-4xl md:text-6xl tabular-nums tracking-wider">
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-1)" }}>
+      <span className="aa-numeric" style={{ fontSize: "var(--text-4xl)" }}>
         {remaining ? String(value).padStart(2, "0") : "--"}
       </span>
-      <span className="text-[10px] md:text-xs tracking-[0.3em] uppercase text-white/50">
-        {label}
-      </span>
+      <span className="aa-caption">{label}</span>
     </div>
   );
 
   return (
-    <section className="relative min-h-[calc(100vh-100px)] flex flex-col items-center justify-between py-12 px-6 text-center">
-      <div className="flex-1" />
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "var(--space-8)",
+        padding: "var(--space-12) var(--space-6)",
+        textAlign: "center",
+        background: "var(--surface-page)",
+      }}
+    >
+      <Image src="/brand/logo-solid-black.png" alt="Abandoned Alley" width={140} height={140} priority />
 
-      <div className="flex flex-col items-center gap-8 z-[2]">
-        <Logo3D size={170} rotationSpeed="80deg" controls />
-
-        <div className="flex flex-col items-center gap-3">
-          <p className="text-[11px] tracking-[0.4em] uppercase text-white/50">
-            We&apos;ll be right back
-          </p>
-          <h1 className="font-[family-name:var(--font-bebas)] text-4xl md:text-6xl tracking-[0.1em]">
-            ABANDONED ALLEY IS CLOSED
-          </h1>
-          <p className="font-[family-name:var(--font-rajdhani)] text-white/70 max-w-md">
-             We&apos;re back on August 26 at 12:00 PM.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-5 md:gap-10">
-          {unit(remaining?.days ?? 0, "Days")}
-          {unit(remaining?.hours ?? 0, "Hours")}
-          {unit(remaining?.minutes ?? 0, "Min")}
-          {unit(remaining?.seconds ?? 0, "Sec")}
-        </div>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-2)" }}>
+        <div className="aa-eyebrow">WE&apos;LL BE RIGHT BACK</div>
+        <h1 className="aa-display-hero" style={{ fontSize: "var(--text-4xl)" }}>
+          ABANDONED ALLEY IS CLOSED
+        </h1>
+        <p className="aa-body" style={{ color: "var(--text-muted)", maxWidth: 420 }}>
+          We&apos;re back on August 26 at 12:00 PM.
+        </p>
       </div>
 
-      <div className="flex-1 flex flex-col items-end justify-end w-full" />
-
-      <div className="flex flex-col items-center gap-3 z-[2] mt-8">
-        <div className="flex gap-5 text-white/90">
-          <a
-            href="https://instagram.com/abandonedalley.eg/"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Instagram"
-            className="hover:scale-110 transition"
-          >
-            <InstagramIcon />
-          </a>
-          <a
-            href="https://www.tiktok.com/@abandonedalley.eg"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="TikTok"
-            className="hover:scale-110 transition"
-          >
-            <TiktokIcon />
-          </a>
-        </div>
-        <div className="flex flex-col items-center text-[11px] tracking-[0.3em] uppercase text-white/70 gap-0.5">
-          <p>&copy; 2026 Abandoned Alley</p>
-        </div>
+      <div style={{ display: "flex", alignItems: "center", gap: "var(--space-8)" }}>
+        {unit(remaining?.days ?? 0, "DAYS")}
+        {unit(remaining?.hours ?? 0, "HOURS")}
+        {unit(remaining?.minutes ?? 0, "MIN")}
+        {unit(remaining?.seconds ?? 0, "SEC")}
       </div>
-    </section>
+
+      <a href="https://www.instagram.com/aa.collectives/" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+        <InstagramIcon size={20} />
+      </a>
+      <p className="aa-caption">© 2026 ABANDONED ALLEY</p>
+    </div>
   );
 }

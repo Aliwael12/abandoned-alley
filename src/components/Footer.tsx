@@ -1,141 +1,85 @@
-"use client";
-
+import Image from "next/image";
 import Link from "next/link";
-import { motion } from "framer-motion";
-
-const NAV = [
-  { href: "/", label: "HOME" },
-  { href: "/shop", label: "SHOP" },
-  { href: "/collections", label: "COLLECTIONS" },
-  { href: "/contact", label: "CONTACT" },
-];
-
-const SPRAY = "DON'T DIE WONDERING";
+import { InstagramIcon } from "./Socials";
 
 export default function Footer() {
   return (
-    <footer className="relative z-10 mt-24 bg-black text-white overflow-hidden">
-      <div className="px-6 md:px-10 pt-8 pb-2">
-        {/* Top nav row */}
-        <nav className="flex flex-wrap items-center justify-between gap-y-3 gap-x-8 font-[family-name:var(--font-bebas)] text-2xl md:text-4xl tracking-[0.04em]">
-          {NAV.map((n) => (
-            <Link
-              key={n.href}
-              href={n.href}
-              className="hover:opacity-70 transition"
-            >
-              {n.label}
-            </Link>
-          ))}
-        </nav>
+    <footer
+      style={{
+        borderTop: "1px solid var(--border-default)",
+        padding: "var(--space-16) var(--space-6) var(--space-10)",
+      }}
+    >
+      <div
+        className="aa-footer-grid"
+        style={{
+          maxWidth: "var(--container-max)",
+          margin: "0 auto",
+          display: "grid",
+          gridTemplateColumns: "1.5fr 1fr 1fr",
+          gap: "var(--space-12)",
+        }}
+      >
+        <div>
+          <Image
+            src="/brand/logo-solid-black.png"
+            alt="Abandoned Alley"
+            width={32}
+            height={32}
+            style={{ objectFit: "contain", marginBottom: "var(--space-4)" }}
+          />
+          <p className="aa-body" style={{ color: "var(--text-muted)", maxWidth: 320 }}>
+            Egyptian streetwear, made in Cairo, worn everywhere. Don&apos;t die wondering.
+          </p>
+        </div>
 
-        {/* Meta row */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-10 mb-4 text-[10px] md:text-[11px] tracking-[0.18em] uppercase font-[family-name:var(--font-bebas)] leading-[1.55]">
-          <div>
-            <p>Drop 001 — DON&apos;T DIE WONDERING</p>
-            <p>Cairo / Online, Worldwide</p>
+        <div>
+          <div className="aa-eyebrow" style={{ marginBottom: "var(--space-4)" }}>
+            SHOP
           </div>
-          <div className="md:text-center flex md:justify-center">
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+            <Link href="/shop" className="aa-body">All products</Link>
+            <Link href="/cart" className="aa-body">Bag</Link>
+            <Link href="/region" className="aa-body">Switch region</Link>
+          </div>
+        </div>
+
+        <div>
+          <div className="aa-eyebrow" style={{ marginBottom: "var(--space-4)" }}>
+            CONTACT
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+            <a href="mailto:hello@abandonedalley.com" className="aa-body">
+              hello@abandonedalley.com
+            </a>
             <a
-              href="https://instagram.com/abandonedalley.eg"
+              href="https://www.instagram.com/aa.collectives/"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:opacity-70 transition"
+              className="aa-body"
+              style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)" }}
             >
-              INSTAGRAM
+              <InstagramIcon size={16} /> @aa.collectives
             </a>
-          </div>
-          <div className="md:text-right">
-            <p>WEBSITE BY ONYX LABS</p>
-            <p>&copy; 2026 — ALL RIGHTS RESERVED</p>
           </div>
         </div>
       </div>
 
-      {/* Wordmark + spray overlay */}
-      <div className="relative w-full select-none pb-8 md:pb-12">
-        <h2
-          className="
-            font-[family-name:var(--font-bebas)]
-            leading-[0.95]
-            text-[#e60a1f]
-            text-center
-            tracking-[-0.02em]
-            font-black
-            whitespace-nowrap
-            px-2
-            py-2
-          "
-          style={{ fontSize: "clamp(46px, 14.2vw, 230px)" }}
-          aria-label="Abandoned Alley"
-        >
-          ABANDONED ALLEY
-        </h2>
-
-        {/* Spray paint overlay */}
-        <SprayOverlay text={SPRAY} />
+      <div
+        style={{
+          maxWidth: "var(--container-max)",
+          margin: "var(--space-12) auto 0",
+          paddingTop: "var(--space-6)",
+          borderTop: "1px solid var(--border-subtle)",
+          display: "flex",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: "var(--space-2)",
+        }}
+      >
+        <span className="aa-caption">© 2026 ABANDONED ALLEY</span>
+        <span className="aa-caption">CAIRO — NEW YORK</span>
       </div>
     </footer>
-  );
-}
-
-function SprayOverlay({ text }: { text: string }) {
-  // SVG viewBox auto-scales the text to fit the container width, so it can
-  // never overflow the ABND ALLY wordmark behind it. The clip-path wipe loops
-  // forever, so the text keeps getting "sprayed" left-to-right on repeat.
-  const VB_W = 1000;
-  const VB_H = 200;
-
-  return (
-    <div
-      className="absolute inset-0 flex items-center justify-center pointer-events-none px-[6%]"
-      aria-hidden
-    >
-      <motion.svg
-        viewBox={`0 0 ${VB_W} ${VB_H}`}
-        preserveAspectRatio="xMidYMid meet"
-        className="w-full h-auto"
-        style={{ overflow: "visible" }}
-      >
-        <defs>
-          <filter id="spray-blur" x="-10%" y="-10%" width="120%" height="120%">
-            <feGaussianBlur stdDeviation="0.6" />
-          </filter>
-        </defs>
-        <motion.text
-          x="50%"
-          y="62%"
-          textAnchor="middle"
-          dominantBaseline="middle"
-          fill="#f0c021"
-          fontSize={150}
-          fontFamily="var(--font-marker), 'Permanent Marker', cursive"
-          textLength={VB_W * 0.74}
-          lengthAdjust="spacingAndGlyphs"
-          transform="rotate(-3.5 500 100)"
-          style={{
-            filter:
-              "drop-shadow(0 0 6px rgba(240,192,33,0.55)) drop-shadow(0 0 18px rgba(240,192,33,0.3))",
-          }}
-          animate={{
-            clipPath: [
-              "inset(0% 100% 0% 0%)",
-              "inset(-10% -2% -10% -2%)",
-              "inset(-10% -2% -10% -2%)",
-              "inset(0% 100% 0% 0%)",
-            ],
-          }}
-          transition={{
-            duration: 5.2,
-            times: [0, 0.55, 0.85, 1],
-            ease: [0.22, 1, 0.36, 1],
-            repeat: Infinity,
-            repeatDelay: 0.6,
-          }}
-        >
-          {text}
-        </motion.text>
-      </motion.svg>
-    </div>
   );
 }

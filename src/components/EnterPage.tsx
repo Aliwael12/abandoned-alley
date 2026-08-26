@@ -1,95 +1,87 @@
 "use client";
 
-import dynamic from "next/dynamic";
-import Link from "next/link";
-import { useEffect, useState } from "react";
-import { InstagramIcon, TiktokIcon } from "./Socials";
-
-const Logo3D = dynamic(() => import("./Logo3D"), { ssr: false });
-
-const MENU = [
-  { href: "/shop", label: "SHOP" },
-  { href: "/contact", label: "Contact" },
-  { href: "/collections", label: "COLLECTIONS" },
-];
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useRegion } from "@/lib/region";
+import { Button } from "./ui";
+import { InstagramIcon } from "./Socials";
 
 export default function EnterPage() {
-  const [now, setNow] = useState<Date | null>(null);
+  const router = useRouter();
+  const region = useRegion((s) => s.region);
 
-  useEffect(() => {
-    const tick = () => setNow(new Date());
-    const t = setTimeout(tick, 0);
-    const id = setInterval(tick, 1000);
-    return () => {
-      clearTimeout(t);
-      clearInterval(id);
-    };
-  }, []);
+  const enter = () => {
+    router.push(region ? "/home" : "/region");
+  };
 
   return (
-    <section className="relative min-h-[calc(100vh-100px)] flex flex-col items-center justify-between py-12 px-6 text-center">
-      <div className="flex-1" />
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "var(--space-4)",
+        padding: "var(--space-8) var(--space-6)",
+        background: "var(--surface-page)",
+        textAlign: "center",
+      }}
+    >
+      <Image
+        src="/brand/logo-season-star-purple-yellow.jpg"
+        alt="Abandoned Alley — seasonal mark"
+        width={420}
+        height={420}
+        style={{
+          width: "min(64vw, 42vh, 420px)",
+          height: "min(64vw, 42vh, 420px)",
+          objectFit: "cover",
+          clipPath: "inset(0 0 2% 0)",
+        }}
+        priority
+      />
 
-      <div className="flex flex-col items-center gap-6 z-[2]">
-        <Logo3D size={170} rotationSpeed="80deg" controls />
-
-        <div className="font-[family-name:var(--font-rajdhani)] text-white/90 text-base tracking-[0.08em]">
-          {now ? (
-            <>
-              <span className="mx-2">{now.toLocaleDateString()}</span>
-              <span className="mx-2">{now.toLocaleTimeString()}</span>
-            </>
-          ) : (
-            <span className="opacity-0">--/--/----</span>
-          )}
-        </div>
-
-        <div className="menu-anim flex flex-col gap-2 mt-2">
-          {MENU.map((item) => (
-            <Link key={item.href} href={item.href} className="enter-btn group">
-              <span className="btn-text">{item.label}</span>
-              <span className="arrow arrow-flow">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M 4 5 H 8 L 14 12 L 8 19 H 4 L 10 12 Z" />
-                  <path d="M 10 5 H 14 L 20 12 L 14 19 H 10 L 16 12 Z" />
-                </svg>
-              </span>
-              <span className="wave" />
-            </Link>
-          ))}
-        </div>
+      <div className="aa-eyebrow" style={{ color: "#5c2ca0" }}>
+        DROP 004
       </div>
 
-      <div className="flex-1 flex flex-col items-end justify-end w-full" />
+      <h1 className="aa-display-hero" style={{ fontSize: "var(--text-4xl)", color: "#1a1a1a" }}>
+        SHIIIIIIT
+      </h1>
 
-      <div className="flex flex-col items-center gap-3 z-[2] mt-8">
-        <div className="flex gap-5 text-white/90">
-          <a
-            href="https://instagram.com/abandonedalley.eg/"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Instagram"
-            className="hover:scale-110 transition"
-          >
-            <InstagramIcon />
-          </a>
-          <a
-            href="https://www.tiktok.com/@abandonedalley.eg"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="TikTok"
-            className="hover:scale-110 transition"
-          >
-            <TiktokIcon />
-          </a>
-        </div>
-        <div className="flex flex-col items-center text-[11px] tracking-[0.3em] uppercase text-white/70 gap-0.5">
-          <p>&copy; 2026 Abandoned Alley</p>
-          <Link href="/policies" className="hover:opacity-70 transition">
-            TERMS AND POLICIES
-          </Link>
-        </div>
+      <div
+        className="aa-body"
+        style={{ fontWeight: 600, letterSpacing: "var(--tracking-label)", color: "#1a1a1a" }}
+      >
+        FRIDAY · 04 SEPTEMBER 2026 · 20:00 CAIRO
       </div>
-    </section>
+
+      <Button variant="primary" size="lg" onClick={enter} style={{ marginTop: "var(--space-2)" }}>
+        ENTER
+      </Button>
+
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "var(--space-8)",
+          marginTop: "var(--space-6)",
+        }}
+      >
+        <a
+          href="https://www.instagram.com/aa.collectives/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="aa-body"
+          style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", color: "#1a1a1a" }}
+        >
+          <InstagramIcon size={18} /> @AA.COLLECTIVES
+        </a>
+        <span className="aa-caption" style={{ color: "#5a4a12" }}>
+          CAIRO — NEW YORK
+        </span>
+      </div>
+    </div>
   );
 }

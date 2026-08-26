@@ -69,7 +69,7 @@ export default function OrderActions({
 
   if (!canApprove && !canDeliver && !canCancel && !canRefund) {
     return (
-      <p className="text-sm text-white/50">
+      <p className="text-sm text-[var(--text-muted)]">
         No further actions available for a {status} order.
       </p>
     );
@@ -82,7 +82,7 @@ export default function OrderActions({
           <button
             onClick={() => run("approve")}
             disabled={busy !== null}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md border border-sky-400/40 text-sky-300 hover:bg-sky-400/10 text-xs tracking-[0.2em] uppercase disabled:opacity-50 transition"
+            className="inline-flex items-center gap-2 px-4 py-2.5  border border-[var(--accent-default)]/40 text-[var(--accent-default)] hover:bg-[var(--accent-default)]/10 text-xs tracking-[0.2em] uppercase disabled:opacity-50 transition"
           >
             {busy === "approve" ? (
               <Loader2 size={14} className="animate-spin" />
@@ -96,7 +96,7 @@ export default function OrderActions({
           <button
             onClick={() => run("deliver")}
             disabled={busy !== null}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md border border-emerald-400/40 text-emerald-300 hover:bg-emerald-400/10 text-xs tracking-[0.2em] uppercase disabled:opacity-50 transition"
+            className="inline-flex items-center gap-2 px-4 py-2.5  border border-[var(--success-default)]/40 text-[var(--success-default)] hover:bg-[var(--success-default)]/10 text-xs tracking-[0.2em] uppercase disabled:opacity-50 transition"
           >
             {busy === "deliver" ? (
               <Loader2 size={14} className="animate-spin" />
@@ -110,7 +110,7 @@ export default function OrderActions({
           <button
             onClick={() => run("cancel")}
             disabled={busy !== null}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md border border-[var(--accent)]/40 text-[var(--accent)] hover:bg-[var(--accent)]/10 text-xs tracking-[0.2em] uppercase disabled:opacity-50 transition"
+            className="inline-flex items-center gap-2 px-4 py-2.5  border border-[var(--accent)]/40 text-[var(--accent)] hover:bg-[var(--accent)]/10 text-xs tracking-[0.2em] uppercase disabled:opacity-50 transition"
           >
             {busy === "cancel" ? (
               <Loader2 size={14} className="animate-spin" />
@@ -124,7 +124,7 @@ export default function OrderActions({
           <button
             onClick={() => run("refund")}
             disabled={busy !== null}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md border border-amber-400/40 text-amber-300 hover:bg-amber-400/10 text-xs tracking-[0.2em] uppercase disabled:opacity-50 transition"
+            className="inline-flex items-center gap-2 px-4 py-2.5  border border-[var(--warning-default)]/40 text-[var(--warning-default)] hover:bg-[var(--warning-default)]/10 text-xs tracking-[0.2em] uppercase disabled:opacity-50 transition"
           >
             {busy === "refund" ? (
               <Loader2 size={14} className="animate-spin" />
@@ -136,16 +136,16 @@ export default function OrderActions({
         )}
       </div>
       {canApprove && (
-        <p className="text-[11px] text-white/40">
+        <p className="text-[11px] text-[var(--text-muted)]">
           Approving deducts stock and dispatches Cairo / Giza orders to Droppin.
         </p>
       )}
       {canRefund && (
-        <p className="text-[11px] text-white/40">
+        <p className="text-[11px] text-[var(--text-muted)]">
           Refunding marks the order refunded and returns its items to stock.
         </p>
       )}
-      {error && <p className="text-sm text-amber-300/90">{error}</p>}
+      {error && <p className="text-sm text-[var(--warning-default)]/90">{error}</p>}
     </div>
   );
 }

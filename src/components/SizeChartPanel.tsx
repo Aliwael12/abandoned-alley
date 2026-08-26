@@ -1,39 +1,40 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
 import type { SizeChart } from "@/lib/size-charts";
+import { Button } from "./ui";
 
 export default function SizeChartPanel({ chart }: { chart: SizeChart }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="border border-white/15 rounded-md overflow-hidden">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between px-4 py-3 text-xs tracking-[0.25em] uppercase hover:bg-white/5 transition"
-        aria-expanded={open}
-      >
-        Size chart
-        {open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-      </button>
+    <div>
+      <Button type="button" variant="ghost" size="sm" onClick={() => setOpen((v) => !v)} aria-expanded={open}>
+        SIZE GUIDE {open ? "▲" : "▼"}
+      </Button>
       {open && (
-        <div className="px-4 pb-4 flex flex-col gap-3">
-          <p className="text-[11px] tracking-[0.2em] uppercase text-white/50">
-            {chart.name}
-          </p>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse min-w-[280px]">
+        <div
+          style={{
+            border: "1px solid var(--border-default)",
+            padding: "var(--space-5)",
+            marginTop: "var(--space-3)",
+          }}
+        >
+          <div className="aa-eyebrow" style={{ marginBottom: "var(--space-3)" }}>
+            SIZE GUIDE — {chart.name}
+          </div>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-mono)" }}>
               <thead>
-                <tr className="border-b border-white/15">
-                  <th className="text-left py-2 pr-4 text-[10px] tracking-[0.2em] uppercase text-white/50 font-normal">
-                    Size
+                <tr style={{ borderBottom: "1px solid var(--border-default)" }}>
+                  <th className="aa-caption" style={{ textAlign: "left", padding: "var(--space-2) var(--space-3) var(--space-2) 0" }}>
+                    SIZE
                   </th>
                   {chart.columns.map((col, ci) => (
                     <th
                       key={`${col}-${ci}`}
-                      className="text-left py-2 pr-4 text-[10px] tracking-[0.15em] uppercase text-white/50 font-normal whitespace-nowrap"
+                      className="aa-caption"
+                      style={{ textAlign: "left", padding: "var(--space-2) var(--space-3)", whiteSpace: "nowrap" }}
                     >
                       {col}
                     </th>
@@ -42,10 +43,12 @@ export default function SizeChartPanel({ chart }: { chart: SizeChart }) {
               </thead>
               <tbody>
                 {chart.rows.map((row, ri) => (
-                  <tr key={`${row.size}-${ri}`} className="border-b border-white/10">
-                    <td className="py-2 pr-4 font-medium tracking-wide">{row.size}</td>
+                  <tr key={`${row.size}-${ri}`} style={{ borderBottom: "1px solid var(--border-subtle)" }}>
+                    <td style={{ padding: "var(--space-2) var(--space-3) var(--space-2) 0", fontWeight: 600 }}>
+                      {row.size}
+                    </td>
                     {chart.columns.map((col, ci) => (
-                      <td key={`${ci}-${col}`} className="py-2 pr-4 text-white/80 tabular-nums">
+                      <td key={`${ci}-${col}`} style={{ padding: "var(--space-2) var(--space-3)", color: "var(--text-muted)" }}>
                         {row.measurements[col] || "—"}
                       </td>
                     ))}
@@ -55,7 +58,9 @@ export default function SizeChartPanel({ chart }: { chart: SizeChart }) {
             </table>
           </div>
           {chart.note && (
-            <p className="text-xs text-white/50 leading-relaxed">{chart.note}</p>
+            <p className="aa-body" style={{ color: "var(--text-muted)", marginTop: "var(--space-3)" }}>
+              {chart.note}
+            </p>
           )}
         </div>
       )}

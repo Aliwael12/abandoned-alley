@@ -53,3 +53,26 @@ export function TiktokIcon({ size = 18, className }: Props) {
     </svg>
   );
 }
+
+/** Header/cart bag icon — exact stroke geometry from the design handoff. */
+export function BagIcon({ size = 24, className }: Props) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="square"
+      strokeLinejoin="miter"
+      className={className}
+      aria-hidden
+    >
+      <path d="M4 7h16l-1.2 14H5.2L4 7z" />
+      <path d="M8 7V5.5a4 4 0 0 1 8 0V7" />
+      <line x1="4" y1="7" x2="20" y2="7" />
+    </svg>
+  );
+}

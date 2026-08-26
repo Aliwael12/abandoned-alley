@@ -94,10 +94,10 @@ type Props = {
 };
 
 const inputCls =
-  "bg-white/5 border border-white/15 rounded-md h-10 px-3 text-sm outline-none focus:border-white/40 transition w-full";
+  "bg-[var(--surface-card-alt)] border border-[var(--border-default)]  h-10 px-3 text-sm outline-none focus:border-[var(--border-strong)] transition w-full";
 
 const cellCls =
-  "bg-white/5 border border-white/15 rounded-md h-9 px-2 text-sm outline-none focus:border-white/40 transition w-full min-w-[4rem]";
+  "bg-[var(--surface-card-alt)] border border-[var(--border-default)]  h-9 px-2 text-sm outline-none focus:border-[var(--border-strong)] transition w-full min-w-[4rem]";
 
 export default function SizeChartsTab({ products, onChanged, onError }: Props) {
   const [charts, setCharts] = useState<ChartWithAssignments[]>([]);
@@ -330,7 +330,7 @@ export default function SizeChartsTab({ products, onChanged, onError }: Props) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-24 text-white/40">
+      <div className="flex items-center justify-center py-24 text-[var(--text-muted)]">
         <Loader2 size={20} className="animate-spin" />
       </div>
     );
@@ -344,11 +344,11 @@ export default function SizeChartsTab({ products, onChanged, onError }: Props) {
         </h2>
         <button
           onClick={() => setCreating((v) => !v)}
-          style={{ color: creating ? undefined : "#000" }}
+          style={{ color: creating ? undefined : "var(--text-on-accent)" }}
           className={
             creating
-              ? "inline-flex items-center gap-2 px-4 py-2 border border-white/15 hover:border-white/40 rounded-md text-xs tracking-[0.2em] uppercase transition"
-              : "inline-flex items-center gap-2 px-4 py-2 bg-white rounded-md text-xs tracking-[0.2em] uppercase transition"
+              ? "inline-flex items-center gap-2 px-4 py-2 border border-[var(--border-default)] hover:border-[var(--border-strong)]  text-xs tracking-[0.2em] uppercase transition"
+              : "inline-flex items-center gap-2 px-4 py-2 bg-[var(--accent-default)]  text-xs tracking-[0.2em] uppercase transition"
           }
         >
           {creating ? <X size={14} /> : <Plus size={14} />}
@@ -356,8 +356,8 @@ export default function SizeChartsTab({ products, onChanged, onError }: Props) {
         </button>
       </div>
 
-      <div className="glass rounded-2xl p-6 flex flex-col gap-4 max-w-xl">
-        <p className="text-[11px] tracking-[0.3em] uppercase text-white/60">
+      <div className="glass  p-6 flex flex-col gap-4 max-w-xl">
+        <p className="text-[11px] tracking-[0.3em] uppercase text-[var(--text-muted)]">
           Default chart for new products
         </p>
         <select
@@ -379,14 +379,14 @@ export default function SizeChartsTab({ products, onChanged, onError }: Props) {
           <button
             onClick={saveDefault}
             disabled={busy === "__default__"}
-            style={{ color: "#000" }}
-            className="bg-white px-5 py-2.5 rounded-md text-xs tracking-[0.2em] uppercase disabled:opacity-50 inline-flex items-center gap-2"
+            style={{ color: "var(--text-on-accent)" }}
+            className="bg-[var(--accent-default)] px-5 py-2.5  text-xs tracking-[0.2em] uppercase disabled:opacity-50 inline-flex items-center gap-2"
           >
             {busy === "__default__" && <Loader2 size={14} className="animate-spin" />}
             Save default
           </button>
           {defaultSavedAt && (
-            <span className="text-xs text-white/50 inline-flex items-center gap-1">
+            <span className="text-xs text-[var(--text-muted)] inline-flex items-center gap-1">
               <Check size={12} /> Saved
             </span>
           )}
@@ -394,7 +394,7 @@ export default function SizeChartsTab({ products, onChanged, onError }: Props) {
       </div>
 
       {creating && (
-        <div className="glass rounded-2xl p-6 flex flex-col gap-4 max-w-xl">
+        <div className="glass  p-6 flex flex-col gap-4 max-w-xl">
           <input
             placeholder="Chart name (e.g. T-shirts, Pants)"
             value={newName}
@@ -404,8 +404,8 @@ export default function SizeChartsTab({ products, onChanged, onError }: Props) {
           <button
             onClick={createChart}
             disabled={busy === "__new__" || !newName.trim()}
-            style={{ color: "#000" }}
-            className="self-start bg-white px-5 py-2.5 rounded-md text-xs tracking-[0.2em] uppercase disabled:opacity-50 inline-flex items-center gap-2"
+            style={{ color: "var(--text-on-accent)" }}
+            className="self-start bg-[var(--accent-default)] px-5 py-2.5  text-xs tracking-[0.2em] uppercase disabled:opacity-50 inline-flex items-center gap-2"
           >
             {busy === "__new__" && <Loader2 size={14} className="animate-spin" />}
             Create chart
@@ -414,7 +414,7 @@ export default function SizeChartsTab({ products, onChanged, onError }: Props) {
       )}
 
       {charts.length === 0 ? (
-        <p className="text-sm text-white/50 py-6">
+        <p className="text-sm text-[var(--text-muted)] py-6">
           No size charts yet. Create one for shirts, another for pants, then assign
           products below.
         </p>
@@ -424,7 +424,7 @@ export default function SizeChartsTab({ products, onChanged, onError }: Props) {
             const isOpen = expanded === chart.handle;
             const d = drafts[chart.handle];
             return (
-              <li key={chart.handle} className="glass rounded-2xl overflow-hidden">
+              <li key={chart.handle} className="glass  overflow-hidden">
                 <button
                   type="button"
                   onClick={() => {
@@ -437,27 +437,27 @@ export default function SizeChartsTab({ products, onChanged, onError }: Props) {
                       }));
                     }
                   }}
-                  className="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-white/5 transition"
+                  className="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-[var(--surface-card-alt)] transition"
                 >
                   <div>
                     <h3 className="font-[family-name:var(--font-bebas)] text-xl tracking-[0.1em]">
                       {chart.name}
                     </h3>
-                    <p className="text-xs text-white/50 mt-1">
+                    <p className="text-xs text-[var(--text-muted)] mt-1">
                       {chart.assignedProductHandles.length} product
                       {chart.assignedProductHandles.length === 1 ? "" : "s"} ·{" "}
                       {chart.rows.length} sizes · {chart.columns.length} measurements
                     </p>
                   </div>
-                  <span className="text-xs tracking-[0.2em] uppercase text-white/40">
+                  <span className="text-xs tracking-[0.2em] uppercase text-[var(--text-muted)]">
                     {isOpen ? "Close" : "Edit"}
                   </span>
                 </button>
 
                 {isOpen && d && (
-                  <div className="px-6 pb-6 flex flex-col gap-6 border-t border-white/10 pt-6">
+                  <div className="px-6 pb-6 flex flex-col gap-6 border-t border-[var(--border-subtle)] pt-6">
                     <label className="flex flex-col gap-2 max-w-md">
-                      <span className="text-[11px] tracking-[0.3em] uppercase text-white/60">
+                      <span className="text-[11px] tracking-[0.3em] uppercase text-[var(--text-muted)]">
                         Chart name
                       </span>
                       <input
@@ -469,20 +469,20 @@ export default function SizeChartsTab({ products, onChanged, onError }: Props) {
 
                     <div className="flex flex-col gap-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-[11px] tracking-[0.3em] uppercase text-white/60">
+                        <span className="text-[11px] tracking-[0.3em] uppercase text-[var(--text-muted)]">
                           Measurement columns
                         </span>
                         <button
                           type="button"
                           onClick={() => addColumn(chart.handle)}
-                          className="text-xs tracking-[0.2em] uppercase text-white/60 hover:text-white"
+                          className="text-xs tracking-[0.2em] uppercase text-[var(--text-muted)] hover:text-[var(--text-primary)]"
                         >
                           + Add column
                         </button>
                       </div>
                       <ul className="flex flex-col gap-2 max-w-lg">
                         {d.columns.length === 0 && (
-                          <li className="text-xs text-white/50">
+                          <li className="text-xs text-[var(--text-muted)]">
                             No measurement columns — add one below or save will be
                             blocked until you do.
                           </li>
@@ -500,7 +500,7 @@ export default function SizeChartsTab({ products, onChanged, onError }: Props) {
                             <button
                               type="button"
                               onClick={() => removeColumn(chart.handle, i)}
-                              className="px-3 border border-white/15 rounded-md text-xs hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                              className="px-3 border border-[var(--border-default)]  text-xs hover:border-[var(--accent)] hover:text-[var(--accent)]"
                               aria-label="Remove column"
                             >
                               <X size={14} />
@@ -512,13 +512,13 @@ export default function SizeChartsTab({ products, onChanged, onError }: Props) {
 
                     <div className="flex flex-col gap-3 overflow-x-auto">
                       <div className="flex items-center justify-between">
-                        <span className="text-[11px] tracking-[0.3em] uppercase text-white/60">
+                        <span className="text-[11px] tracking-[0.3em] uppercase text-[var(--text-muted)]">
                           Size rows
                         </span>
                         <button
                           type="button"
                           onClick={() => addRow(chart.handle)}
-                          className="text-xs tracking-[0.2em] uppercase text-white/60 hover:text-white"
+                          className="text-xs tracking-[0.2em] uppercase text-[var(--text-muted)] hover:text-[var(--text-primary)]"
                         >
                           + Add size
                         </button>
@@ -526,13 +526,13 @@ export default function SizeChartsTab({ products, onChanged, onError }: Props) {
                       <table className="w-full text-sm border-collapse min-w-[480px]">
                         <thead>
                           <tr>
-                            <th className="text-left pb-2 pr-2 text-[10px] tracking-[0.2em] uppercase text-white/50 font-normal w-24">
+                            <th className="text-left pb-2 pr-2 text-[10px] tracking-[0.2em] uppercase text-[var(--text-muted)] font-normal w-24">
                               Size
                             </th>
                             {d.columns.map((col) => (
                               <th
                                 key={col.id}
-                                className="text-left pb-2 pr-2 text-[10px] tracking-[0.15em] uppercase text-white/50 font-normal"
+                                className="text-left pb-2 pr-2 text-[10px] tracking-[0.15em] uppercase text-[var(--text-muted)] font-normal"
                               >
                                 {col.label}
                               </th>
@@ -580,7 +580,7 @@ export default function SizeChartsTab({ products, onChanged, onError }: Props) {
                                   type="button"
                                   onClick={() => removeRow(chart.handle, ri)}
                                   disabled={d.rows.length <= 1}
-                                  className="p-2 border border-white/15 rounded-md disabled:opacity-30 hover:border-[var(--accent)]"
+                                  className="p-2 border border-[var(--border-default)]  disabled:opacity-30 hover:border-[var(--accent)]"
                                   aria-label="Remove row"
                                 >
                                   <X size={14} />
@@ -593,34 +593,34 @@ export default function SizeChartsTab({ products, onChanged, onError }: Props) {
                     </div>
 
                     <label className="flex flex-col gap-2 max-w-xl">
-                      <span className="text-[11px] tracking-[0.3em] uppercase text-white/60">
+                      <span className="text-[11px] tracking-[0.3em] uppercase text-[var(--text-muted)]">
                         Fit note (optional)
                       </span>
                       <textarea
                         rows={2}
                         value={d.note}
                         onChange={(e) => updateDraft(chart.handle, { note: e.target.value })}
-                        className="bg-white/5 border border-white/15 rounded-md p-3 text-sm outline-none focus:border-white/40 transition resize-none"
+                        className="bg-[var(--surface-card-alt)] border border-[var(--border-default)]  p-3 text-sm outline-none focus:border-[var(--border-strong)] transition resize-none"
                         placeholder="e.g. Measurements are flat lay. Size up for oversized fit."
                       />
                     </label>
 
                     <div className="flex flex-col gap-3">
-                      <span className="text-[11px] tracking-[0.3em] uppercase text-white/60">
+                      <span className="text-[11px] tracking-[0.3em] uppercase text-[var(--text-muted)]">
                         Assign to products
                       </span>
                       {products.length === 0 ? (
-                        <p className="text-xs text-white/50">No products in catalog yet.</p>
+                        <p className="text-xs text-[var(--text-muted)]">No products in catalog yet.</p>
                       ) : (
                         <ul className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-48 overflow-y-auto">
                           {products.map((p) => (
                             <li key={p.handle}>
-                              <label className="flex items-center gap-2 text-sm cursor-pointer hover:text-white/90">
+                              <label className="flex items-center gap-2 text-sm cursor-pointer hover:text-[var(--text-primary)]">
                                 <input
                                   type="checkbox"
                                   checked={d.assigned.has(p.handle)}
                                   onChange={() => toggleProduct(chart.handle, p.handle)}
-                                  className="rounded border-white/30"
+                                  className="rounded border-[var(--border-strong)]"
                                 />
                                 <span className="truncate">{p.title}</span>
                               </label>
@@ -634,8 +634,8 @@ export default function SizeChartsTab({ products, onChanged, onError }: Props) {
                       <button
                         onClick={() => saveChart(chart.handle)}
                         disabled={busy === chart.handle || !d.name.trim()}
-                        style={{ color: "#000" }}
-                        className="px-5 py-2.5 bg-white rounded-md text-xs tracking-[0.2em] uppercase disabled:opacity-50 inline-flex items-center gap-2"
+                        style={{ color: "var(--text-on-accent)" }}
+                        className="px-5 py-2.5 bg-[var(--accent-default)]  text-xs tracking-[0.2em] uppercase disabled:opacity-50 inline-flex items-center gap-2"
                       >
                         {busy === chart.handle && (
                           <Loader2 size={14} className="animate-spin" />
@@ -645,7 +645,7 @@ export default function SizeChartsTab({ products, onChanged, onError }: Props) {
                       <button
                         onClick={() => removeChart(chart.handle, chart.name)}
                         disabled={busy === chart.handle}
-                        className="px-4 py-2.5 border border-white/15 hover:border-[var(--accent)] hover:text-[var(--accent)] rounded-md text-xs tracking-[0.2em] uppercase inline-flex items-center gap-2 disabled:opacity-50"
+                        className="px-4 py-2.5 border border-[var(--border-default)] hover:border-[var(--accent)] hover:text-[var(--accent)]  text-xs tracking-[0.2em] uppercase inline-flex items-center gap-2 disabled:opacity-50"
                       >
                         <Trash2 size={14} />
                         Delete
@@ -658,7 +658,7 @@ export default function SizeChartsTab({ products, onChanged, onError }: Props) {
                             [chart.handle]: chartToDraft(chart),
                           }))
                         }
-                        className="px-4 py-2.5 border border-white/15 rounded-md text-xs tracking-[0.2em] uppercase"
+                        className="px-4 py-2.5 border border-[var(--border-default)]  text-xs tracking-[0.2em] uppercase"
                       >
                         Reset changes
                       </button>

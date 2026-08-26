@@ -295,10 +295,10 @@ function MonthGrid({
 
   return (
     <div className="flex-1 min-w-0">
-      <p className="text-center text-sm text-white/80 mb-3">
+      <p className="text-center text-sm text-[var(--text-primary)] mb-3">
         {MONTHS[month.getUTCMonth()]} {month.getUTCFullYear()}
       </p>
-      <div className="grid grid-cols-7 gap-y-1 text-[10px] uppercase tracking-wider text-white/40 mb-1">
+      <div className="grid grid-cols-7 gap-y-1 text-[10px] uppercase tracking-wider text-[var(--text-muted)] mb-1">
         {WEEKDAYS.map((d) => (
           <div key={d} className="h-6 flex items-center justify-center">
             {d}
@@ -319,11 +319,11 @@ function MonthGrid({
           const rangeMid = inRange && !endpoint;
 
           let bg = "";
-          if (rangeMid) bg = "bg-white/10";
+          if (rangeMid) bg = "bg-[var(--surface-raised)]";
           if (isStart && rangeHi && !sameDay(rangeLo!, rangeHi))
-            bg = "bg-white/10 rounded-l-md";
+            bg = "bg-[var(--surface-raised)] rounded-l-md";
           if (isEnd && rangeLo && !sameDay(rangeLo, rangeHi!))
-            bg = "bg-white/10 rounded-r-md";
+            bg = "bg-[var(--surface-raised)] rounded-r-md";
 
           return (
             <div
@@ -335,12 +335,12 @@ function MonthGrid({
               <button
                 type="button"
                 onClick={() => onPick(c.date)}
-                className={`w-8 h-8 text-xs rounded-md transition flex items-center justify-center ${
+                className={`w-8 h-8 text-xs  transition flex items-center justify-center ${
                   endpoint
-                    ? "bg-white text-black font-medium"
+                    ? "bg-[var(--accent-default)] text-[var(--text-on-accent)] font-medium"
                     : isToday
-                      ? "text-white ring-1 ring-white/30 hover:bg-white/10"
-                      : "text-white/80 hover:bg-white/10"
+                      ? "text-[var(--text-primary)] ring-1 ring-[var(--border-strong)] hover:bg-[var(--surface-raised)]"
+                      : "text-[var(--text-primary)] hover:bg-[var(--surface-raised)]"
                 }`}
               >
                 {c.date.getUTCDate()}
@@ -495,21 +495,21 @@ export function DateRangePicker({ value, onChange }: PickerProps) {
       <button
         type="button"
         onClick={() => (open ? setOpen(false) : openPopover())}
-        className="inline-flex items-center gap-2 px-3 h-9 rounded-md border border-white/15 bg-white/5 hover:bg-white/10 text-[12px] text-white/85 transition"
+        className="inline-flex items-center gap-2 px-3 h-9  border border-[var(--border-default)] bg-[var(--surface-card-alt)] hover:bg-[var(--surface-raised)] text-[12px] text-[var(--text-primary)] transition"
       >
-        <CalIcon size={14} className="text-white/60" />
+        <CalIcon size={14} className="text-[var(--text-muted)]" />
         <span>{formatRangePill(value.start, value.end)}</span>
-        <ChevronDown size={14} className="text-white/50" />
+        <ChevronDown size={14} className="text-[var(--text-muted)]" />
       </button>
 
       {open && (
-        <div className="absolute right-0 z-40 mt-2 w-[760px] max-w-[calc(100vw-2rem)] rounded-xl border border-white/10 bg-[#0d0d0d]/95 backdrop-blur-xl shadow-2xl overflow-hidden">
+        <div className="absolute right-0 z-40 mt-2 w-[760px] max-w-[calc(100vw-2rem)]  border border-[var(--border-subtle)] bg-[var(--surface-card)]   overflow-hidden">
           <div className="flex">
-            <aside className="w-48 shrink-0 border-r border-white/10 py-3 max-h-[480px] overflow-y-auto">
+            <aside className="w-48 shrink-0 border-r border-[var(--border-subtle)] py-3 max-h-[480px] overflow-y-auto">
               {PRIMARY_GROUPS.map((g, gi) => (
                 <div key={gi} className="px-2 pb-2">
                   {g.heading && (
-                    <p className="px-3 pt-2 pb-1 text-[10px] uppercase tracking-[0.18em] text-white/35">
+                    <p className="px-3 pt-2 pb-1 text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
                       {g.heading}
                     </p>
                   )}
@@ -520,10 +520,10 @@ export function DateRangePicker({ value, onChange }: PickerProps) {
                         key={it.id}
                         type="button"
                         onClick={() => applyPreset(it.id)}
-                        className={`w-full text-left px-3 py-1.5 rounded-md text-[13px] transition ${
+                        className={`w-full text-left px-3 py-1.5  text-[13px] transition ${
                           active
-                            ? "bg-white/10 text-white"
-                            : "text-white/70 hover:bg-white/5 hover:text-white"
+                            ? "bg-[var(--surface-raised)] text-[var(--text-primary)]"
+                            : "text-[var(--text-muted)] hover:bg-[var(--surface-card-alt)] hover:text-[var(--text-primary)]"
                         }`}
                       >
                         {it.label}
@@ -532,13 +532,13 @@ export function DateRangePicker({ value, onChange }: PickerProps) {
                   })}
                 </div>
               ))}
-              <div className="px-2 pt-1 border-t border-white/10 mt-1">
+              <div className="px-2 pt-1 border-t border-[var(--border-subtle)] mt-1">
                 <button
                   type="button"
-                  className={`w-full text-left px-3 py-1.5 rounded-md text-[13px] transition ${
+                  className={`w-full text-left px-3 py-1.5  text-[13px] transition ${
                     activePreset === "custom"
-                      ? "bg-white/10 text-white"
-                      : "text-white/70 hover:bg-white/5 hover:text-white"
+                      ? "bg-[var(--surface-raised)] text-[var(--text-primary)]"
+                      : "text-[var(--text-muted)] hover:bg-[var(--surface-card-alt)] hover:text-[var(--text-primary)]"
                   }`}
                   onClick={() => {
                     /* leaves whatever is currently drafted */
@@ -562,10 +562,10 @@ export function DateRangePicker({ value, onChange }: PickerProps) {
                       commitStartInput();
                     }
                   }}
-                  className="flex-1 h-9 px-3 rounded-md border border-white/15 bg-transparent text-[13px] text-white placeholder-white/30 focus:outline-none focus:border-white/40"
+                  className="flex-1 h-9 px-3  border border-[var(--border-default)] bg-transparent text-[13px] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-strong)]"
                   placeholder="Start date"
                 />
-                <span className="text-white/40 text-sm">→</span>
+                <span className="text-[var(--text-muted)] text-sm">→</span>
                 <input
                   type="text"
                   value={endInput}
@@ -577,7 +577,7 @@ export function DateRangePicker({ value, onChange }: PickerProps) {
                       commitEndInput();
                     }
                   }}
-                  className="flex-1 h-9 px-3 rounded-md border border-white/15 bg-transparent text-[13px] text-white placeholder-white/30 focus:outline-none focus:border-white/40"
+                  className="flex-1 h-9 px-3  border border-[var(--border-default)] bg-transparent text-[13px] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-strong)]"
                   placeholder="End date"
                 />
               </div>
@@ -586,7 +586,7 @@ export function DateRangePicker({ value, onChange }: PickerProps) {
                 <button
                   type="button"
                   onClick={() => setLeftMonth(addMonths(leftMonth, -1))}
-                  className="mt-1 w-7 h-7 flex items-center justify-center rounded-md text-white/60 hover:bg-white/5 hover:text-white"
+                  className="mt-1 w-7 h-7 flex items-center justify-center  text-[var(--text-muted)] hover:bg-[var(--surface-card-alt)] hover:text-[var(--text-primary)]"
                   aria-label="Previous month"
                 >
                   <ChevronLeft size={16} />
@@ -610,18 +610,18 @@ export function DateRangePicker({ value, onChange }: PickerProps) {
                 <button
                   type="button"
                   onClick={() => setLeftMonth(addMonths(leftMonth, 1))}
-                  className="mt-1 w-7 h-7 flex items-center justify-center rounded-md text-white/60 hover:bg-white/5 hover:text-white"
+                  className="mt-1 w-7 h-7 flex items-center justify-center  text-[var(--text-muted)] hover:bg-[var(--surface-card-alt)] hover:text-[var(--text-primary)]"
                   aria-label="Next month"
                 >
                   <ChevronRight size={16} />
                 </button>
               </div>
 
-              <div className="flex justify-end gap-2 pt-2 border-t border-white/10">
+              <div className="flex justify-end gap-2 pt-2 border-t border-[var(--border-subtle)]">
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  className="px-4 h-9 rounded-md border border-white/15 text-[12px] text-white/80 hover:bg-white/5"
+                  className="px-4 h-9  border border-[var(--border-default)] text-[12px] text-[var(--text-primary)] hover:bg-[var(--surface-card-alt)]"
                 >
                   Cancel
                 </button>
@@ -629,7 +629,7 @@ export function DateRangePicker({ value, onChange }: PickerProps) {
                   type="button"
                   onClick={apply}
                   disabled={!draftStart}
-                  className="px-4 h-9 rounded-md bg-white text-black text-[12px] font-medium hover:bg-white/90 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="px-4 h-9  bg-[var(--accent-default)] text-[var(--text-on-accent)] text-[12px] font-medium hover:bg-[var(--accent-hover)] disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Apply
                 </button>
@@ -774,17 +774,17 @@ export function CompareRangePicker({ primary, value, onChange }: CompareProps) {
       <button
         type="button"
         onClick={() => (open ? setOpen(false) : openPopover())}
-        className="inline-flex items-center gap-2 px-3 h-9 rounded-md border border-white/15 bg-white/5 hover:bg-white/10 text-[12px] text-white/85 transition"
+        className="inline-flex items-center gap-2 px-3 h-9  border border-[var(--border-default)] bg-[var(--surface-card-alt)] hover:bg-[var(--surface-raised)] text-[12px] text-[var(--text-primary)] transition"
       >
-        <GitCompareArrows size={14} className="text-white/60" />
+        <GitCompareArrows size={14} className="text-[var(--text-muted)]" />
         <span>{pillLabel}</span>
-        <ChevronDown size={14} className="text-white/50" />
+        <ChevronDown size={14} className="text-[var(--text-muted)]" />
       </button>
 
       {open && (
-        <div className="absolute right-0 z-40 mt-2 w-[760px] max-w-[calc(100vw-2rem)] rounded-xl border border-white/10 bg-[#0d0d0d]/95 backdrop-blur-xl shadow-2xl overflow-hidden">
+        <div className="absolute right-0 z-40 mt-2 w-[760px] max-w-[calc(100vw-2rem)]  border border-[var(--border-subtle)] bg-[var(--surface-card)]   overflow-hidden">
           <div className="flex">
-            <aside className="w-48 shrink-0 border-r border-white/10 py-3">
+            <aside className="w-48 shrink-0 border-r border-[var(--border-subtle)] py-3">
               {COMPARE_GROUPS.map((g, gi) => (
                 <div key={gi} className="px-2 pb-2">
                   {g.items.map((it) => {
@@ -794,10 +794,10 @@ export function CompareRangePicker({ primary, value, onChange }: CompareProps) {
                         key={it.id}
                         type="button"
                         onClick={() => applyMode(it.id)}
-                        className={`w-full text-left px-3 py-1.5 rounded-md text-[13px] transition ${
+                        className={`w-full text-left px-3 py-1.5  text-[13px] transition ${
                           active
-                            ? "bg-white/10 text-white"
-                            : "text-white/70 hover:bg-white/5 hover:text-white"
+                            ? "bg-[var(--surface-raised)] text-[var(--text-primary)]"
+                            : "text-[var(--text-muted)] hover:bg-[var(--surface-card-alt)] hover:text-[var(--text-primary)]"
                         }`}
                       >
                         {it.label}
@@ -806,14 +806,14 @@ export function CompareRangePicker({ primary, value, onChange }: CompareProps) {
                   })}
                 </div>
               ))}
-              <div className="px-2 pt-1 border-t border-white/10 mt-1">
+              <div className="px-2 pt-1 border-t border-[var(--border-subtle)] mt-1">
                 <button
                   type="button"
                   onClick={() => setMode("custom")}
-                  className={`w-full text-left px-3 py-1.5 rounded-md text-[13px] transition ${
+                  className={`w-full text-left px-3 py-1.5  text-[13px] transition ${
                     mode === "custom"
-                      ? "bg-white/10 text-white"
-                      : "text-white/70 hover:bg-white/5 hover:text-white"
+                      ? "bg-[var(--surface-raised)] text-[var(--text-primary)]"
+                      : "text-[var(--text-muted)] hover:bg-[var(--surface-card-alt)] hover:text-[var(--text-primary)]"
                   }`}
                 >
                   Custom range
@@ -835,10 +835,10 @@ export function CompareRangePicker({ primary, value, onChange }: CompareProps) {
                     }
                   }}
                   disabled={mode === "none"}
-                  className="flex-1 h-9 px-3 rounded-md border border-white/15 bg-transparent text-[13px] text-white placeholder-white/30 focus:outline-none focus:border-white/40 disabled:opacity-40"
+                  className="flex-1 h-9 px-3  border border-[var(--border-default)] bg-transparent text-[13px] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-strong)] disabled:opacity-40"
                   placeholder="Start date"
                 />
-                <span className="text-white/40 text-sm">→</span>
+                <span className="text-[var(--text-muted)] text-sm">→</span>
                 <input
                   type="text"
                   value={endInput}
@@ -851,7 +851,7 @@ export function CompareRangePicker({ primary, value, onChange }: CompareProps) {
                     }
                   }}
                   disabled={mode === "none"}
-                  className="flex-1 h-9 px-3 rounded-md border border-white/15 bg-transparent text-[13px] text-white placeholder-white/30 focus:outline-none focus:border-white/40 disabled:opacity-40"
+                  className="flex-1 h-9 px-3  border border-[var(--border-default)] bg-transparent text-[13px] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-strong)] disabled:opacity-40"
                   placeholder="End date"
                 />
               </div>
@@ -862,7 +862,7 @@ export function CompareRangePicker({ primary, value, onChange }: CompareProps) {
                 <button
                   type="button"
                   onClick={() => setLeftMonth(addMonths(leftMonth, -1))}
-                  className="mt-1 w-7 h-7 flex items-center justify-center rounded-md text-white/60 hover:bg-white/5 hover:text-white"
+                  className="mt-1 w-7 h-7 flex items-center justify-center  text-[var(--text-muted)] hover:bg-[var(--surface-card-alt)] hover:text-[var(--text-primary)]"
                   aria-label="Previous month"
                 >
                   <ChevronLeft size={16} />
@@ -886,25 +886,25 @@ export function CompareRangePicker({ primary, value, onChange }: CompareProps) {
                 <button
                   type="button"
                   onClick={() => setLeftMonth(addMonths(leftMonth, 1))}
-                  className="mt-1 w-7 h-7 flex items-center justify-center rounded-md text-white/60 hover:bg-white/5 hover:text-white"
+                  className="mt-1 w-7 h-7 flex items-center justify-center  text-[var(--text-muted)] hover:bg-[var(--surface-card-alt)] hover:text-[var(--text-primary)]"
                   aria-label="Next month"
                 >
                   <ChevronRight size={16} />
                 </button>
               </div>
 
-              <div className="flex justify-end gap-2 pt-2 border-t border-white/10">
+              <div className="flex justify-end gap-2 pt-2 border-t border-[var(--border-subtle)]">
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  className="px-4 h-9 rounded-md border border-white/15 text-[12px] text-white/80 hover:bg-white/5"
+                  className="px-4 h-9  border border-[var(--border-default)] text-[12px] text-[var(--text-primary)] hover:bg-[var(--surface-card-alt)]"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={apply}
-                  className="px-4 h-9 rounded-md bg-white text-black text-[12px] font-medium hover:bg-white/90"
+                  className="px-4 h-9  bg-[var(--accent-default)] text-[var(--text-on-accent)] text-[12px] font-medium hover:bg-[var(--accent-hover)]"
                 >
                   Apply
                 </button>

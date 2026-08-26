@@ -45,7 +45,7 @@ export default function ContactTab({ onError }: Props) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-24 text-white/40">
+      <div className="flex items-center justify-center py-24 text-[var(--text-muted)]">
         <Loader2 size={20} className="animate-spin" />
       </div>
     );
@@ -60,11 +60,11 @@ export default function ContactTab({ onError }: Props) {
       </h2>
 
       {list.length === 0 ? (
-        <p className="text-sm text-white/50 py-6">No messages yet.</p>
+        <p className="text-sm text-[var(--text-muted)] py-6">No messages yet.</p>
       ) : (
         <ul className="flex flex-col gap-4">
           {list.map((m) => (
-            <li key={m.id} className="glass rounded-2xl p-5 flex flex-col gap-3">
+            <li key={m.id} className="glass  p-5 flex flex-col gap-3">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                 <div className="flex items-center gap-3 min-w-0">
                   <h3 className="font-[family-name:var(--font-bebas)] text-xl tracking-[0.1em] truncate">
@@ -72,17 +72,17 @@ export default function ContactTab({ onError }: Props) {
                   </h3>
                   <a
                     href={`mailto:${m.email}`}
-                    className="text-xs text-white/70 hover:text-white transition inline-flex items-center gap-1.5 truncate"
+                    className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition inline-flex items-center gap-1.5 truncate"
                   >
                     <Mail size={12} />
                     {m.email}
                   </a>
                 </div>
-                <span className="text-xs text-white/40 font-mono shrink-0">
+                <span className="text-xs text-[var(--text-muted)] font-mono shrink-0">
                   {m.createdAt ? new Date(m.createdAt).toLocaleString() : "—"}
                 </span>
               </div>
-              <p className="text-sm text-white/85 whitespace-pre-wrap leading-relaxed">
+              <p className="text-sm text-[var(--text-primary)] whitespace-pre-wrap leading-relaxed">
                 {m.message}
               </p>
             </li>

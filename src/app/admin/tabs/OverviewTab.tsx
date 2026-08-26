@@ -7,9 +7,9 @@ import { STATUS_LABEL, type OrderStatus } from "@/lib/order-status";
 import { DateRangePicker, type DateRange } from "./DateRangePicker";
 
 const STATUS_STYLES: Record<OrderStatus, string> = {
-  pending: "border-white/30 text-white/70",
-  approved: "border-sky-400/50 text-sky-300",
-  delivered: "border-emerald-400/50 text-emerald-300",
+  pending: "border-[var(--border-strong)] text-[var(--text-muted)]",
+  approved: "border-[var(--accent-default)]/50 text-[var(--accent-default)]",
+  delivered: "border-[var(--success-default)]/50 text-[var(--success-default)]",
   cancelled: "border-[var(--accent)]/50 text-[var(--accent)]",
 };
 
@@ -96,26 +96,26 @@ function RealizedRevenueBox({ orders }: { orders: OrderRow[] }) {
   }, [orders, period]);
 
   return (
-    <section className="glass rounded-2xl p-6 flex flex-col gap-4">
+    <section className="glass  p-6 flex flex-col gap-4">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <p className="text-[10px] tracking-[0.3em] uppercase text-white/50">
+          <p className="text-[10px] tracking-[0.3em] uppercase text-[var(--text-muted)]">
             Realized revenue
           </p>
-          <p className="text-[11px] text-white/40 mt-1">
+          <p className="text-[11px] text-[var(--text-muted)] mt-1">
             Delivered orders only
           </p>
         </div>
-        <div className="flex flex-wrap gap-1 rounded-lg border border-white/10 p-1">
+        <div className="flex flex-wrap gap-1  border border-[var(--border-subtle)] p-1">
           {PERIODS.map((p) => (
             <button
               key={p.id}
               type="button"
               onClick={() => setPeriod(p.id)}
-              className={`px-3 py-1.5 rounded-md text-[11px] tracking-[0.1em] uppercase transition ${
+              className={`px-3 py-1.5  text-[11px] tracking-[0.1em] uppercase transition ${
                 period === p.id
-                  ? "bg-white text-black"
-                  : "text-white/60 hover:text-white hover:bg-white/5"
+                  ? "bg-[var(--accent-default)] text-[var(--text-on-accent)]"
+                  : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-card-alt)]"
               }`}
             >
               {p.label}
@@ -124,10 +124,10 @@ function RealizedRevenueBox({ orders }: { orders: OrderRow[] }) {
         </div>
       </div>
       <div className="flex items-end gap-4">
-        <p className="font-[family-name:var(--font-bebas)] text-5xl tracking-[0.04em] leading-none text-emerald-300">
+        <p className="font-[family-name:var(--font-bebas)] text-5xl tracking-[0.04em] leading-none text-[var(--success-default)]">
           {fmtUsd(revenue)}
         </p>
-        <p className="text-sm text-white/50 mb-1">
+        <p className="text-sm text-[var(--text-muted)] mb-1">
           {count.toLocaleString()} delivered order{count === 1 ? "" : "s"}
         </p>
       </div>
@@ -202,7 +202,7 @@ export default function OverviewTab({ data }: { data: OrdersResponse | null }) {
   return (
     <div className="flex flex-col gap-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <p className="text-[11px] tracking-[0.3em] uppercase text-white/50">
+        <p className="text-[11px] tracking-[0.3em] uppercase text-[var(--text-muted)]">
           Showing {count.toLocaleString()} order{count === 1 ? "" : "s"} in range
         </p>
         <DateRangePicker value={range} onChange={setRange} />
@@ -212,8 +212,8 @@ export default function OverviewTab({ data }: { data: OrdersResponse | null }) {
 
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((s) => (
-          <div key={s.label} className="glass rounded-2xl p-5 flex flex-col gap-2">
-            <p className="text-[10px] tracking-[0.3em] uppercase text-white/50">
+          <div key={s.label} className="glass  p-5 flex flex-col gap-2">
+            <p className="text-[10px] tracking-[0.3em] uppercase text-[var(--text-muted)]">
               {s.label}
             </p>
             <p className="font-[family-name:var(--font-bebas)] text-3xl tracking-[0.05em]">
@@ -223,15 +223,15 @@ export default function OverviewTab({ data }: { data: OrdersResponse | null }) {
         ))}
       </section>
 
-      <section className="glass rounded-2xl p-6">
+      <section className="glass  p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-[family-name:var(--font-bebas)] text-2xl tracking-[0.18em]">
             Revenue
           </h2>
-          <p className="text-xs text-white/40">{buckets.length} bars</p>
+          <p className="text-xs text-[var(--text-muted)]">{buckets.length} bars</p>
         </div>
         {buckets.length === 0 ? (
-          <p className="text-sm text-white/50 py-6">No orders in this range.</p>
+          <p className="text-sm text-[var(--text-muted)] py-6">No orders in this range.</p>
         ) : (
           <div
             className="grid gap-1 sm:gap-2 items-end h-40"
@@ -249,13 +249,13 @@ export default function OverviewTab({ data }: { data: OrdersResponse | null }) {
                 <div key={i} className="flex flex-col items-center gap-2 h-full min-w-0">
                   <div className="flex-1 w-full flex items-end">
                     <div
-                      className="w-full bg-white/80 rounded-sm transition-all"
+                      className="w-full bg-[var(--accent-hover)] rounded-sm transition-all"
                       style={{ height: `${height}%` }}
                       title={`${b.label}: ${fmtUsd(b.revenue)} (${b.count} orders)`}
                     />
                   </div>
                   <p
-                    className={`text-[10px] text-white/50 truncate w-full text-center ${
+                    className={`text-[10px] text-[var(--text-muted)] truncate w-full text-center ${
                       showOnMobile ? "" : "hidden sm:block"
                     }`}
                   >
@@ -268,12 +268,12 @@ export default function OverviewTab({ data }: { data: OrdersResponse | null }) {
         )}
       </section>
 
-      <section className="glass rounded-2xl p-6">
+      <section className="glass  p-6">
         <h2 className="font-[family-name:var(--font-bebas)] text-2xl tracking-[0.18em] mb-4">
           Orders in range
         </h2>
         {filtered.length === 0 ? (
-          <p className="text-sm text-white/50 py-6">No orders in this range.</p>
+          <p className="text-sm text-[var(--text-muted)] py-6">No orders in this range.</p>
         ) : (
           <>
             {/* Mobile: stacked order cards */}
@@ -282,10 +282,10 @@ export default function OverviewTab({ data }: { data: OrdersResponse | null }) {
                 <li key={o.id}>
                   <Link
                     href={`/admin/orders/${o.id}`}
-                    className="rounded-xl border border-white/10 p-3 flex flex-col gap-2 hover:bg-white/5 transition"
+                    className=" border border-[var(--border-subtle)] p-3 flex flex-col gap-2 hover:bg-[var(--surface-card-alt)] transition"
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-mono text-xs text-white/60">
+                      <span className="font-mono text-xs text-[var(--text-muted)]">
                         #{o.id.slice(0, 8)}
                       </span>
                       <span className="text-sm font-medium">
@@ -294,7 +294,7 @@ export default function OverviewTab({ data }: { data: OrdersResponse | null }) {
                     </div>
                     <div className="min-w-0">
                       <div className="truncate">{o.customerName}</div>
-                      <div className="text-xs text-white/40 truncate">
+                      <div className="text-xs text-[var(--text-muted)] truncate">
                         {o.customerEmail}
                       </div>
                     </div>
@@ -304,10 +304,10 @@ export default function OverviewTab({ data }: { data: OrdersResponse | null }) {
                       >
                         {STATUS_LABEL[o.status]}
                       </span>
-                      <span className="text-[11px] text-white/50">
+                      <span className="text-[11px] text-[var(--text-muted)]">
                         {o.itemCount} item{o.itemCount === 1 ? "" : "s"}
                       </span>
-                      <span className="text-[11px] text-white/40">
+                      <span className="text-[11px] text-[var(--text-muted)]">
                         {o.createdAt
                           ? new Date(o.createdAt).toLocaleDateString()
                           : "—"}
@@ -322,7 +322,7 @@ export default function OverviewTab({ data }: { data: OrdersResponse | null }) {
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                <tr className="text-[10px] tracking-[0.2em] uppercase text-white/40 border-b border-white/10">
+                <tr className="text-[10px] tracking-[0.2em] uppercase text-[var(--text-muted)] border-b border-[var(--border-subtle)]">
                   <th className="text-left py-2 pr-4">Order</th>
                   <th className="text-left py-2 pr-4">Customer</th>
                   <th className="text-left py-2 pr-4">Items</th>
@@ -335,12 +335,12 @@ export default function OverviewTab({ data }: { data: OrdersResponse | null }) {
                 {filtered.slice(0, 50).map((o) => (
                   <tr
                     key={o.id}
-                    className="border-b border-white/5 hover:bg-white/5 transition cursor-pointer group"
+                    className="border-b border-[var(--border-subtle)] hover:bg-[var(--surface-card-alt)] transition cursor-pointer group"
                   >
-                    <td className="py-3 pr-4 font-mono text-xs text-white/70">
+                    <td className="py-3 pr-4 font-mono text-xs text-[var(--text-muted)]">
                       <Link
                         href={`/admin/orders/${o.id}`}
-                        className="block group-hover:text-white"
+                        className="block group-hover:text-[var(--text-primary)]"
                       >
                         #{o.id.slice(0, 8)}
                       </Link>
@@ -348,7 +348,7 @@ export default function OverviewTab({ data }: { data: OrdersResponse | null }) {
                     <td className="py-3 pr-4">
                       <Link href={`/admin/orders/${o.id}`} className="block">
                         <div>{o.customerName}</div>
-                        <div className="text-xs text-white/40">{o.customerEmail}</div>
+                        <div className="text-xs text-[var(--text-muted)]">{o.customerEmail}</div>
                       </Link>
                     </td>
                     <td className="py-3 pr-4">
@@ -365,7 +365,7 @@ export default function OverviewTab({ data }: { data: OrdersResponse | null }) {
                         </span>
                       </Link>
                     </td>
-                    <td className="py-3 pr-4 text-xs text-white/60">
+                    <td className="py-3 pr-4 text-xs text-[var(--text-muted)]">
                       <Link href={`/admin/orders/${o.id}`} className="block">
                         {o.createdAt ? new Date(o.createdAt).toLocaleString() : "—"}
                       </Link>

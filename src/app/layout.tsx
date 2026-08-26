@@ -1,27 +1,26 @@
 import type { Metadata } from "next";
-import { Bebas_Neue, Rajdhani, Audiowide, Permanent_Marker } from "next/font/google";
+import localFont from "next/font/local";
+import { Audiowide, Space_Mono } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
-import LightningBackground from "@/components/LightningBackground";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
-import RunningText from "@/components/RunningText";
-import MusicPlayer from "@/components/MusicPlayer";
-import PageLoader from "@/components/PageLoader";
 import SessionTracker from "@/components/SessionTracker";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
-const bebas = Bebas_Neue({
+const anton = localFont({
+  src: "./fonts/anton.ttf",
   weight: "400",
-  subsets: ["latin"],
-  variable: "--font-bebas",
+  variable: "--font-anton",
   display: "swap",
 });
-const rajdhani = Rajdhani({
-  weight: ["400", "500", "600", "700"],
-  subsets: ["latin"],
-  variable: "--font-rajdhani",
+const pragmatica = localFont({
+  src: [
+    { path: "./fonts/Pragmatica.woff2" },
+    { path: "./fonts/Pragmatica.woff" },
+    { path: "./fonts/Pragmatica.ttf" },
+  ],
+  weight: "400",
+  variable: "--font-pragmatica",
   display: "swap",
 });
 const audiowide = Audiowide({
@@ -30,10 +29,10 @@ const audiowide = Audiowide({
   variable: "--font-audiowide",
   display: "swap",
 });
-const marker = Permanent_Marker({
-  weight: "400",
+const spaceMono = Space_Mono({
+  weight: ["400", "700"],
   subsets: ["latin"],
-  variable: "--font-marker",
+  variable: "--font-space-mono",
   display: "swap",
 });
 
@@ -51,7 +50,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${bebas.variable} ${rajdhani.variable} ${audiowide.variable} ${marker.variable}`}
+      className={`${anton.variable} ${pragmatica.variable} ${audiowide.variable} ${spaceMono.variable}`}
     >
       <body>
         {META_PIXEL_IDS.length > 0 && (
@@ -83,13 +82,7 @@ fbq('track', 'PageView');`}
             </noscript>
           </>
         )}
-        <LightningBackground />
-        <PageLoader />
-        <RunningText />
-        <Header />
-        <main className="relative">{children}</main>
-        <MusicPlayer />
-        <Footer />
+        {children}
         <SessionTracker />
         <Analytics />
         <SpeedInsights />

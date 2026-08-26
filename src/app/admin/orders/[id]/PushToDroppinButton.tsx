@@ -31,8 +31,8 @@ export default function PushToDroppinButton({ orderId }: { orderId: string }) {
       <button
         onClick={push}
         disabled={pushing}
-        style={{ color: "#000" }}
-        className="self-start bg-white px-5 py-2.5 rounded-md text-xs tracking-[0.2em] uppercase disabled:opacity-50 inline-flex items-center gap-2 hover:bg-white/90 transition"
+        style={{ color: "var(--text-on-accent)" }}
+        className="self-start bg-[var(--accent-default)] px-5 py-2.5  text-xs tracking-[0.2em] uppercase disabled:opacity-50 inline-flex items-center gap-2 hover:bg-[var(--accent-hover)] transition"
       >
         {pushing ? (
           <Loader2 size={14} className="animate-spin" />

@@ -29,7 +29,7 @@ const slugify = (s: string) =>
     .slice(0, 60);
 
 const inputCls =
-  "bg-white/5 border border-white/15 rounded-md h-10 px-3 text-sm outline-none focus:border-white/40 transition w-full";
+  "bg-[var(--surface-card-alt)] border border-[var(--border-default)]  h-10 px-3 text-sm outline-none focus:border-[var(--border-strong)] transition w-full";
 
 export default function CollectionsTab({
   collections,
@@ -123,11 +123,11 @@ export default function CollectionsTab({
         </h2>
         <button
           onClick={() => setCreating((v) => !v)}
-          style={{ color: creating ? undefined : "#000" }}
+          style={{ color: creating ? undefined : "var(--text-on-accent)" }}
           className={
             creating
-              ? "inline-flex items-center gap-2 px-4 py-2 border border-white/15 hover:border-white/40 rounded-md text-xs tracking-[0.2em] uppercase transition"
-              : "inline-flex items-center gap-2 px-4 py-2 bg-white rounded-md text-xs tracking-[0.2em] uppercase transition"
+              ? "inline-flex items-center gap-2 px-4 py-2 border border-[var(--border-default)] hover:border-[var(--border-strong)]  text-xs tracking-[0.2em] uppercase transition"
+              : "inline-flex items-center gap-2 px-4 py-2 bg-[var(--accent-default)]  text-xs tracking-[0.2em] uppercase transition"
           }
         >
           {creating ? <X size={14} /> : <Plus size={14} />}
@@ -136,7 +136,7 @@ export default function CollectionsTab({
       </div>
 
       {creating && (
-        <div className="glass rounded-2xl p-6 flex flex-col gap-4">
+        <div className="glass  p-6 flex flex-col gap-4">
           <input
             placeholder="Title"
             value={createDraft.title}
@@ -156,18 +156,18 @@ export default function CollectionsTab({
             onChange={(e) =>
               setCreateDraft({ ...createDraft, description: e.target.value })
             }
-            className="bg-white/5 border border-white/15 rounded-md p-3 text-sm outline-none focus:border-white/40 transition resize-none"
+            className="bg-[var(--surface-card-alt)] border border-[var(--border-default)]  p-3 text-sm outline-none focus:border-[var(--border-strong)] transition resize-none"
           />
           {createDraft.title && (
-            <p className="text-[10px] text-white/40 font-mono">
+            <p className="text-[10px] text-[var(--text-muted)] font-mono">
               Handle: /{slugify(createDraft.title)}
             </p>
           )}
           <button
             onClick={createCollection}
             disabled={busy === "__new__" || !createDraft.title}
-            style={{ color: "#000" }}
-            className="self-start bg-white px-5 py-2.5 rounded-md text-xs tracking-[0.2em] uppercase disabled:opacity-50 inline-flex items-center gap-2"
+            style={{ color: "var(--text-on-accent)" }}
+            className="self-start bg-[var(--accent-default)] px-5 py-2.5  text-xs tracking-[0.2em] uppercase disabled:opacity-50 inline-flex items-center gap-2"
           >
             {busy === "__new__" && <Loader2 size={14} className="animate-spin" />}
             Create
@@ -177,7 +177,7 @@ export default function CollectionsTab({
 
       <ul className="flex flex-col gap-4">
         {collections.length === 0 ? (
-          <p className="text-sm text-white/50 py-6">
+          <p className="text-sm text-[var(--text-muted)] py-6">
             No collections yet. Use the <em>New collection</em> form above to create one.
           </p>
         ) : (
@@ -185,9 +185,9 @@ export default function CollectionsTab({
             const isEditing = editing === c.handle;
             const isExpanded = expanded === c.handle;
             return (
-              <li key={c.handle} className="glass rounded-2xl p-5 flex flex-col gap-4">
+              <li key={c.handle} className="glass  p-5 flex flex-col gap-4">
                 <div className="flex flex-col md:flex-row gap-5">
-                  <div className="relative w-full md:w-40 h-40 bg-white/5 rounded-md overflow-hidden shrink-0">
+                  <div className="relative w-full md:w-40 h-40 bg-[var(--surface-card-alt)]  overflow-hidden shrink-0">
                     {c.image && (
                       <Image
                         src={c.image}
@@ -225,7 +225,7 @@ export default function CollectionsTab({
                           onChange={(e) =>
                             setEditDraft({ ...editDraft, description: e.target.value })
                           }
-                          className="bg-white/5 border border-white/15 rounded-md p-3 text-sm outline-none focus:border-white/40 transition resize-none"
+                          className="bg-[var(--surface-card-alt)] border border-[var(--border-default)]  p-3 text-sm outline-none focus:border-[var(--border-strong)] transition resize-none"
                         />
                       </>
                     ) : (
@@ -233,13 +233,13 @@ export default function CollectionsTab({
                         <h3 className="font-[family-name:var(--font-bebas)] text-xl tracking-[0.1em]">
                           {c.title}
                         </h3>
-                        <p className="text-[10px] text-white/40 font-mono">/{c.handle}</p>
+                        <p className="text-[10px] text-[var(--text-muted)] font-mono">/{c.handle}</p>
                         {c.description && (
-                          <p className="text-xs text-white/60 line-clamp-2">
+                          <p className="text-xs text-[var(--text-muted)] line-clamp-2">
                             {c.description}
                           </p>
                         )}
-                        <p className="text-xs text-white/50">
+                        <p className="text-xs text-[var(--text-muted)]">
                           {c.count ?? 0} {c.count === 1 ? "product" : "products"}
                         </p>
                       </>
@@ -252,8 +252,8 @@ export default function CollectionsTab({
                         <button
                           onClick={() => saveEdit(c.handle)}
                           disabled={busy === c.handle}
-                          style={{ color: "#000" }}
-                          className="px-4 py-2 bg-white rounded-md text-xs tracking-[0.2em] uppercase disabled:opacity-50 inline-flex items-center justify-center gap-2"
+                          style={{ color: "var(--text-on-accent)" }}
+                          className="px-4 py-2 bg-[var(--accent-default)]  text-xs tracking-[0.2em] uppercase disabled:opacity-50 inline-flex items-center justify-center gap-2"
                         >
                           {busy === c.handle && (
                             <Loader2 size={12} className="animate-spin" />
@@ -262,7 +262,7 @@ export default function CollectionsTab({
                         </button>
                         <button
                           onClick={() => setEditing(null)}
-                          className="px-4 py-2 border border-white/15 hover:border-white/40 rounded-md text-xs tracking-[0.2em] uppercase"
+                          className="px-4 py-2 border border-[var(--border-default)] hover:border-[var(--border-strong)]  text-xs tracking-[0.2em] uppercase"
                         >
                           Cancel
                         </button>
@@ -273,14 +273,14 @@ export default function CollectionsTab({
                           onClick={() =>
                             setExpanded((v) => (v === c.handle ? null : c.handle))
                           }
-                          className="px-3 py-2 border border-white/15 hover:border-white/40 rounded-md text-xs tracking-[0.2em] uppercase inline-flex items-center justify-center gap-2"
+                          className="px-3 py-2 border border-[var(--border-default)] hover:border-[var(--border-strong)]  text-xs tracking-[0.2em] uppercase inline-flex items-center justify-center gap-2"
                         >
                           {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                           Manage
                         </button>
                         <button
                           onClick={() => startEdit(c)}
-                          className="px-3 py-2 border border-white/15 hover:border-white/40 rounded-md text-xs tracking-[0.2em] uppercase inline-flex items-center justify-center gap-2"
+                          className="px-3 py-2 border border-[var(--border-default)] hover:border-[var(--border-strong)]  text-xs tracking-[0.2em] uppercase inline-flex items-center justify-center gap-2"
                         >
                           <Pencil size={12} />
                           Edit
@@ -288,7 +288,7 @@ export default function CollectionsTab({
                         <button
                           onClick={() => removeCollection(c)}
                           disabled={busy === c.handle}
-                          className="px-3 py-2 border border-white/15 hover:border-[var(--accent)] hover:text-[var(--accent)] rounded-md text-xs tracking-[0.2em] uppercase inline-flex items-center justify-center gap-2 disabled:opacity-50"
+                          className="px-3 py-2 border border-[var(--border-default)] hover:border-[var(--accent)] hover:text-[var(--accent)]  text-xs tracking-[0.2em] uppercase inline-flex items-center justify-center gap-2 disabled:opacity-50"
                         >
                           <Trash2 size={12} />
                           Delete
@@ -420,13 +420,13 @@ function ManageProducts({
   }
 
   return (
-    <div className="border-t border-white/10 pt-5 flex flex-col gap-6">
+    <div className="border-t border-[var(--border-subtle)] pt-5 flex flex-col gap-6">
       <section className="flex flex-col gap-3">
-        <h4 className="text-[11px] tracking-[0.3em] uppercase text-white/60">
+        <h4 className="text-[11px] tracking-[0.3em] uppercase text-[var(--text-muted)]">
           In this collection ({inCollection.length})
         </h4>
         {inCollection.length === 0 ? (
-          <p className="text-xs text-white/40">No products yet.</p>
+          <p className="text-xs text-[var(--text-muted)]">No products yet.</p>
         ) : (
           <ul className="flex flex-col gap-2">
             {inCollection.map((p) => {
@@ -434,9 +434,9 @@ function ManageProducts({
               return (
                 <li
                   key={p.handle}
-                  className="flex items-center gap-3 p-2 border border-white/10 rounded-md"
+                  className="flex items-center gap-3 p-2 border border-[var(--border-subtle)] "
                 >
-                  <div className="relative w-10 h-10 bg-white/5 rounded overflow-hidden shrink-0">
+                  <div className="relative w-10 h-10 bg-[var(--surface-card-alt)] rounded overflow-hidden shrink-0">
                     {img && img.type === "image" && (
                       <Image
                         src={img.src}
@@ -450,12 +450,12 @@ function ManageProducts({
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm">{p.title}</p>
-                    <p className="text-[10px] text-white/40 font-mono">/{p.handle}</p>
+                    <p className="text-[10px] text-[var(--text-muted)] font-mono">/{p.handle}</p>
                   </div>
                   <button
                     onClick={() => unassign(p.handle)}
                     disabled={busy}
-                    className="px-3 py-1.5 border border-white/15 hover:border-[var(--accent)] hover:text-[var(--accent)] rounded text-[10px] tracking-[0.2em] uppercase disabled:opacity-50"
+                    className="px-3 py-1.5 border border-[var(--border-default)] hover:border-[var(--accent)] hover:text-[var(--accent)] rounded text-[10px] tracking-[0.2em] uppercase disabled:opacity-50"
                   >
                     Remove
                   </button>
@@ -467,11 +467,11 @@ function ManageProducts({
       </section>
 
       <section className="flex flex-col gap-3">
-        <h4 className="text-[11px] tracking-[0.3em] uppercase text-white/60">
+        <h4 className="text-[11px] tracking-[0.3em] uppercase text-[var(--text-muted)]">
           Add existing products
         </h4>
         {available.length === 0 ? (
-          <p className="text-xs text-white/40">
+          <p className="text-xs text-[var(--text-muted)]">
             All products are already assigned to a different collection or this one.
           </p>
         ) : (
@@ -483,19 +483,19 @@ function ManageProducts({
                 return (
                   <li key={p.handle}>
                     <label
-                      className={`flex items-center gap-3 p-2 border rounded-md cursor-pointer transition ${
+                      className={`flex items-center gap-3 p-2 border  cursor-pointer transition ${
                         checked
-                          ? "border-white bg-white/10"
-                          : "border-white/10 hover:border-white/30"
+                          ? "border-[var(--border-default)] bg-[var(--surface-raised)]"
+                          : "border-[var(--border-subtle)] hover:border-[var(--border-strong)]"
                       }`}
                     >
                       <input
                         type="checkbox"
                         checked={checked}
                         onChange={() => toggle(p.handle)}
-                        className="accent-white"
+                        className="accent-[var(--accent-default)]"
                       />
-                      <div className="relative w-9 h-9 bg-white/5 rounded overflow-hidden shrink-0">
+                      <div className="relative w-9 h-9 bg-[var(--surface-card-alt)] rounded overflow-hidden shrink-0">
                         {img && img.type === "image" && (
                           <Image
                             src={img.src}
@@ -509,7 +509,7 @@ function ManageProducts({
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs truncate">{p.title}</p>
-                        <p className="text-[10px] text-white/40 font-mono truncate">
+                        <p className="text-[10px] text-[var(--text-muted)] font-mono truncate">
                           /{p.collection || "uncategorized"}
                         </p>
                       </div>
@@ -521,8 +521,8 @@ function ManageProducts({
             <button
               onClick={assignSelected}
               disabled={busy || selected.size === 0}
-              style={{ color: "#000" }}
-              className="self-start bg-white px-4 py-2 rounded-md text-xs tracking-[0.2em] uppercase disabled:opacity-50 inline-flex items-center gap-2"
+              style={{ color: "var(--text-on-accent)" }}
+              className="self-start bg-[var(--accent-default)] px-4 py-2  text-xs tracking-[0.2em] uppercase disabled:opacity-50 inline-flex items-center gap-2"
             >
               {busy && <Loader2 size={12} className="animate-spin" />}
               Add {selected.size > 0 ? `(${selected.size})` : ""}
@@ -533,19 +533,19 @@ function ManageProducts({
 
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <h4 className="text-[11px] tracking-[0.3em] uppercase text-white/60">
+          <h4 className="text-[11px] tracking-[0.3em] uppercase text-[var(--text-muted)]">
             Create new product in this collection
           </h4>
           <button
             onClick={() => setCreating((v) => !v)}
-            className="px-3 py-1.5 border border-white/15 hover:border-white/40 rounded text-[10px] tracking-[0.2em] uppercase inline-flex items-center gap-2"
+            className="px-3 py-1.5 border border-[var(--border-default)] hover:border-[var(--border-strong)] rounded text-[10px] tracking-[0.2em] uppercase inline-flex items-center gap-2"
           >
             {creating ? <X size={12} /> : <Plus size={12} />}
             {creating ? "Cancel" : "New"}
           </button>
         </div>
         {creating && (
-          <div className="flex flex-col gap-3 p-3 border border-white/10 rounded-md">
+          <div className="flex flex-col gap-3 p-3 border border-[var(--border-subtle)] ">
             <input
               placeholder="Title"
               value={createDraft.title}
@@ -561,7 +561,7 @@ function ManageProducts({
               onChange={(e) =>
                 setCreateDraft({ ...createDraft, description: e.target.value })
               }
-              className="bg-white/5 border border-white/15 rounded-md p-3 text-sm outline-none focus:border-white/40 transition resize-none"
+              className="bg-[var(--surface-card-alt)] border border-[var(--border-default)]  p-3 text-sm outline-none focus:border-[var(--border-strong)] transition resize-none"
             />
             <div className="grid md:grid-cols-2 gap-3">
               <input
@@ -586,8 +586,8 @@ function ManageProducts({
             <button
               onClick={createInCollection}
               disabled={busy || !createDraft.title || !createDraft.price}
-              style={{ color: "#000" }}
-              className="self-start bg-white px-4 py-2 rounded-md text-xs tracking-[0.2em] uppercase disabled:opacity-50 inline-flex items-center gap-2"
+              style={{ color: "var(--text-on-accent)" }}
+              className="self-start bg-[var(--accent-default)] px-4 py-2  text-xs tracking-[0.2em] uppercase disabled:opacity-50 inline-flex items-center gap-2"
             >
               {busy && <Loader2 size={12} className="animate-spin" />}
               Create

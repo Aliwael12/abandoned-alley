@@ -4,6 +4,7 @@ import { Product } from "@/lib/products";
 import { isProductSoldOut } from "@/lib/inventory";
 import Image from "next/image";
 import Link from "next/link";
+import { Card, Badge } from "./ui";
 
 export default function ProductCard({ product }: { product: Product }) {
   const head = product.media[0];
@@ -11,34 +12,47 @@ export default function ProductCard({ product }: { product: Product }) {
     head && head.type === "image" ? head : product.media.find((m) => m.type === "image");
   const cover = coverEntry?.src ?? "";
   const soldOut = isProductSoldOut(product);
+  const categoryLabel = product.collection.replace(/-/g, " ");
+
   return (
-    <Link
-      href={`/products/${product.handle}`}
-      className="product-card group flex flex-col"
-    >
-      <div className="relative aspect-[4/5] bg-white/5 border border-white/10 rounded-xl overflow-hidden">
-        {cover && (
-          <Image
-            src={cover}
-            alt={product.title}
-            fill
-            sizes="(min-width:1024px) 25vw, (min-width:640px) 33vw, 50vw"
-            className={`object-cover product-card-img ${soldOut ? "opacity-50" : ""}`}
-            unoptimized
-          />
-        )}
-        {soldOut && (
-          <span className="absolute top-3 left-3 px-2 py-1 text-[10px] tracking-[0.2em] uppercase bg-black/70 border border-white/20 rounded text-white/80">
-            Sold out
-          </span>
-        )}
-      </div>
-      <div className="mt-3 flex items-center justify-between">
-        <h3 className="font-[family-name:var(--font-bebas)] tracking-[0.12em] text-lg">
-          {product.title}
-        </h3>
-        <p className="text-sm text-white/80">EGP {product.price.toFixed(2)}</p>
-      </div>
+    <Link href={`/products/${product.handle}`} style={{ display: "block" }}>
+      <Card interactive style={{ padding: 0, overflow: "hidden" }}>
+        <div style={{ position: "relative", aspectRatio: "4 / 5", background: "var(--surface-card-alt)" }}>
+          {cover && (
+            <Image
+              src={cover}
+              alt={product.title}
+              fill
+              sizes="(min-width:1024px) 25vw, (min-width:640px) 33vw, 50vw"
+              style={{ objectFit: "cover", opacity: soldOut ? 0.5 : 1 }}
+              unoptimized
+            />
+          )}
+          {soldOut && (
+            <Badge
+              variant="neutral"
+              style={{ position: "absolute", top: "var(--space-3)", left: "var(--space-3)" }}
+            >
+              Sold out
+            </Badge>
+          )}
+        </div>
+        <div style={{ padding: "var(--space-4) var(--space-5)" }}>
+          <div className="aa-eyebrow">{categoryLabel}</div>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "baseline",
+              justifyContent: "space-between",
+              gap: "var(--space-2)",
+              marginTop: "var(--space-1)",
+            }}
+          >
+            <h3 className="aa-display-h3">{product.title}</h3>
+            <p className="aa-price">EGP {product.price.toFixed(2)}</p>
+          </div>
+        </div>
+      </Card>
     </Link>
   );
 }
