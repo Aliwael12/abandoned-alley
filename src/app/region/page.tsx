@@ -43,6 +43,7 @@ export default function RegionPage() {
       </div>
 
       <div
+        className="aa-region-grid"
         style={{
           flex: 1,
           display: "grid",
@@ -52,6 +53,7 @@ export default function RegionPage() {
           margin: "0 auto",
           padding: "0 var(--space-6) var(--space-16)",
           width: "100%",
+          boxSizing: "border-box",
         }}
       >
         {/* United States — not a real store yet */}
