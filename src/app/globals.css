@@ -228,11 +228,11 @@ button {
     gap: var(--space-2) !important;
   }
   .aa-header-nav {
-    gap: var(--space-3) !important;
+    display: none !important;
   }
-  .aa-header-nav .aa-nav-link {
-    font-size: var(--text-2xs) !important;
-    letter-spacing: var(--tracking-label) !important;
+  .aa-header-mobile-toggle {
+    display: inline-flex !important;
+    align-items: center;
   }
   .aa-header-logo img,
   .aa-header-logo div[data-logo-slot] {
@@ -245,6 +245,11 @@ button {
   .aa-header-actions .aa-badge {
     padding: var(--space-1) var(--space-2) !important;
     font-size: 10px !important;
+  }
+}
+@media (min-width: 641px) {
+  .aa-header-mobile-menu {
+    display: none !important;
   }
 }
 
