@@ -653,6 +653,22 @@ select.aa-input {
     left: auto !important;
     right: 3% !important;
   }
+  /* The handoff's "keep the middle 30-70% clear" assumes a desktop-width
+     centre column. On a phone the logo is 52vw, so it actually covers ~24-76%
+     — and it's an opaque JPG, so anything behind it vanishes rather than
+     showing through. idgaf at left: 22% landed under it; move it to the edge. */
+  .aa-pin--idgaf {
+    left: 3% !important;
+  }
+  /* Same problem vertically on store pages: the sticky header is opaque and
+     ~72px tall on mobile, so the top row (4-9%) hid behind it. Push below. */
+  .aa-pin--bad-bitch,
+  .aa-pin--cola {
+    top: 13% !important;
+  }
+  .aa-pin--getfly {
+    top: 14% !important;
+  }
   /* Bottom pair anchored to the bottom edge rather than by `top:` percentage,
      so they stay clear of the URL bar as it shows/hides. */
   .aa-pin--ddw-blue,
