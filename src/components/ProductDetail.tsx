@@ -7,7 +7,6 @@ import SizeChartPanel from "@/components/SizeChartPanel";
 import ProductCard from "@/components/ProductCard";
 import { useCart } from "@/lib/cart";
 import { trackPixel, PIXEL_CURRENCY } from "@/lib/pixel";
-import { useRequireRegion } from "@/lib/region";
 import { Button, Badge } from "./ui";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
@@ -23,7 +22,6 @@ export default function ProductDetail({
   sizeChart?: SizeChart | null;
   related?: Product[];
 }) {
-  const { ready } = useRequireRegion();
   const add = useCart((s) => s.add);
   const [active, setActive] = useState(0);
   const [qty, setQty] = useState(1);
@@ -79,8 +77,6 @@ export default function ProductDetail({
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product.handle]);
-
-  if (!ready) return null;
 
   const onAdd = () => {
     if (soldOut || selectedSizeSoldOut) return;

@@ -234,8 +234,7 @@ button {
     display: inline-flex !important;
     align-items: center;
   }
-  .aa-header-logo img,
-  .aa-header-logo div[data-logo-slot] {
+  .aa-header-logo img {
     width: 56px !important;
     height: 56px !important;
   }
@@ -495,13 +494,4 @@ select.aa-input {
 .glass {
   background: var(--surface-card);
   border: 1px solid var(--border-default);
-}
-
-/* ==========================================================================
-   Logo color-cycle animation (Home hero + header flight)
-   ========================================================================== */
-@keyframes aaLogoColorCycle {
-  0% { filter: url(#aaRecolorRed); }
-  25% { filter: url(#aaRecolorYellow); }
-  50%, 75%, 100% { filter: url(#aaRecolorPurple); }
 }

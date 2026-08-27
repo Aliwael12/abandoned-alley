@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useCart } from "@/lib/cart";
 import { trackPixel, PIXEL_CURRENCY } from "@/lib/pixel";
 import { getStoredAttribution } from "@/components/SessionTracker";
-import { useRequireRegion } from "@/lib/region";
 import {
   COUNTRY_EGYPT,
   COUNTRY_OTHER,
@@ -45,7 +44,6 @@ const initialForm: FormState = {
 };
 
 export default function CartContent() {
-  const { ready } = useRequireRegion();
   const items = useCart((s) => s.items);
   const setQty = useCart((s) => s.setQty);
   const remove = useCart((s) => s.remove);
@@ -164,8 +162,6 @@ export default function CartContent() {
       setSubmitting(false);
     }
   }
-
-  if (!ready) return null;
 
   const zipLabel = isEgypt ? "Postal code (optional)" : "ZIP code";
 

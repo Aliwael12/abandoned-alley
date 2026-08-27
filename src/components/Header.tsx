@@ -6,9 +6,8 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
 import { useCart } from "@/lib/cart";
-import { regionLabel, useRegion } from "@/lib/region";
 import { BagIcon } from "./Socials";
-import { NavLink, Badge } from "./ui";
+import { NavLink } from "./ui";
 
 const NAV = [
   { href: "/shop", label: "SHOP", match: ["/shop", "/products"] },
@@ -18,9 +17,7 @@ const NAV = [
 
 export default function Header() {
   const pathname = usePathname();
-  const isHome = pathname === "/home";
   const isCart = pathname === "/cart";
-  const region = useRegion((s) => s.region);
   const cartItems = useCart((s) => s.items);
   const cartCount = cartItems.reduce((n, i) => n + i.quantity, 0);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -80,18 +77,14 @@ export default function Header() {
         </button>
 
         <Link href="/home" aria-label="Abandoned Alley" className="aa-header-logo" style={{ justifySelf: "center" }}>
-          {isHome ? (
-            <div data-logo-slot="header" style={{ width: 104, height: 104 }} />
-          ) : (
-            <Image
-              src="/brand/logo-solid-black.png"
-              alt="Abandoned Alley"
-              width={104}
-              height={104}
-              style={{ objectFit: "contain", display: "block", filter: "url(#aaRecolorPurpleNav)" }}
-              priority
-            />
-          )}
+          <Image
+            src="/brand/logo-solid-black.png"
+            alt="Abandoned Alley"
+            width={104}
+            height={104}
+            style={{ objectFit: "contain", display: "block", filter: "url(#aaRecolorPurpleNav)" }}
+            priority
+          />
         </Link>
         <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden>
           <filter id="aaRecolorPurpleNav">
@@ -109,9 +102,6 @@ export default function Header() {
             justifySelf: "end",
           }}
         >
-          <Link href="/region">
-            <Badge variant="outline">{regionLabel(region)}</Badge>
-          </Link>
           {isCart ? (
             <span className="aa-nav-link" style={{ color: "var(--accent-default)" }}>
               <BagIcon size={20} />

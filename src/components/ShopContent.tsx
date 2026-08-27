@@ -4,7 +4,6 @@ import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { Product } from "@/lib/products";
 import type { CollectionMeta } from "@/lib/collections-server";
-import { useRequireRegion } from "@/lib/region";
 import { Button } from "./ui";
 import ProductCard from "./ProductCard";
 
@@ -15,13 +14,10 @@ export default function ShopContent({
   products: Product[];
   collections: CollectionMeta[];
 }) {
-  const { ready } = useRequireRegion();
   const searchParams = useSearchParams();
   const initial = searchParams.get("category")?.toUpperCase() ?? "ALL";
   const validFilters = useMemo(() => ["ALL", ...collections.map((c) => c.handle.toUpperCase())], [collections]);
   const [filter, setFilter] = useState(validFilters.includes(initial) ? initial : "ALL");
-
-  if (!ready) return null;
 
   const filtered =
     filter === "ALL" ? products : products.filter((p) => p.collection.toUpperCase() === filter);

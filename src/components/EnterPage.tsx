@@ -2,16 +2,14 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useRegion } from "@/lib/region";
 import { Button } from "./ui";
 import { InstagramIcon } from "./Socials";
 
 export default function EnterPage() {
   const router = useRouter();
-  const region = useRegion((s) => s.region);
 
   const enter = () => {
-    router.push(region ? "/home" : "/region");
+    router.push("/home");
   };
 
   return (
@@ -47,7 +45,7 @@ export default function EnterPage() {
       </div>
 
       <h1 className="aa-display-hero" style={{ fontSize: "var(--text-4xl)", color: "#1a1a1a" }}>
-        SHIIIIIIT
+        ABANDONED ALLEY
       </h1>
 
       <div

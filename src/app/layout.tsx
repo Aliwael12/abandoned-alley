@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import { Audiowide, Space_Mono } from "next/font/google";
+import { Audiowide, Space_Mono, Permanent_Marker } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import SessionTracker from "@/components/SessionTracker";
@@ -35,6 +35,12 @@ const spaceMono = Space_Mono({
   variable: "--font-space-mono",
   display: "swap",
 });
+const marker = Permanent_Marker({
+  weight: "400",
+  subsets: ["latin"],
+  variable: "--font-marker",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Abandoned Alley",
@@ -50,7 +56,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${anton.variable} ${pragmatica.variable} ${audiowide.variable} ${spaceMono.variable}`}
+      className={`${anton.variable} ${pragmatica.variable} ${audiowide.variable} ${spaceMono.variable} ${marker.variable}`}
     >
       <body>
         {META_PIXEL_IDS.length > 0 && (

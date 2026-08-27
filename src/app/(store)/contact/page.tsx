@@ -1,6 +1,4 @@
 import ContactForm from "@/components/ContactForm";
-import RegionGate from "@/components/RegionGate";
-import Link from "next/link";
 import { InstagramIcon } from "@/components/Socials";
 import { Card } from "@/components/ui";
 
@@ -8,7 +6,6 @@ export const metadata = { title: "Contact — Abandoned Alley" };
 
 export default function ContactPage() {
   return (
-    <RegionGate>
       <div className="aa-container" style={{ padding: "var(--space-16) var(--space-6)" }}>
         <div style={{ marginBottom: "var(--space-10)" }}>
           <div className="aa-eyebrow">CAIRO — NEW YORK</div>
@@ -53,17 +50,9 @@ export default function ContactPage() {
                 We currently ship within Egypt — Cairo &amp; Giza get the metro rate, other
                 governorates get the standard rate. Free returns within 14 days.
               </p>
-              <Link
-                href="/region"
-                className="aa-nav-link"
-                style={{ display: "inline-block", marginTop: "var(--space-3)", color: "var(--accent-active)" }}
-              >
-                SWITCH REGION →
-              </Link>
             </div>
           </div>
         </div>
       </div>
-    </RegionGate>
   );
 }

@@ -1,5 +1,4 @@
 import ProductCard from "@/components/ProductCard";
-import RegionGate from "@/components/RegionGate";
 import { getCollectionByHandle } from "@/lib/collections-server";
 import { getActiveProducts } from "@/lib/products-server";
 import Image from "next/image";
@@ -31,7 +30,6 @@ export default async function CollectionDetail({
   const items = all.filter((p) => p.collection === handle);
 
   return (
-    <RegionGate>
       <div className="aa-container" style={{ padding: "var(--space-16) var(--space-6)" }}>
         <div
           style={{
@@ -72,6 +70,5 @@ export default async function CollectionDetail({
           </div>
         )}
       </div>
-    </RegionGate>
   );
 }

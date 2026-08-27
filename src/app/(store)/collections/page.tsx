@@ -2,7 +2,6 @@ import { getAllCollections } from "@/lib/collections-server";
 import { getActiveProducts } from "@/lib/products-server";
 import Image from "next/image";
 import Link from "next/link";
-import RegionGate from "@/components/RegionGate";
 
 export const metadata = { title: "Collections — Abandoned Alley" };
 export const dynamic = "force-dynamic";
@@ -19,7 +18,6 @@ export default async function CollectionsPage() {
   }
 
   return (
-    <RegionGate>
       <div className="aa-container" style={{ padding: "var(--space-16) var(--space-6)" }}>
         <div style={{ marginBottom: "var(--space-10)" }}>
           <div className="aa-eyebrow">DROP 004 — FIVE WAYS IN</div>
@@ -91,6 +89,5 @@ export default async function CollectionsPage() {
           </div>
         )}
       </div>
-    </RegionGate>
   );
 }
