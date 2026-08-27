@@ -549,3 +549,99 @@ select.aa-input {
     padding: 0 var(--space-4);
   }
 }
+
+/* ==========================================================================
+   Pin animation — enamel-pin badges fly in, land with a bounce, hold, lift
+   off, repeat. Design handoff: design_handoff_pin_animation/README.md.
+   Fixed + zero pointer-events so it sits behind every page as a background,
+   not just the screen it happens to mount highest on.
+   ========================================================================== */
+.aa-pin-layer {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.aa-pin {
+  position: absolute;
+  height: auto;
+  animation: aaPinDrop 11s cubic-bezier(0.22, 0.9, 0.24, 1) infinite both;
+}
+
+@keyframes aaPinDrop {
+  0% {
+    opacity: 0;
+    transform: translate(var(--fx), var(--fy)) rotate(var(--fr)) scale(1.45);
+    filter: drop-shadow(0 42px 26px rgba(90, 60, 0, 0.28));
+  }
+  4% {
+    opacity: 1;
+  }
+  5.5% {
+    transform: translate(0, 0) rotate(var(--rot)) scale(1.07);
+    filter: drop-shadow(0 10px 10px rgba(90, 60, 0, 0.26));
+  }
+  6.8% {
+    transform: translate(0, 0) rotate(var(--rot)) scale(0.965);
+  }
+  8% {
+    transform: translate(0, 0) rotate(var(--rot)) scale(1.015);
+  }
+  9.2% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(var(--rot)) scale(1);
+    filter: drop-shadow(0 4px 5px rgba(90, 60, 0, 0.3));
+  }
+  84% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(var(--rot)) scale(1);
+    filter: drop-shadow(0 4px 5px rgba(90, 60, 0, 0.3));
+  }
+  90% {
+    opacity: 0;
+    transform: translate(0, -7vh) rotate(var(--rot)) scale(1.18);
+    filter: drop-shadow(0 30px 22px rgba(90, 60, 0, 0.2));
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--fx), var(--fy)) rotate(var(--fr)) scale(1.45);
+  }
+}
+
+@keyframes aaFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.aa-fade-up {
+  animation: aaFadeUp 0.6s ease-out both;
+}
+
+/* Nine ~80-100px badges is too much clutter once the viewport is this
+   narrow — the handoff's own suggested fallback is to drop the layer. */
+@media (max-width: 699px) {
+  .aa-pin-layer {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aa-pin {
+    animation: none;
+    opacity: 1;
+    transform: rotate(var(--rot));
+  }
+  .aa-fade-up {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}

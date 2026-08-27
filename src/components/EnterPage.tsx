@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useCart } from "@/lib/cart";
 import { InstagramIcon } from "./Socials";
+import PinAnimation from "./PinAnimation";
 
 const NAV = [
   { href: "/shop", label: "SHOP" },
@@ -47,6 +48,9 @@ export default function EnterPage() {
   const stamp = useCairoStamp();
   const cartItems = useCart((s) => s.items);
   const cartCount = cartItems.reduce((n, i) => n + i.quantity, 0);
+  // Bumping this remounts <PinAnimation>, restarting all nine loops from 0 —
+  // the "click the star to replay the pin drop" interaction from the handoff.
+  const [pinKey, setPinKey] = useState(0);
 
   return (
     <div
@@ -57,28 +61,43 @@ export default function EnterPage() {
         alignItems: "center",
         justifyContent: "center",
         padding: "var(--space-8) var(--space-6)",
-        background: "var(--surface-page)",
         textAlign: "center",
         position: "relative",
       }}
     >
-      <Image
-        src="/brand/logo-season-star-purple-yellow.jpg"
-        alt="Abandoned Alley"
-        width={420}
-        height={420}
-        priority
+      <PinAnimation key={pinKey} />
+
+      <button
+        type="button"
+        onClick={() => setPinKey((k) => k + 1)}
+        aria-label="Replay pin animation"
+        className="aa-fade-up"
         style={{
-          width: "min(52vw, 34vh, 340px)",
-          height: "min(52vw, 34vh, 340px)",
-          objectFit: "cover",
-          clipPath: "inset(0 0 2% 0)",
+          background: "none",
+          border: "none",
+          padding: 0,
+          cursor: "pointer",
+          animationDelay: "0.05s",
         }}
-      />
+      >
+        <Image
+          src="/brand/logo-season-star-purple-yellow.jpg"
+          alt="Abandoned Alley"
+          width={420}
+          height={420}
+          priority
+          style={{
+            width: "min(52vw, 34vh, 340px)",
+            height: "min(52vw, 34vh, 340px)",
+            objectFit: "cover",
+            clipPath: "inset(0 0 2% 0)",
+          }}
+        />
+      </button>
 
       {/* Primary navigation — the landing page is the menu */}
       <nav
-        className="aa-enter-nav"
+        className="aa-enter-nav aa-fade-up"
         style={{
           display: "flex",
           alignItems: "center",
@@ -86,6 +105,7 @@ export default function EnterPage() {
           flexWrap: "wrap",
           gap: "var(--space-8)",
           marginTop: "var(--space-8)",
+          animationDelay: "0.18s",
         }}
       >
         {NAV.map((item) => (
@@ -99,18 +119,20 @@ export default function EnterPage() {
       </nav>
 
       <div
-        className="aa-body"
+        className="aa-body aa-fade-up"
         style={{
           fontWeight: 600,
           letterSpacing: "var(--tracking-label)",
           color: "var(--text-primary)",
           marginTop: "var(--space-8)",
+          animationDelay: "0.3s",
         }}
       >
         FRIDAY · 04 SEPTEMBER 2026 · 20:00 CAIRO
       </div>
 
       <div
+        className="aa-fade-up"
         style={{
           display: "flex",
           alignItems: "center",
@@ -118,6 +140,7 @@ export default function EnterPage() {
           marginTop: "var(--space-4)",
           flexWrap: "wrap",
           justifyContent: "center",
+          animationDelay: "0.42s",
         }}
       >
         <a
@@ -138,16 +161,17 @@ export default function EnterPage() {
 
       {/* Live Cairo stamp, pinned to the bottom like the reference layout */}
       <div
-        className="aa-caption aa-enter-stamp"
+        className="aa-caption aa-enter-stamp aa-fade-up"
         style={{
           position: "absolute",
           bottom: "var(--space-6)",
           left: 0,
           right: 0,
           color: "var(--text-muted)",
+          animationDelay: "0.54s",
         }}
       >
-        {stamp ?? " "}
+        {stamp ?? " "}
       </div>
     </div>
   );
