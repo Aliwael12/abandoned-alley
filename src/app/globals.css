@@ -639,44 +639,26 @@ select.aa-input {
   animation: aaFadeUp 0.6s ease-out both;
 }
 
-/* Nine ~80-100px badges crowd a phone screen, so keep only the four corner
-   pins and shrink them — the handoff's preferred narrow-screen fallback.
-   Anchor each to its own edge rather than reusing the desktop percentage
-   positions: at 62px wide, `left: 90%` overflows a 390px screen, and
-   bottom pins positioned by `top: 8x%` sit too low to read as corners. */
+/* All nine pins run on phones too, just scaled down — the inline widths use
+   `max(Nvw, ~80-96px)` px floors that are sized for desktop and would eat a
+   quarter of a 390px screen each. */
 @media (max-width: 699px) {
-  .aa-pin:not(.aa-pin--corner) {
-    display: none;
+  .aa-pin {
+    width: 50px !important;
   }
-  .aa-pin--corner {
-    width: 62px !important;
-  }
-  /* Re-stagger too: the desktop delays are spread across nine pins, so the
-     four survivors would land at 0s, 0.7s, 4.2s and 4.9s — leaving a ~3.5s
-     gap where the bottom half of the screen looks empty. */
-  .aa-pin--tl {
-    left: 4% !important;
-    top: 7% !important;
-    animation-delay: 0s !important;
-  }
-  .aa-pin--tr {
+  /* These two sit at left: 88%/90%, which at 50px wide runs past the right
+     edge — anchor them to that edge instead. */
+  .aa-pin--i-love-aa,
+  .aa-pin--ddw-video {
     left: auto !important;
-    right: 4% !important;
-    top: 6% !important;
-    animation-delay: 0.5s !important;
+    right: 3% !important;
   }
-  .aa-pin--bl {
+  /* Bottom pair anchored to the bottom edge rather than by `top:` percentage,
+     so they stay clear of the URL bar as it shows/hides. */
+  .aa-pin--ddw-blue,
+  .aa-pin--ddw-video {
     top: auto !important;
-    bottom: 7% !important;
-    left: 5% !important;
-    animation-delay: 1s !important;
-  }
-  .aa-pin--br {
-    top: auto !important;
-    bottom: 6% !important;
-    left: auto !important;
-    right: 5% !important;
-    animation-delay: 1.5s !important;
+    bottom: 8% !important;
   }
 }
 
