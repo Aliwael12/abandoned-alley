@@ -12,6 +12,7 @@ import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function ProductDetail({
   product,
@@ -108,6 +109,9 @@ export default function ProductDetail({
   };
 
   const activeMedia = product.media[active];
+  const hasMultipleMedia = product.media.length > 1;
+  const goPrev = () => setActive((i) => (i - 1 + product.media.length) % product.media.length);
+  const goNext = () => setActive((i) => (i + 1) % product.media.length);
 
   return (
     <div className="aa-container" style={{ padding: "var(--space-12) var(--space-6)" }}>
@@ -164,41 +168,83 @@ export default function ProductDetail({
                 )}
               </motion.div>
             </AnimatePresence>
-          </div>
-          {product.media.length > 1 && (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "var(--space-3)", marginTop: "var(--space-3)" }}>
-              {product.media.map((m, i) => {
-                // The main/cover image (index 0) is already the big display —
-                // the carousel below it only surfaces the other shots.
-                if (i === 0) return null;
-                return (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => setActive(i)}
-                    aria-label={`View ${m.type} ${i + 1}`}
-                    style={{
-                      position: "relative",
-                      aspectRatio: "1 / 1",
-                      border: active === i ? "1px solid var(--accent-default)" : "1px solid var(--border-default)",
-                      background: "var(--surface-card-alt)",
-                      padding: 0,
-                      cursor: "pointer",
-                    }}
-                  >
-                    <Image
-                      src={m.type === "image" ? m.src : m.poster ?? coverImage}
-                      alt=""
-                      fill
-                      sizes="120px"
-                      style={{ objectFit: "cover" }}
-                      unoptimized
+
+            {hasMultipleMedia && (
+              <>
+                <button
+                  type="button"
+                  onClick={goPrev}
+                  aria-label="Previous image"
+                  style={{
+                    position: "absolute",
+                    top: "50%",
+                    left: "var(--space-3)",
+                    transform: "translateY(-50%)",
+                    zIndex: 2,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: 40,
+                    height: 40,
+                    borderRadius: "50%",
+                    border: "none",
+                    background: "rgba(255,255,255,0.85)",
+                    color: "var(--text-primary)",
+                    cursor: "pointer",
+                  }}
+                >
+                  <ChevronLeft size={20} />
+                </button>
+                <button
+                  type="button"
+                  onClick={goNext}
+                  aria-label="Next image"
+                  style={{
+                    position: "absolute",
+                    top: "50%",
+                    right: "var(--space-3)",
+                    transform: "translateY(-50%)",
+                    zIndex: 2,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: 40,
+                    height: 40,
+                    borderRadius: "50%",
+                    border: "none",
+                    background: "rgba(255,255,255,0.85)",
+                    color: "var(--text-primary)",
+                    cursor: "pointer",
+                  }}
+                >
+                  <ChevronRight size={20} />
+                </button>
+                <div
+                  style={{
+                    position: "absolute",
+                    bottom: "var(--space-3)",
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    zIndex: 2,
+                    display: "flex",
+                    gap: "var(--space-2)",
+                  }}
+                >
+                  {product.media.map((_, i) => (
+                    <span
+                      key={i}
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: "50%",
+                        background: i === active ? "var(--text-on-accent)" : "rgba(255,255,255,0.5)",
+                      }}
                     />
-                  </button>
-                );
-              })}
-            </div>
-          )}
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Info */}
