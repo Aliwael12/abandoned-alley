@@ -72,8 +72,36 @@ export async function getProductByHandle(handle: string): Promise<Product | null
   return fallback ?? null;
 }
 
+const isPlainObject = (v: unknown): v is Record<string, unknown> =>
+  typeof v === "object" &&
+  v !== null &&
+  [Object.prototype, null].includes(Object.getPrototypeOf(v));
+
+/**
+ * Firestore rejects `undefined` field values outright ("Unsupported field
+ * value: undefined"), and a Product legitimately carries optional fields —
+ * `sizeChartId` on a product with no chart, `alt`/`poster` on media entries.
+ * Drop those keys instead of sending them, so an absent option is written as
+ * an absent field. Only plain objects/arrays are walked, to avoid mangling
+ * FieldValue sentinels like serverTimestamp().
+ */
+function stripUndefined<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map((v) => stripUndefined(v)) as unknown as T;
+  }
+  if (isPlainObject(value)) {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value)) {
+      if (v === undefined) continue;
+      out[k] = stripUndefined(v);
+    }
+    return out as T;
+  }
+  return value;
+}
+
 export async function upsertProduct(p: Product): Promise<void> {
-  const docData: ProductDoc = { ...p, updatedAt: serverTimestamp() };
+  const docData: ProductDoc = { ...stripUndefined(p), updatedAt: serverTimestamp() };
   await setDoc(doc(db, COL, p.handle), docData);
 }
 
