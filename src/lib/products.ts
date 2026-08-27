@@ -32,6 +32,8 @@ export type Product = {
   stock?: StockMap;
   /** Handle of the assigned size chart in Firestore. */
   sizeChartId?: string;
+  /** Explicit display order for shop/collection listings; lower sorts first. Products without one sort after those that have it, alphabetically by title. */
+  sortOrder?: number;
 };
 
 export const products: Product[] = [

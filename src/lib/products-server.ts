@@ -33,7 +33,16 @@ function normalize(raw: Record<string, unknown>): Product | null {
       typeof raw.sizeChartId === "string" && raw.sizeChartId.trim()
         ? raw.sizeChartId.trim()
         : undefined,
+    sortOrder: Number.isFinite(Number(raw.sortOrder)) ? Number(raw.sortOrder) : undefined,
   };
+}
+
+/** Explicit sortOrder first (ascending); products without one sort after those that have it, alphabetically by title. */
+function byDisplayOrder(a: Product, b: Product): number {
+  if (a.sortOrder !== undefined && b.sortOrder !== undefined) return a.sortOrder - b.sortOrder;
+  if (a.sortOrder !== undefined) return -1;
+  if (b.sortOrder !== undefined) return 1;
+  return a.title.localeCompare(b.title);
 }
 
 /**
@@ -46,7 +55,8 @@ export async function getAllProducts(): Promise<Product[]> {
     if (!snap.empty) {
       return snap.docs
         .map((d) => normalize(d.data() as Record<string, unknown>))
-        .filter((p): p is Product => p !== null);
+        .filter((p): p is Product => p !== null)
+        .sort(byDisplayOrder);
     }
   } catch (err) {
     console.error("Firestore products fetch failed, using static seed:", err);
