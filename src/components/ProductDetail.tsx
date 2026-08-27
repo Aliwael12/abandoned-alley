@@ -28,6 +28,12 @@ export default function ProductDetail({
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
 
+  // The pin pack is the one product where a size ("Pack of 3"/"Pack of 5")
+  // isn't the whole story — the shopper also picks which specific designs
+  // fill it. Everything gated on `isPinProduct` below is that extra step.
+  const isPinProduct = product.handle === "pin-pack";
+  const [selectedPins, setSelectedPins] = useState<number[]>([]);
+
   const soldOut = useMemo(() => isProductSoldOut(product), [product]);
   const categoryLabel = product.collection.replace(/-/g, " ");
 
@@ -49,13 +55,25 @@ export default function ProductDetail({
   const selectedSize = selected["Size"] ?? "";
   const selectedSizeSoldOut = !!selectedSize && isSizeSoldOut(product, selectedSize);
   const available = selectedSize ? stockForSize(product.stock, selectedSize) : 0;
+  const pinPackCount = isPinProduct ? Number(selectedSize.replace(/\D/g, "")) || 0 : 0;
 
   function selectOption(name: string, value: string) {
     setSelected({ ...selected, [name]: value });
     if (name === "Size") {
       const avail = stockForSize(product.stock, value);
       if (avail > 0 && qty > avail) setQty(avail);
+      // A different pack size means a different pin count to fill — start
+      // over rather than carrying a stale, possibly-too-long selection.
+      if (isPinProduct) setSelectedPins([]);
     }
+  }
+
+  function togglePin(i: number) {
+    setSelectedPins((prev) => {
+      if (prev.includes(i)) return prev.filter((x) => x !== i);
+      if (prev.length >= pinPackCount) return prev;
+      return [...prev, i];
+    });
   }
 
   const matchedVariant = useMemo(() => {
@@ -81,18 +99,41 @@ export default function ProductDetail({
 
   const onAdd = () => {
     if (soldOut || selectedSizeSoldOut) return;
+    if (isPinProduct && selectedPins.length !== pinPackCount) return;
     if (available > 0 && qty > available) {
       setQty(available);
       return;
     }
+
+    // Fold the chosen designs into the title (shown in cart/checkout/order
+    // emails/admin) rather than variantTitle, which the stock-decrement path
+    // reads verbatim as the size key ("Pack of 3") — encoding pin names into
+    // it would break that lookup. The synthetic variantId keeps different
+    // pin combos as separate cart lines instead of merging their quantities.
+    let cartTitle = product.title;
+    let cartImage = coverImage;
+    let cartVariantId = matchedVariant.id;
+    if (isPinProduct) {
+      const chosenNames: string[] = [];
+      for (const i of selectedPins) {
+        const m = product.media[i];
+        if (m.type === "image") {
+          if (m.alt) chosenNames.push(m.alt);
+          if (cartImage === coverImage) cartImage = m.src;
+        }
+      }
+      if (chosenNames.length) cartTitle = `${product.title} — ${chosenNames.join(", ")}`;
+      cartVariantId = `${matchedVariant.id}-${selectedPins.slice().sort((a, b) => a - b).join("-")}`;
+    }
+
     add(
       {
         productHandle: product.handle,
-        variantId: matchedVariant.id,
-        title: product.title,
+        variantId: cartVariantId,
+        title: cartTitle,
         variantTitle: matchedVariant.title,
         price: matchedVariant.price,
-        image: coverImage,
+        image: cartImage,
       },
       qty
     );
@@ -296,6 +337,63 @@ export default function ProductDetail({
             );
           })}
 
+          {isPinProduct && selectedSize && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+              <div className="aa-eyebrow">
+                CHOOSE YOUR PINS ({selectedPins.length}/{pinPackCount})
+              </div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(3, 1fr)",
+                  gap: "var(--space-3)",
+                }}
+              >
+                {product.media.map((m, i) => {
+                  if (m.type !== "image") return null;
+                  const isChosen = selectedPins.includes(i);
+                  const disable = !isChosen && selectedPins.length >= pinPackCount;
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => togglePin(i)}
+                      disabled={disable}
+                      aria-pressed={isChosen}
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: "var(--space-2)",
+                        padding: "var(--space-2)",
+                        border: isChosen
+                          ? "2px solid var(--accent-default)"
+                          : "1px solid var(--border-default)",
+                        background: "var(--surface-card-alt)",
+                        cursor: disable ? "not-allowed" : "pointer",
+                        opacity: disable ? 0.4 : 1,
+                      }}
+                    >
+                      <div style={{ position: "relative", width: "100%", aspectRatio: "1 / 1" }}>
+                        <Image
+                          src={m.src}
+                          alt={m.alt ?? ""}
+                          fill
+                          sizes="120px"
+                          style={{ objectFit: "contain" }}
+                          unoptimized
+                        />
+                      </div>
+                      <span className="aa-caption" style={{ textAlign: "center" }}>
+                        {m.alt}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {!soldOut && (
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
               <div className="aa-eyebrow">QTY</div>
@@ -328,14 +426,26 @@ export default function ProductDetail({
             variant="primary"
             size="lg"
             onClick={onAdd}
-            disabled={soldOut || selectedSizeSoldOut}
+            disabled={
+              soldOut ||
+              selectedSizeSoldOut ||
+              (isPinProduct && selectedPins.length !== pinPackCount)
+            }
             style={{ width: "100%" }}
           >
-            {soldOut || selectedSizeSoldOut ? "SOLD OUT" : added ? "ADDED ✓" : "ADD TO BAG"}
+            {soldOut || selectedSizeSoldOut
+              ? "SOLD OUT"
+              : isPinProduct && selectedPins.length !== pinPackCount
+                ? `CHOOSE ${pinPackCount} PINS`
+                : added
+                  ? "ADDED ✓"
+                  : "ADD TO BAG"}
           </Button>
 
           <div style={{ height: 1, background: "var(--border-subtle)" }} />
-          <p className="aa-caption">CARE: Machine wash cold, hang dry.</p>
+          <p className="aa-caption">
+            {isPinProduct ? "CARE: Wipe clean, keep dry." : "CARE: Machine wash cold, hang dry."}
+          </p>
           <p className="aa-caption">Ships from Cairo · Free returns within 14 days.</p>
         </div>
       </div>
