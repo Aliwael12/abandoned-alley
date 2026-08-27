@@ -95,17 +95,9 @@ export default function ProductCard({ product }: { product: Product }) {
             })
           )}
         </div>
-        <div style={{ padding: "var(--space-4) var(--space-5)" }}>
+        <div className="aa-card-body" style={{ padding: "var(--space-4) var(--space-5)" }}>
           <div className="aa-eyebrow">{categoryLabel}</div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "baseline",
-              justifyContent: "space-between",
-              gap: "var(--space-2)",
-              marginTop: "var(--space-1)",
-            }}
-          >
+          <div className="aa-card-meta">
             <h3 className="aa-display-h3">{product.title}</h3>
             {soldOut ? (
               <p className="aa-caption">Sold out</p>

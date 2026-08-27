@@ -199,7 +199,13 @@ button {
   .aa-grid { grid-template-columns: repeat(8, 1fr); }
 }
 @media (max-width: 639px) {
-  .aa-grid { grid-template-columns: repeat(4, 1fr); }
+  .aa-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-3);
+  }
+  /* Two cards per row on phones. Call sites set `span 4` inline, so this has
+     to win over the inline style. */
+  .aa-grid > * { grid-column: span 2 !important; }
 }
 
 @media (max-width: 767px) {
@@ -456,6 +462,25 @@ select.aa-input {
 }
 .aa-card--interactive:hover { border-color: var(--border-strong); }
 .aa-card--interactive:active { border-color: var(--accent-default); }
+
+/* Product card meta: title and price sit side by side, but there is no room
+   for that once two cards share a phone screen. */
+.aa-card-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+@media (max-width: 639px) {
+  .aa-card-body { padding: var(--space-3) !important; }
+  .aa-card-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-1);
+  }
+  .aa-card-meta .aa-display-h3 { font-size: var(--text-base); }
+}
 
 /* ==========================================================================
    Badge
