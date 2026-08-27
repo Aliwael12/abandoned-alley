@@ -564,7 +564,15 @@ select.aa-input {
    content sits above it via its own explicit z-index. */
 .aa-pin-layer {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  /* Not `inset: 0` / `100vh`: on mobile those resolve against the *large*
+     viewport (URL bar hidden), so percentage-positioned pins near the bottom
+     landed below the visible area until a scroll collapsed the bar. `dvh`
+     tracks the actually-visible height. */
+  height: 100vh;
+  height: 100dvh;
   z-index: 0;
   overflow: hidden;
   pointer-events: none;
@@ -632,13 +640,43 @@ select.aa-input {
 }
 
 /* Nine ~80-100px badges crowd a phone screen, so keep only the four corner
-   pins and shrink them — the handoff's preferred narrow-screen fallback. */
+   pins and shrink them — the handoff's preferred narrow-screen fallback.
+   Anchor each to its own edge rather than reusing the desktop percentage
+   positions: at 62px wide, `left: 90%` overflows a 390px screen, and
+   bottom pins positioned by `top: 8x%` sit too low to read as corners. */
 @media (max-width: 699px) {
   .aa-pin:not(.aa-pin--corner) {
     display: none;
   }
   .aa-pin--corner {
     width: 62px !important;
+  }
+  /* Re-stagger too: the desktop delays are spread across nine pins, so the
+     four survivors would land at 0s, 0.7s, 4.2s and 4.9s — leaving a ~3.5s
+     gap where the bottom half of the screen looks empty. */
+  .aa-pin--tl {
+    left: 4% !important;
+    top: 7% !important;
+    animation-delay: 0s !important;
+  }
+  .aa-pin--tr {
+    left: auto !important;
+    right: 4% !important;
+    top: 6% !important;
+    animation-delay: 0.5s !important;
+  }
+  .aa-pin--bl {
+    top: auto !important;
+    bottom: 7% !important;
+    left: 5% !important;
+    animation-delay: 1s !important;
+  }
+  .aa-pin--br {
+    top: auto !important;
+    bottom: 6% !important;
+    left: auto !important;
+    right: 5% !important;
+    animation-delay: 1.5s !important;
   }
 }
 
