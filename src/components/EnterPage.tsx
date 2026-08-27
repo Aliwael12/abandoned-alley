@@ -62,10 +62,6 @@ export default function EnterPage() {
         position: "relative",
       }}
     >
-      <div className="aa-eyebrow" style={{ color: "var(--accent-default)" }}>
-        DROP 004
-      </div>
-
       <Image
         src="/brand/logo-season-star-purple-yellow.jpg"
         alt="Abandoned Alley"
@@ -77,7 +73,6 @@ export default function EnterPage() {
           height: "min(52vw, 34vh, 340px)",
           objectFit: "cover",
           clipPath: "inset(0 0 2% 0)",
-          marginTop: "var(--space-3)",
         }}
       />
 
@@ -139,9 +134,6 @@ export default function EnterPage() {
         >
           <InstagramIcon size={18} /> @AA.COLLECTIVES
         </a>
-        <Link href="/policies" className="aa-caption" style={{ color: "var(--text-muted)" }}>
-          TERMS &amp; POLICIES
-        </Link>
       </div>
 
       {/* Live Cairo stamp, pinned to the bottom like the reference layout */}

@@ -14,7 +14,7 @@ import {
   resolveZone,
   type ShippingFees,
 } from "@/lib/shipping";
-import { Button, Card, Badge, Input } from "./ui";
+import { Button, Card, Input } from "./ui";
 import PurchaseTracker from "./PurchaseTracker";
 
 type Step = "cart" | "checkout" | "confirmed";
@@ -300,16 +300,12 @@ export default function CartContent() {
                 )}
               </Card>
 
-              <Card style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "var(--space-2)" }}>
-                  <div className="aa-eyebrow">PAYMENT</div>
-                  <Badge variant="neutral">DEMO — NO PAYMENT PROCESSED</Badge>
-                </div>
-                <Input placeholder="Card number" disabled />
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-4)" }} className="aa-cart-grid">
-                  <Input placeholder="MM / YY" disabled />
-                  <Input placeholder="CVC" disabled />
-                </div>
+              <Card style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+                <div className="aa-eyebrow">PAYMENT</div>
+                <p className="aa-body">Cash on delivery.</p>
+                <p className="aa-caption">
+                  Pay the courier in cash when your order arrives. Nothing is charged now.
+                </p>
               </Card>
 
               {error && <p className="aa-caption" style={{ color: "var(--graphic-red)" }}>{error}</p>}
