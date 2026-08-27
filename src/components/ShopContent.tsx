@@ -3,24 +3,22 @@
 import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { Product } from "@/lib/products";
-import type { CollectionMeta } from "@/lib/collections-server";
 import { Button } from "./ui";
 import ProductCard from "./ProductCard";
 
-export default function ShopContent({
-  products,
-  collections,
-}: {
-  products: Product[];
-  collections: CollectionMeta[];
-}) {
-  const searchParams = useSearchParams();
-  const initial = searchParams.get("category")?.toUpperCase() ?? "ALL";
-  const validFilters = useMemo(() => ["ALL", ...collections.map((c) => c.handle.toUpperCase())], [collections]);
-  const [filter, setFilter] = useState(validFilters.includes(initial) ? initial : "ALL");
+const CATEGORIES = [
+  { value: "tees", label: "TEES" },
+  { value: "sweats", label: "SWEATS" },
+  { value: "accessories", label: "ACCESSORIES" },
+];
 
-  const filtered =
-    filter === "ALL" ? products : products.filter((p) => p.collection.toUpperCase() === filter);
+export default function ShopContent({ products }: { products: Product[] }) {
+  const searchParams = useSearchParams();
+  const initial = searchParams.get("category")?.toLowerCase() ?? "all";
+  const validFilters = useMemo(() => ["all", ...CATEGORIES.map((c) => c.value)], []);
+  const [filter, setFilter] = useState(validFilters.includes(initial) ? initial : "all");
+
+  const filtered = filter === "all" ? products : products.filter((p) => p.category === filter);
 
   return (
     <div className="aa-container" style={{ padding: "var(--space-16) var(--space-6)" }}>
@@ -34,20 +32,20 @@ export default function ShopContent({
 
       <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap", marginBottom: "var(--space-8)" }}>
         <Button
-          variant={filter === "ALL" ? "primary" : "secondary"}
+          variant={filter === "all" ? "primary" : "secondary"}
           size="sm"
-          onClick={() => setFilter("ALL")}
+          onClick={() => setFilter("all")}
         >
           ALL
         </Button>
-        {collections.map((c) => (
+        {CATEGORIES.map((c) => (
           <Button
-            key={c.handle}
-            variant={filter === c.handle.toUpperCase() ? "primary" : "secondary"}
+            key={c.value}
+            variant={filter === c.value ? "primary" : "secondary"}
             size="sm"
-            onClick={() => setFilter(c.handle.toUpperCase())}
+            onClick={() => setFilter(c.value)}
           >
-            {c.title}
+            {c.label}
           </Button>
         ))}
       </div>

@@ -34,6 +34,8 @@ export type Product = {
   sizeChartId?: string;
   /** Explicit display order for shop/collection listings; lower sorts first. Products without one sort after those that have it, alphabetically by title. */
   sortOrder?: number;
+  /** Garment category, used to filter the shop page independently of `collection` (the drop/season). */
+  category?: "tees" | "sweats" | "accessories";
 };
 
 export const products: Product[] = [

@@ -34,6 +34,10 @@ function normalize(raw: Record<string, unknown>): Product | null {
         ? raw.sizeChartId.trim()
         : undefined,
     sortOrder: Number.isFinite(Number(raw.sortOrder)) ? Number(raw.sortOrder) : undefined,
+    category:
+      raw.category === "tees" || raw.category === "sweats" || raw.category === "accessories"
+        ? raw.category
+        : undefined,
   };
 }
 
