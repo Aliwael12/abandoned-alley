@@ -556,10 +556,16 @@ select.aa-input {
    Fixed + zero pointer-events so it sits behind every page as a background,
    not just the screen it happens to mount highest on.
    ========================================================================== */
+/* z-index 0, NOT -1. `body` paints an opaque --surface-page background, and
+   in CSS painting order a negative-z-index stacking context (step 2) is drawn
+   *before* an in-flow non-positioned descendant's background (step 3) — so at
+   -1 the body background covered these pins completely, at every viewport
+   size. At 0 the layer paints in step 6, above the body background; page
+   content sits above it via its own explicit z-index. */
 .aa-pin-layer {
   position: fixed;
   inset: 0;
-  z-index: -1;
+  z-index: 0;
   overflow: hidden;
   pointer-events: none;
 }
@@ -625,11 +631,14 @@ select.aa-input {
   animation: aaFadeUp 0.6s ease-out both;
 }
 
-/* Nine ~80-100px badges is too much clutter once the viewport is this
-   narrow — the handoff's own suggested fallback is to drop the layer. */
+/* Nine ~80-100px badges crowd a phone screen, so keep only the four corner
+   pins and shrink them — the handoff's preferred narrow-screen fallback. */
 @media (max-width: 699px) {
-  .aa-pin-layer {
+  .aa-pin:not(.aa-pin--corner) {
     display: none;
+  }
+  .aa-pin--corner {
+    width: 62px !important;
   }
 }
 

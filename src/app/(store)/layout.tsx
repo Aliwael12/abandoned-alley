@@ -7,7 +7,11 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
     <>
       <PinAnimation />
       <Header />
-      <main className="relative">{children}</main>
+      {/* Explicit z-index (not `auto`) so this creates a stacking context and
+          lifts all page content above the fixed pin layer behind it. */}
+      <main className="relative" style={{ zIndex: 1 }}>
+        {children}
+      </main>
       <Footer />
     </>
   );

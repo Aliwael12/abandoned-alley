@@ -78,6 +78,8 @@ export default function EnterPage() {
           padding: 0,
           cursor: "pointer",
           animationDelay: "0.05s",
+          position: "relative",
+          zIndex: 1,
         }}
       >
         <Image
@@ -106,6 +108,8 @@ export default function EnterPage() {
           gap: "var(--space-8)",
           marginTop: "var(--space-8)",
           animationDelay: "0.18s",
+          position: "relative",
+          zIndex: 1,
         }}
       >
         {NAV.map((item) => (
@@ -126,6 +130,8 @@ export default function EnterPage() {
           color: "var(--text-primary)",
           marginTop: "var(--space-8)",
           animationDelay: "0.3s",
+          position: "relative",
+          zIndex: 1,
         }}
       >
         FRIDAY · 04 SEPTEMBER 2026 · 20:00 CAIRO
@@ -141,6 +147,8 @@ export default function EnterPage() {
           flexWrap: "wrap",
           justifyContent: "center",
           animationDelay: "0.42s",
+          position: "relative",
+          zIndex: 1,
         }}
       >
         <a
@@ -169,6 +177,7 @@ export default function EnterPage() {
           right: 0,
           color: "var(--text-muted)",
           animationDelay: "0.54s",
+          zIndex: 1,
         }}
       >
         {stamp ?? " "}
