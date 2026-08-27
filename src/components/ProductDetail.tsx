@@ -205,7 +205,10 @@ export default function ProductDetail({
             EGP {matchedVariant.price.toFixed(2)}
           </p>
           <div style={{ height: 1, background: "var(--border-default)" }} />
-          <p className="aa-body" style={{ color: "var(--text-muted)", maxWidth: 420 }}>
+          <p
+            className="aa-body"
+            style={{ color: "var(--text-muted)", maxWidth: 420, whiteSpace: "pre-line" }}
+          >
             {product.description}
           </p>
 
