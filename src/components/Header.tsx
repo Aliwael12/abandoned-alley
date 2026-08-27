@@ -76,7 +76,7 @@ export default function Header() {
           {menuOpen ? <X size={22} /> : <Menu size={22} />}
         </button>
 
-        <Link href="/home" aria-label="Abandoned Alley" className="aa-header-logo" style={{ justifySelf: "center" }}>
+        <Link href="/" aria-label="Abandoned Alley" className="aa-header-logo" style={{ justifySelf: "center" }}>
           <Image
             src="/brand/logo-solid-black.png"
             alt="Abandoned Alley"

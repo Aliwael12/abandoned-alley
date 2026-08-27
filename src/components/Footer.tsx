@@ -47,7 +47,7 @@ export default function Footer() {
             SHOP
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-            <Link href="/home" className="aa-body" style={{ color: "var(--text-on-accent)" }}>Home</Link>
+            <Link href="/" className="aa-body" style={{ color: "var(--text-on-accent)" }}>Home</Link>
             <Link href="/shop" className="aa-body" style={{ color: "var(--text-on-accent)" }}>All products</Link>
             <Link href="/collections" className="aa-body" style={{ color: "var(--text-on-accent)" }}>Collections</Link>
             <Link href="/cart" className="aa-body" style={{ color: "var(--text-on-accent)" }}>Bag</Link>

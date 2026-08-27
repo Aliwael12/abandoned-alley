@@ -495,3 +495,32 @@ select.aa-input {
   background: var(--surface-card);
   border: 1px solid var(--border-default);
 }
+
+/* ==========================================================================
+   Enter / landing page — the page itself is the navigation
+   ========================================================================== */
+.aa-enter-link {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  letter-spacing: var(--tracking-nav);
+  text-transform: uppercase;
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: color var(--duration-fast) var(--ease-snap);
+}
+.aa-enter-link:hover {
+  color: var(--accent-default);
+}
+
+@media (max-width: 640px) {
+  .aa-enter-nav {
+    gap: var(--space-4) !important;
+  }
+  .aa-enter-link {
+    font-size: var(--text-base);
+  }
+  .aa-enter-stamp {
+    font-size: 10px;
+    padding: 0 var(--space-4);
+  }
+}
