@@ -149,10 +149,14 @@ export default function ProductDetail({
     setTimeout(() => setAdded(false), 1800);
   };
 
-  const activeMedia = product.media[active];
-  const hasMultipleMedia = product.media.length > 1;
-  const goPrev = () => setActive((i) => (i - 1 + product.media.length) % product.media.length);
-  const goNext = () => setActive((i) => (i + 1) % product.media.length);
+  // The pin pack's gallery is just its single cover collage — the other
+  // media entries are pin designs for the picker below, not extra photos to
+  // swipe through.
+  const galleryMedia = isPinProduct ? product.media.slice(0, 1) : product.media;
+  const activeMedia = galleryMedia[active] ?? galleryMedia[0];
+  const hasMultipleMedia = galleryMedia.length > 1;
+  const goPrev = () => setActive((i) => (i - 1 + galleryMedia.length) % galleryMedia.length);
+  const goNext = () => setActive((i) => (i + 1) % galleryMedia.length);
 
   return (
     <div className="aa-container" style={{ padding: "var(--space-12) var(--space-6)" }}>
@@ -271,7 +275,7 @@ export default function ProductDetail({
                     gap: "var(--space-2)",
                   }}
                 >
-                  {product.media.map((_, i) => (
+                  {galleryMedia.map((_, i) => (
                     <span
                       key={i}
                       style={{
@@ -350,7 +354,8 @@ export default function ProductDetail({
                 }}
               >
                 {product.media.map((m, i) => {
-                  if (m.type !== "image") return null;
+                  // Index 0 is the cover collage, not a selectable design.
+                  if (i === 0 || m.type !== "image") return null;
                   const isChosen = selectedPins.includes(i);
                   const disable = !isChosen && selectedPins.length >= pinPackCount;
                   return (
