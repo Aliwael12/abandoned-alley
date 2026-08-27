@@ -165,33 +165,40 @@ export default function ProductDetail({
               </motion.div>
             </AnimatePresence>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "var(--space-3)", marginTop: "var(--space-3)" }}>
-            {product.media.slice(0, 3).map((m, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => setActive(i)}
-                aria-label={`View ${m.type} ${i + 1}`}
-                style={{
-                  position: "relative",
-                  aspectRatio: "1 / 1",
-                  border: active === i ? "1px solid var(--accent-default)" : "1px solid var(--border-default)",
-                  background: "var(--surface-card-alt)",
-                  padding: 0,
-                  cursor: "pointer",
-                }}
-              >
-                <Image
-                  src={m.type === "image" ? m.src : m.poster ?? coverImage}
-                  alt=""
-                  fill
-                  sizes="120px"
-                  style={{ objectFit: "cover" }}
-                  unoptimized
-                />
-              </button>
-            ))}
-          </div>
+          {product.media.length > 1 && (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "var(--space-3)", marginTop: "var(--space-3)" }}>
+              {product.media.map((m, i) => {
+                // The main/cover image (index 0) is already the big display —
+                // the carousel below it only surfaces the other shots.
+                if (i === 0) return null;
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setActive(i)}
+                    aria-label={`View ${m.type} ${i + 1}`}
+                    style={{
+                      position: "relative",
+                      aspectRatio: "1 / 1",
+                      border: active === i ? "1px solid var(--accent-default)" : "1px solid var(--border-default)",
+                      background: "var(--surface-card-alt)",
+                      padding: 0,
+                      cursor: "pointer",
+                    }}
+                  >
+                    <Image
+                      src={m.type === "image" ? m.src : m.poster ?? coverImage}
+                      alt=""
+                      fill
+                      sizes="120px"
+                      style={{ objectFit: "cover" }}
+                      unoptimized
+                    />
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Info */}
