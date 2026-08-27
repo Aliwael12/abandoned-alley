@@ -25,12 +25,10 @@ export default function ShopContent({
   return (
     <div className="aa-container" style={{ padding: "var(--space-16) var(--space-6)" }}>
       <div style={{ marginBottom: "var(--space-8)" }}>
-        <div className="aa-eyebrow">DROP 004</div>
         <h1 className="aa-display-hero" style={{ fontSize: "var(--text-4xl)", marginTop: "var(--space-2)" }}>
           SHOP ALL
         </h1>
         <p className="aa-body" style={{ color: "var(--text-muted)", marginTop: "var(--space-2)" }}>
-          Five pieces. No restocks promised.
         </p>
       </div>
 

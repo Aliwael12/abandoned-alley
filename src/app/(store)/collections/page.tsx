@@ -20,7 +20,6 @@ export default async function CollectionsPage() {
   return (
       <div className="aa-container" style={{ padding: "var(--space-16) var(--space-6)" }}>
         <div style={{ marginBottom: "var(--space-10)" }}>
-          <div className="aa-eyebrow">DROP 004 — FIVE WAYS IN</div>
           <h1 className="aa-display-hero" style={{ fontSize: "var(--text-4xl)", marginTop: "var(--space-2)" }}>
             COLLECTIONS
           </h1>
