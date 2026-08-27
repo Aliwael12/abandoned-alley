@@ -37,9 +37,7 @@ export default function Footer() {
             height={32}
             style={{ objectFit: "contain", marginBottom: "var(--space-4)", filter: "invert(1)" }}
           />
-          <p className="aa-body" style={{ color: "var(--text-on-accent)", opacity: 0.7, maxWidth: 320 }}>
-            Egyptian streetwear, made in Cairo, worn everywhere. Don&apos;t die wondering.
-          </p>
+         
         </div>
 
         <div>
