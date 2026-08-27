@@ -358,7 +358,7 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
   async function saveEdit(handle: string) {
     setBusy(handle);
     try {
-      const res = await fetch(`/api/admin/products/${handle}`, {
+      const res = await fetch(`/api/admin/products/${encodeURIComponent(handle)}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(draft),
@@ -376,7 +376,7 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
   async function toggleDisabled(p: Product) {
     setBusy(p.handle);
     try {
-      const res = await fetch(`/api/admin/products/${p.handle}`, {
+      const res = await fetch(`/api/admin/products/${encodeURIComponent(p.handle)}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ disabled: !p.disabled }),
@@ -394,13 +394,50 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
     if (!confirm(`Delete "${p.title}"? This cannot be undone.`)) return;
     setBusy(p.handle);
     try {
-      const res = await fetch(`/api/admin/products/${p.handle}`, {
+      const res = await fetch(`/api/admin/products/${encodeURIComponent(p.handle)}`, {
         method: "DELETE",
       });
       if (!res.ok) throw new Error((await res.json())?.error ?? "Delete failed");
       await onChanged();
     } catch (err) {
       onError(err instanceof Error ? err.message : "Delete failed");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  /**
+   * Swap sortOrder with the adjacent product in the currently-displayed
+   * (already sortOrder-sorted) list. Products without a sortOrder yet get one
+   * assigned from their current position so the swap has real values to work
+   * with.
+   */
+  async function move(p: Product, delta: number) {
+    const idx = products.findIndex((x) => x.handle === p.handle);
+    const j = idx + delta;
+    if (idx === -1 || j < 0 || j >= products.length) return;
+    const other = products[j];
+    const pOrder = p.sortOrder ?? (idx + 1) * 10;
+    const otherOrder = other.sortOrder ?? (j + 1) * 10;
+    setBusy(p.handle);
+    try {
+      const [resA, resB] = await Promise.all([
+        fetch(`/api/admin/products/${encodeURIComponent(p.handle)}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sortOrder: otherOrder }),
+        }),
+        fetch(`/api/admin/products/${encodeURIComponent(other.handle)}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sortOrder: pOrder }),
+        }),
+      ]);
+      if (!resA.ok) throw new Error((await resA.json())?.error ?? "Reorder failed");
+      if (!resB.ok) throw new Error((await resB.json())?.error ?? "Reorder failed");
+      await onChanged();
+    } catch (err) {
+      onError(err instanceof Error ? err.message : "Reorder failed");
     } finally {
       setBusy(null);
     }
@@ -518,7 +555,7 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
             No products yet. Use the <em>New product</em> form above to add one.
           </p>
         ) : (
-          products.map((p) => {
+          products.map((p, idx) => {
             const isEditing = editing === p.handle;
             const head = p.media[0];
             const img =
@@ -648,6 +685,26 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
                     </>
                   ) : (
                     <>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => move(p, -1)}
+                          disabled={busy === p.handle || idx === 0}
+                          aria-label="Move up"
+                          title="Move up"
+                          className="flex-1 px-3 py-2 border border-[var(--border-default)] hover:border-[var(--border-strong)]  text-xs tracking-[0.2em] uppercase inline-flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          <ArrowUp size={12} />
+                        </button>
+                        <button
+                          onClick={() => move(p, 1)}
+                          disabled={busy === p.handle || idx === products.length - 1}
+                          aria-label="Move down"
+                          title="Move down"
+                          className="flex-1 px-3 py-2 border border-[var(--border-default)] hover:border-[var(--border-strong)]  text-xs tracking-[0.2em] uppercase inline-flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          <ArrowDown size={12} />
+                        </button>
+                      </div>
                       <button
                         onClick={() => startEdit(p)}
                         className="px-3 py-2 border border-[var(--border-default)] hover:border-[var(--border-strong)]  text-xs tracking-[0.2em] uppercase inline-flex items-center justify-center gap-2"

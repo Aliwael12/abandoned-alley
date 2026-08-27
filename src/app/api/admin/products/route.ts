@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/admin-auth";
-import { getAllProducts, upsertProduct } from "@/lib/products-server";
+import { getAllProducts, getProductByHandle, upsertProduct } from "@/lib/products-server";
 import { getDefaultSizeChartHandle } from "@/lib/settings-server";
 import { getSizeChartByHandle } from "@/lib/size-charts-server";
 import type { Media, Product } from "@/lib/products";
@@ -85,6 +85,14 @@ export async function POST(request: Request) {
 
   const handle = slugify(handleInput || title);
   if (!handle) return NextResponse.json({ error: "Could not derive handle" }, { status: 400 });
+
+  const existing = await getProductByHandle(handle);
+  if (existing) {
+    return NextResponse.json(
+      { error: `Product "${handle}" already exists` },
+      { status: 409 }
+    );
+  }
 
   const sizeValues = ["S", "M", "L", "XL"];
   const product: Product = {

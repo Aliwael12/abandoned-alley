@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 type Patch = Partial<
   Pick<
     Product,
-    "title" | "description" | "price" | "disabled" | "media" | "sizeChartId"
+    "title" | "description" | "price" | "disabled" | "media" | "sizeChartId" | "sortOrder"
   >
 > & { image?: string; clearSizeChart?: boolean; stock?: StockMap };
 
@@ -85,6 +85,13 @@ export async function PATCH(
   }
   if (typeof body.disabled === "boolean") {
     next.disabled = body.disabled;
+  }
+  if (body.sortOrder !== undefined) {
+    const n = Number(body.sortOrder);
+    if (!Number.isFinite(n)) {
+      return NextResponse.json({ error: "Invalid sortOrder" }, { status: 400 });
+    }
+    next.sortOrder = n;
   }
   if (body.media !== undefined) {
     const cleaned = sanitizeMedia(body.media);
