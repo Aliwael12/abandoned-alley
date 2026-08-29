@@ -123,21 +123,6 @@ export default function EnterPage() {
       </nav>
 
       <div
-        className="aa-body aa-fade-up"
-        style={{
-          fontWeight: 600,
-          letterSpacing: "var(--tracking-label)",
-          color: "var(--text-primary)",
-          marginTop: "var(--space-8)",
-          animationDelay: "0.3s",
-          position: "relative",
-          zIndex: 1,
-        }}
-      >
-        FRIDAY · 04 SEPTEMBER 2026 · 20:00 CAIRO
-      </div>
-
-      <div
         className="aa-fade-up"
         style={{
           display: "flex",
