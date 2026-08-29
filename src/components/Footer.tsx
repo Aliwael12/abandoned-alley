@@ -57,8 +57,8 @@ export default function Footer() {
             CONTACT
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-            <a href="mailto:hello@abandonedalley.com" className="aa-body" style={{ color: "var(--text-on-accent)" }}>
-              hello@abandonedalley.com
+            <a href="mailto:abandonedalley@gmail.com" className="aa-body" style={{ color: "var(--text-on-accent)" }}>
+              abandonedalley@gmail.com
             </a>
             <a
               href="https://www.instagram.com/aa.collectives/"
