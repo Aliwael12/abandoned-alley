@@ -10,7 +10,6 @@ import PinAnimation from "./PinAnimation";
 const NAV = [
   { href: "/shop", label: "SHOP" },
   { href: "/collections", label: "COLLECTIONS" },
-  { href: "/contact", label: "CONTACT" },
 ];
 
 /** Cairo wall-clock stamp, in the 424 landing-page style. */

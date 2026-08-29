@@ -13,7 +13,6 @@ import { regionLabel, useRegion } from "@/lib/region";
 const NAV = [
   { href: "/shop", label: "SHOP", match: ["/shop", "/products"] },
   { href: "/collections", label: "COLLECTIONS", match: ["/collections"] },
-  { href: "/contact", label: "CONTACT", match: ["/contact"] },
 ];
 
 export default function Header() {
