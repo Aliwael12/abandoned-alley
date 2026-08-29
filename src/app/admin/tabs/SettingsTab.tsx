@@ -112,8 +112,8 @@ export default function SettingsTab({ onError }: Props) {
             className={inputCls}
           />
           <span className="text-xs text-[var(--text-muted)]">
-            Orders to any other Egyptian governorate (3–5 business days). Pushed
-            to Droppin manually from the order page.
+            Orders to any other Egyptian governorate (3–5 business days). Also
+            pushed to Droppin automatically.
           </span>
         </label>
 

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import {
-  resend,
+  sendEmail,
   EMAIL_FROM,
   ADMIN_EMAIL,
   customerOrderHtml,
@@ -18,6 +18,8 @@ import {
   isEgyptGovernorate,
   resolveZone,
 } from "@/lib/shipping";
+import { isDroppinConfigured } from "@/lib/droppin";
+import { pushOrderToDroppin } from "@/lib/orders-server";
 
 export const runtime = "nodejs";
 
@@ -201,6 +203,11 @@ export async function POST(request: Request) {
   const fees = await getShippingFees();
   const shippingFee = feeForZone(zone, fees);
 
+  // Every Egypt order is dispatched to Droppin automatically the moment it is
+  // placed — there is no admin step. International orders are rejected above;
+  // the zone guard keeps the rule explicit if the US store ever opens.
+  const autoPush = zone !== "international";
+
   const SOCIAL_HOSTS: Record<string, string> = {
     "instagram.com": "instagram",
     "www.instagram.com": "instagram",
@@ -248,7 +255,7 @@ export async function POST(request: Request) {
     subtotal,
     shippingFee,
     shippingZone: zone,
-    droppinAutoPush: zone === "metro",
+    droppinAutoPush: autoPush,
     currency: "EGP",
     status: "pending",
     attribution: attributionDoc,
@@ -281,35 +288,58 @@ export async function POST(request: Request) {
     }),
   };
 
-  const results = await Promise.allSettled([
-    resend.emails.send({
-      from: EMAIL_FROM,
-      to: parsed.customer.email,
-      subject: `Order confirmation #${orderId}`,
-      html: customerOrderHtml(emailPayload),
-      replyTo: ADMIN_EMAIL,
-    }),
-    resend.emails.send({
-      from: EMAIL_FROM,
-      to: ADMIN_EMAIL,
-      subject: `New order — ${parsed.customer.name} (${parsed.shipping.state}) — EGP ${(
-        subtotal + shippingFee
-      ).toFixed(2)}`,
-      html: adminOrderHtml(emailPayload),
-      replyTo: parsed.customer.email,
-    }),
-  ]);
-
-  const emailErrors = results
-    .map((r, i) => (r.status === "rejected" ? { idx: i, reason: r.reason } : null))
-    .filter(Boolean);
-  if (emailErrors.length) {
-    console.error("Resend errors:", emailErrors);
+  // The carrier push runs alongside the confirmation emails so it costs the
+  // shopper no extra wait. It is best-effort: a Droppin outage must never fail
+  // a checkout that is already saved, and pushOrderToDroppin persists the error
+  // onto the order so an admin can retry from the order page.
+  const shouldPush = autoPush && isDroppinConfigured();
+  if (autoPush && !shouldPush) {
+    console.warn(`Droppin is not configured; order ${orderId} was not dispatched.`);
   }
 
-  // Orders are NOT dispatched at checkout anymore. They wait as "pending" until
-  // an admin approves them, which deducts stock and dispatches to the carrier
-  // (Cairo / Giza -> Droppin). See src/lib/order-actions-server.ts.
+  const [emailResults, pushResult] = await Promise.all([
+    Promise.allSettled([
+      sendEmail({
+        from: EMAIL_FROM,
+        to: parsed.customer.email,
+        subject: `Order confirmation #${orderId}`,
+        html: customerOrderHtml(emailPayload),
+        replyTo: ADMIN_EMAIL,
+      }),
+      sendEmail({
+        from: EMAIL_FROM,
+        to: ADMIN_EMAIL,
+        subject: `New order — ${parsed.customer.name} (${parsed.shipping.state}) — EGP ${(
+          subtotal + shippingFee
+        ).toFixed(2)}`,
+        html: adminOrderHtml(emailPayload),
+        replyTo: parsed.customer.email,
+      }),
+    ]),
+    // getOrderById runs outside pushOrderToDroppin's own try/catch, so guard
+    // the whole call rather than trusting its return shape.
+    shouldPush
+      ? pushOrderToDroppin(orderId).catch((err) => ({
+          ok: false as const,
+          error: err instanceof Error ? err.message : String(err),
+        }))
+      : Promise.resolve(null),
+  ]);
+
+  const emailErrors = emailResults
+    .map((r, i) =>
+      r.status === "rejected"
+        ? { recipient: i === 0 ? "customer" : "admin", reason: String(r.reason) }
+        : null
+    )
+    .filter(Boolean);
+  if (emailErrors.length) {
+    console.error(`Order ${orderId} email failures:`, emailErrors);
+  }
+
+  if (pushResult && !pushResult.ok) {
+    console.error(`Droppin auto-push failed for order ${orderId}:`, pushResult.error);
+  }
 
   return NextResponse.json({ ok: true, orderId });
 }

@@ -3,7 +3,8 @@
 // then performs any external side effect (carrier dispatch) afterwards.
 //
 // Lifecycle (see src/lib/order-status.ts):
-//   pending --approve--> approved  (deducts stock; dispatches metro -> Droppin)
+//   pending --approve--> approved  (deducts stock; dispatches to Droppin if
+//                                     checkout's auto-push hadn't already)
 //   approved --deliver--> delivered
 //   pending/approved/delivered --cancel--> cancelled
 //     (restores stock only if it had been deducted, i.e. was approved/delivered)
@@ -22,7 +23,7 @@ import {
 } from "@/lib/order-status";
 import { normalizeStock, sizeOfOrderItem } from "@/lib/inventory";
 import type { Product, StockMap } from "@/lib/products";
-import { pushOrderToDroppin } from "@/lib/orders-server";
+import { getOrderById, pushOrderToDroppin } from "@/lib/orders-server";
 
 export type ActionResult =
   | {
@@ -102,7 +103,8 @@ function applyDelta(stock: StockMap, delta: Record<string, number>, sign: 1 | -1
 /**
  * Approve a pending order. Atomically verifies and deducts per-size stock; if
  * any size is short the whole approval is blocked with a message naming the
- * shortfalls. After committing, dispatches metro (Cairo/Giza) orders to Droppin.
+ * shortfalls. After committing, dispatches to Droppin any order that checkout's
+ * auto-push did not already place.
  */
 export async function approveOrder(id: string): Promise<ActionResult> {
   const orderRef = doc(db, "orders", id);
@@ -201,8 +203,18 @@ export async function approveOrder(id: string): Promise<ActionResult> {
   // Stock is committed and the order is approved. Dispatch is a best-effort
   // side effect: a dispatch failure does not roll back the approval. Every order
   // ships with Droppin.
+  //
+  // Egypt orders are normally already on Droppin — checkout dispatches them the
+  // moment they are placed (see src/app/api/checkout/route.ts). Re-pushing would
+  // come back as "Order is already on Droppin", surfacing a bogus dispatch error
+  // in the admin UI, so treat an existing tracking number as a dispatch success.
+  // This path still matters for orders whose auto-push failed at checkout.
   let dispatch: { ok: boolean; error?: string } | undefined;
   try {
+    const existing = await getOrderById(id);
+    if (existing?.droppin.trackingNumber) {
+      return { ok: true, status: "approved", dispatch: { ok: true } };
+    }
     const result = await pushOrderToDroppin(id);
     dispatch = result.ok ? { ok: true } : { ok: false, error: result.error };
   } catch (err) {
