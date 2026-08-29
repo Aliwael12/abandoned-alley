@@ -1,11 +1,13 @@
 import ContactForm from "@/components/ContactForm";
 import { InstagramIcon } from "@/components/Socials";
 import { Card } from "@/components/ui";
+import RegionGate from "@/components/RegionGate";
 
 export const metadata = { title: "Contact — Abandoned Alley" };
 
 export default function ContactPage() {
   return (
+    <RegionGate>
       <div className="aa-container" style={{ padding: "var(--space-16) var(--space-6)" }}>
         <div style={{ marginBottom: "var(--space-10)" }}>
           <div className="aa-eyebrow">CAIRO — NEW YORK</div>
@@ -54,5 +56,6 @@ export default function ContactPage() {
           </div>
         </div>
       </div>
+    </RegionGate>
   );
 }

@@ -1,4 +1,5 @@
 import ProductDetail from "@/components/ProductDetail";
+import RegionGate from "@/components/RegionGate";
 import { getActiveProducts, getProductByHandle } from "@/lib/products-server";
 import { getSizeChartByHandle } from "@/lib/size-charts-server";
 import { notFound } from "next/navigation";
@@ -30,5 +31,9 @@ export default async function ProductPage({
     getActiveProducts(),
   ]);
   const related = allProducts.filter((p) => p.handle !== product.handle).slice(0, 3);
-  return <ProductDetail product={product} sizeChart={sizeChart} related={related} />;
+  return (
+    <RegionGate>
+      <ProductDetail product={product} sizeChart={sizeChart} related={related} />
+    </RegionGate>
+  );
 }

@@ -7,7 +7,8 @@ import { useState } from "react";
 import { Menu, X } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { BagIcon } from "./Socials";
-import { NavLink } from "./ui";
+import { NavLink, Badge } from "./ui";
+import { regionLabel, useRegion } from "@/lib/region";
 
 const NAV = [
   { href: "/shop", label: "SHOP", match: ["/shop", "/products"] },
@@ -17,6 +18,7 @@ const NAV = [
 
 export default function Header() {
   const pathname = usePathname();
+  const region = useRegion((s) => s.region);
   const isCart = pathname === "/cart";
   const cartItems = useCart((s) => s.items);
   const cartCount = cartItems.reduce((n, i) => n + i.quantity, 0);
@@ -102,6 +104,9 @@ export default function Header() {
             justifySelf: "end",
           }}
         >
+          <Link href="/region" aria-label="Change region">
+            <Badge variant="outline">{regionLabel(region)}</Badge>
+          </Link>
           {isCart ? (
             <span className="aa-nav-link" style={{ color: "var(--accent-default)" }}>
               <BagIcon size={20} />
