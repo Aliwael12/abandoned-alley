@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { ADMIN_EMAIL, EMAIL_FROM, resend } from "@/lib/email";
+import { ADMIN_EMAIL, EMAIL_FROM, sendEmail } from "@/lib/email";
 
 export const runtime = "nodejs";
 
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    await resend.emails.send({
+    await sendEmail({
       from: EMAIL_FROM,
       to: ADMIN_EMAIL,
       replyTo: email,

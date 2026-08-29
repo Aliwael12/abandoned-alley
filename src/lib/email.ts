@@ -5,6 +5,29 @@ export const resend = new Resend(process.env.RESEND_API_KEY!);
 export const EMAIL_FROM = process.env.EMAIL_FROM ?? "Abandoned Alley <onboarding@resend.dev>";
 export const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "abandonedalleystore@gmail.com";
 
+/**
+ * Send one email, turning Resend's error envelope into a thrown error.
+ *
+ * `resend.emails.send()` RESOLVES with `{ data: null, error }` for API-level
+ * failures — an unverified sender domain, a bad key, a quota trip. Callers that
+ * only watch for rejections (Promise.allSettled, try/catch) therefore treat
+ * those as successes and swallow them silently, which is how a stale sender
+ * domain can stop every order email without leaving a trace in the logs.
+ */
+export async function sendEmail(
+  payload: Parameters<typeof resend.emails.send>[0]
+): Promise<{ id: string } | null> {
+  const { data, error } = await resend.emails.send(payload);
+  if (error) {
+    throw new Error(
+      `Resend ${error.name}${
+        error.statusCode ? ` (${error.statusCode})` : ""
+      }: ${error.message}`
+    );
+  }
+  return data;
+}
+
 export type OrderItemForEmail = {
   title: string;
   variantTitle: string;
