@@ -20,10 +20,13 @@ export default function ProductDetail({
   product,
   sizeChart,
   related = [],
+  collectionTitles,
 }: {
   product: Product;
   sizeChart?: SizeChart | null;
   related?: Product[];
+  /** collection handle -> display title. */
+  collectionTitles?: Record<string, string>;
 }) {
   const add = useCart((s) => s.add);
   const region = useRegionOrDefault();
@@ -39,7 +42,8 @@ export default function ProductDetail({
   const [selectedPins, setSelectedPins] = useState<number[]>([]);
 
   const soldOut = useMemo(() => isProductSoldOut(product), [product]);
-  const categoryLabel = product.collection.replace(/-/g, " ");
+  const categoryLabel =
+    collectionTitles?.[product.collection] ?? product.collection.replace(/-/g, " ");
 
   const initialOptions = useMemo(() => {
     const o: Record<string, string> = {};
@@ -481,7 +485,7 @@ export default function ProductDetail({
           <div className="aa-grid">
             {related.map((p) => (
               <div key={p.handle} style={{ gridColumn: "span 4" }}>
-                <ProductCard product={p} />
+                <ProductCard product={p} collectionTitle={collectionTitles?.[p.collection]} />
               </div>
             ))}
           </div>

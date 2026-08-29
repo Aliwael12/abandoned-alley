@@ -8,7 +8,15 @@ import { Card, Badge } from "./ui";
 import { useRegionOrDefault } from "@/lib/region";
 import { formatMoney, priceForRegion } from "@/lib/pricing";
 
-export default function ProductCard({ product }: { product: Product }) {
+export default function ProductCard({
+  product,
+  collectionTitle,
+}: {
+  product: Product;
+  /** Display name for product.collection. Falls back to the handle when the
+   *  collection isn't known, so a card never renders blank. */
+  collectionTitle?: string;
+}) {
   const region = useRegionOrDefault();
   const price = priceForRegion(product, region);
   const head = product.media[0];
@@ -16,7 +24,7 @@ export default function ProductCard({ product }: { product: Product }) {
     head && head.type === "image" ? head : product.media.find((m) => m.type === "image");
   const cover = coverEntry?.src ?? "";
   const soldOut = isProductSoldOut(product);
-  const categoryLabel = product.collection.replace(/-/g, " ");
+  const categoryLabel = collectionTitle ?? product.collection.replace(/-/g, " ");
 
   return (
     <Link href={`/products/${product.handle}`} style={{ display: "block" }}>

@@ -1,5 +1,5 @@
 import ProductGrid from "@/components/ProductGrid";
-import { getCollectionByHandle } from "@/lib/collections-server";
+import { getAllCollections, getCollectionByHandle } from "@/lib/collections-server";
 import { getActiveProducts } from "@/lib/products-server";
 import { notFound } from "next/navigation";
 import RegionGate from "@/components/RegionGate";
@@ -26,7 +26,13 @@ export default async function CollectionDetail({
   const { handle } = await params;
   const meta = await getCollectionByHandle(handle);
   if (!meta) notFound();
-  const all = await getActiveProducts();
+  const [all, collections] = await Promise.all([
+    getActiveProducts(),
+    getAllCollections(),
+  ]);
+  const collectionTitles = Object.fromEntries(
+    collections.map((c) => [c.handle, c.title])
+  );
   const items = all.filter((p) => p.collection === handle);
 
   return (
@@ -46,7 +52,11 @@ export default async function CollectionDetail({
           </p>
         </div>
 
-        <ProductGrid products={items} emptyMessage="No items in this collection yet." />
+        <ProductGrid
+          products={items}
+          collectionTitles={collectionTitles}
+          emptyMessage="No items in this collection yet."
+        />
       </div>
     </RegionGate>
   );

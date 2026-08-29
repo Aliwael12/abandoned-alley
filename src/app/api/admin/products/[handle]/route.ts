@@ -22,6 +22,10 @@ type Patch = Partial<
   stock?: StockMap;
   /** US price in USD; null/"" clears it and removes the product from the US store. */
   priceUsd?: number | string | null;
+  /** Per-variant EGP prices, keyed by variant id. Overrides the flat `price`. */
+  variantPrices?: Record<string, number | string | null>;
+  /** Per-variant USD prices, keyed by variant id. Overrides the flat `priceUsd`. */
+  variantPricesUsd?: Record<string, number | string | null>;
 };
 
 function sanitizeMedia(raw: unknown): Media[] | null {
@@ -108,6 +112,68 @@ export async function PATCH(
       next.variants = next.variants.map((v) => ({ ...v, priceUsd: usd }));
     }
   }
+  // Per-variant overrides. A product whose sizes cost different amounts — the
+  // pin pack's "Pack of 3" vs "Pack of 5" — cannot be expressed by the flat
+  // price above, which mirrors one number onto every variant and so silently
+  // flattens them. These run after it, so sending both still lands per-variant.
+  const badPrice = (raw: number | string | null | undefined) => {
+    const n = Number(raw);
+    return !Number.isFinite(n) || n < 0;
+  };
+
+  if (body.variantPrices) {
+    for (const [id, raw] of Object.entries(body.variantPrices)) {
+      if (raw === null || raw === "") continue;
+      if (badPrice(raw)) {
+        return NextResponse.json(
+          { error: `Invalid price for variant ${id}` },
+          { status: 400 }
+        );
+      }
+    }
+    next.variants = next.variants.map((v) => {
+      const raw = body.variantPrices?.[v.id];
+      if (raw === undefined || raw === null || raw === "") return v;
+      return { ...v, price: Number(raw) };
+    });
+  }
+
+  if (body.variantPricesUsd) {
+    for (const [id, raw] of Object.entries(body.variantPricesUsd)) {
+      if (raw === null || raw === "") continue;
+      if (badPrice(raw)) {
+        return NextResponse.json(
+          { error: `Invalid USD price for variant ${id}` },
+          { status: 400 }
+        );
+      }
+    }
+    next.variants = next.variants.map((v) => {
+      const raw = body.variantPricesUsd?.[v.id];
+      if (raw === undefined) return v;
+      const cleared = raw === null || raw === "";
+      const rest = { ...v };
+      if (cleared) {
+        delete rest.priceUsd;
+        return rest;
+      }
+      return { ...rest, priceUsd: Number(raw) };
+    });
+  }
+
+  // The product-level price is what listing cards show, so keep it as the entry
+  // price — the cheapest variant — rather than letting it drift from them.
+  if (body.variantPrices || body.variantPricesUsd) {
+    const egp = next.variants.map((v) => v.price).filter((n) => Number.isFinite(n));
+    if (egp.length) next.price = Math.min(...egp);
+
+    const usd = next.variants
+      .map((v) => v.priceUsd)
+      .filter((n): n is number => typeof n === "number" && Number.isFinite(n));
+    if (usd.length) next.priceUsd = Math.min(...usd);
+    else delete next.priceUsd;
+  }
+
   if (typeof body.disabled === "boolean") {
     next.disabled = body.disabled;
   }

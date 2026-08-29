@@ -42,6 +42,10 @@ type EditState = Partial<
   stock?: StockMap;
   /** US price in USD; null clears it and removes the product from the US store. */
   priceUsd?: number | null;
+  /** Per-variant EGP prices, keyed by variant id. */
+  variantPrices?: Record<string, number | null>;
+  /** Per-variant USD prices, keyed by variant id. */
+  variantPricesUsd?: Record<string, number | null>;
 };
 
 type SizeChartOption = { handle: string; name: string };
@@ -363,6 +367,10 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
       description: p.description,
       price: p.price,
       priceUsd: p.priceUsd,
+      variantPrices: Object.fromEntries(p.variants.map((v) => [v.id, v.price])),
+      variantPricesUsd: Object.fromEntries(
+        p.variants.map((v) => [v.id, v.priceUsd ?? null])
+      ),
       media: p.media,
       sizeChartId: p.sizeChartId ?? "",
       clearSizeChart: false,
@@ -629,39 +637,99 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
                         onChange={(e) => setDraft({ ...draft, description: e.target.value })}
                         className="bg-[var(--surface-card-alt)] border border-[var(--border-default)]  p-3 text-sm outline-none focus:border-[var(--border-strong)] transition resize-none"
                       />
-                      <label className="flex flex-col gap-2">
-                        <span className="text-[11px] tracking-[0.3em] uppercase text-[var(--text-muted)]">
-                          {priceRegion === "eg" ? "Price (EGP)" : "Price (USD)"}
-                        </span>
-                        {priceRegion === "eg" ? (
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={draft.price ?? 0}
-                            onChange={(e) => setDraft({ ...draft, price: Number(e.target.value) })}
-                            className={inputCls}
-                          />
-                        ) : (
-                          <input
-                            type="number"
-                            step="0.01"
-                            placeholder="Not sold in the US"
-                            value={draft.priceUsd ?? ""}
-                            onChange={(e) =>
-                              setDraft({
-                                ...draft,
-                                priceUsd: e.target.value === "" ? null : Number(e.target.value),
-                              })
-                            }
-                            className={inputCls}
-                          />
-                        )}
-                        <span className="text-[10px] text-[var(--text-muted)]">
-                          {priceRegion === "eg"
-                            ? "Shown to shoppers in the Egypt store."
-                            : "Shown in the US store. Leave empty to hide this product there."}
-                        </span>
-                      </label>
+                      {p.variants.length > 1 ? (
+                        /* Sizes can cost different amounts (pin "Pack of 3" vs
+                           "Pack of 5"), so price each variant on its own. The
+                           flat field below mirrors one number onto every
+                           variant, which would flatten them. */
+                        <div className="flex flex-col gap-2">
+                          <span className="text-[11px] tracking-[0.3em] uppercase text-[var(--text-muted)]">
+                            {priceRegion === "eg" ? "Prices (EGP)" : "Prices (USD)"}
+                          </span>
+                          {p.variants.map((v) => (
+                            <label key={v.id} className="flex items-center gap-3">
+                              <span className="text-xs text-[var(--text-muted)] w-28 shrink-0">
+                                {v.title}
+                              </span>
+                              {priceRegion === "eg" ? (
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={draft.variantPrices?.[v.id] ?? ""}
+                                  onChange={(e) =>
+                                    setDraft({
+                                      ...draft,
+                                      variantPrices: {
+                                        ...(draft.variantPrices ?? {}),
+                                        [v.id]:
+                                          e.target.value === "" ? null : Number(e.target.value),
+                                      },
+                                    })
+                                  }
+                                  className={`${inputCls} flex-1`}
+                                />
+                              ) : (
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  placeholder="Not sold in the US"
+                                  value={draft.variantPricesUsd?.[v.id] ?? ""}
+                                  onChange={(e) =>
+                                    setDraft({
+                                      ...draft,
+                                      variantPricesUsd: {
+                                        ...(draft.variantPricesUsd ?? {}),
+                                        [v.id]:
+                                          e.target.value === "" ? null : Number(e.target.value),
+                                      },
+                                    })
+                                  }
+                                  className={`${inputCls} flex-1`}
+                                />
+                              )}
+                            </label>
+                          ))}
+                          <span className="text-[10px] text-[var(--text-muted)]">
+                            {priceRegion === "eg"
+                              ? "Shown to shoppers in the Egypt store. Listing cards show the cheapest."
+                              : "Shown in the US store. Clear every size to hide this product there."}
+                          </span>
+                        </div>
+                      ) : (
+                        <label className="flex flex-col gap-2">
+                          <span className="text-[11px] tracking-[0.3em] uppercase text-[var(--text-muted)]">
+                            {priceRegion === "eg" ? "Price (EGP)" : "Price (USD)"}
+                          </span>
+                          {priceRegion === "eg" ? (
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={draft.price ?? 0}
+                              onChange={(e) => setDraft({ ...draft, price: Number(e.target.value) })}
+                              className={inputCls}
+                            />
+                          ) : (
+                            <input
+                              type="number"
+                              step="0.01"
+                              placeholder="Not sold in the US"
+                              value={draft.priceUsd ?? ""}
+                              onChange={(e) =>
+                                setDraft({
+                                  ...draft,
+                                  priceUsd: e.target.value === "" ? null : Number(e.target.value),
+                                })
+                              }
+                              className={inputCls}
+                            />
+                          )}
+                          <span className="text-[10px] text-[var(--text-muted)]">
+                            {priceRegion === "eg"
+                              ? "Shown to shoppers in the Egypt store."
+                              : "Shown in the US store. Leave empty to hide this product there."}
+                          </span>
+                        </label>
+                      )}
                       <MediaEditor
                         media={draft.media ?? []}
                         onChange={(media) => setDraft({ ...draft, media })}

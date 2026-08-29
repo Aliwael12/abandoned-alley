@@ -13,9 +13,12 @@ import ProductCard from "./ProductCard";
  */
 export default function ProductGrid({
   products,
+  collectionTitles,
   emptyMessage = "Nothing here yet.",
 }: {
   products: Product[];
+  /** collection handle -> display title, so cards show "WASTED SUMMER" not "004". */
+  collectionTitles?: Record<string, string>;
   emptyMessage?: string;
 }) {
   const region = useRegionOrDefault();
@@ -33,7 +36,7 @@ export default function ProductGrid({
     <div className="aa-grid">
       {visible.map((p) => (
         <div key={p.handle} style={{ gridColumn: "span 4" }}>
-          <ProductCard product={p} />
+          <ProductCard product={p} collectionTitle={collectionTitles?.[p.collection]} />
         </div>
       ))}
     </div>

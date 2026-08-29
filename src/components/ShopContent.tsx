@@ -12,7 +12,13 @@ const CATEGORIES = [
   { value: "accessories", label: "ACCESSORIES" },
 ];
 
-export default function ShopContent({ products }: { products: Product[] }) {
+export default function ShopContent({
+  products,
+  collectionTitles,
+}: {
+  products: Product[];
+  collectionTitles?: Record<string, string>;
+}) {
   const searchParams = useSearchParams();
   const initial = searchParams.get("category")?.toLowerCase() ?? "all";
   const validFilters = useMemo(() => ["all", ...CATEGORIES.map((c) => c.value)], []);
@@ -50,7 +56,11 @@ export default function ShopContent({ products }: { products: Product[] }) {
         ))}
       </div>
 
-      <ProductGrid products={filtered} emptyMessage="No products in this category yet." />
+      <ProductGrid
+        products={filtered}
+        collectionTitles={collectionTitles}
+        emptyMessage="No products in this category yet."
+      />
     </div>
   );
 }
