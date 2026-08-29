@@ -11,7 +11,6 @@ import {
   Layers,
   LineChart,
   LogOut,
-  Mail,
   Loader2,
   RefreshCw,
   Ruler,
@@ -23,7 +22,6 @@ import OrdersTab from "./tabs/OrdersTab";
 import AnalyticsTab from "./tabs/AnalyticsTab";
 import ProductsTab from "./tabs/ProductsTab";
 import CollectionsTab from "./tabs/CollectionsTab";
-import BroadcastTab from "./tabs/BroadcastTab";
 import ContactTab from "./tabs/ContactTab";
 import SettingsTab from "./tabs/SettingsTab";
 import SizeChartsTab from "./tabs/SizeChartsTab";
@@ -36,7 +34,6 @@ type Tab =
   | "analytics"
   | "products"
   | "collections"
-  | "broadcast"
   | "contact"
   | "sizeCharts"
   | "settings";
@@ -47,7 +44,6 @@ const TABS: { id: Tab; label: string; icon: React.ComponentType<{ size?: number 
   { id: "analytics", label: "Analytics", icon: LineChart },
   { id: "products", label: "Products", icon: Boxes },
   { id: "collections", label: "Collections", icon: Layers },
-  { id: "broadcast", label: "Promo email", icon: Mail },
   { id: "contact", label: "Contact", icon: Inbox },
   { id: "sizeCharts", label: "Size charts", icon: Ruler },
   { id: "settings", label: "Settings", icon: Settings },
@@ -218,7 +214,6 @@ export default function AdminDashboard() {
               onError={(m) => setError(m)}
             />
           )}
-          {tab === "broadcast" && <BroadcastTab onError={(m) => setError(m)} />}
           {tab === "contact" && <ContactTab onError={(m) => setError(m)} />}
           {tab === "sizeCharts" && (
             <SizeChartsTab
