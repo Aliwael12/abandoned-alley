@@ -69,12 +69,11 @@ export default function RegionPage() {
           }}
         >
           <div>
-            <div className="aa-caption">01 — UNITED STATES</div>
-            <h2 className="aa-display-hero" style={{ fontSize: "var(--text-4xl)", marginTop: "var(--space-4)" }}>
+            <h2 className="aa-display-hero" style={{ fontSize: "var(--text-4xl)" }}>
               NEW YORK
             </h2>
             <p className="aa-body" style={{ color: "var(--text-muted)", marginTop: "var(--space-2)" }}>
-              USD · US sizing
+              USD
             </p>
           </div>
           <div style={{ height: 4, width: 56, background: "var(--graphic-yellow)" }} />
@@ -94,12 +93,11 @@ export default function RegionPage() {
           }}
         >
           <div>
-            <div className="aa-caption">02 — EGYPT</div>
-            <h2 className="aa-display-hero" style={{ fontSize: "var(--text-4xl)", marginTop: "var(--space-4)" }}>
+            <h2 className="aa-display-hero" style={{ fontSize: "var(--text-4xl)" }}>
               CAIRO
             </h2>
             <p className="aa-body" style={{ color: "var(--text-muted)", marginTop: "var(--space-2)" }}>
-              EGP · EU sizing
+              EGP
             </p>
           </div>
           <div style={{ height: 4, width: 56, background: "var(--accent-default)" }} />
