@@ -3,7 +3,21 @@ import { Resend } from "resend";
 export const resend = new Resend(process.env.RESEND_API_KEY!);
 
 export const EMAIL_FROM = process.env.EMAIL_FROM ?? "Abandoned Alley <onboarding@resend.dev>";
-export const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "abandonedalleystore@gmail.com";
+/**
+ * Where order notifications go. ADMIN_EMAIL accepts a comma- (or semicolon-)
+ * separated list, so the shop can notify several inboxes:
+ *   ADMIN_EMAIL=a@gmail.com,b@outlook.com
+ * Resend takes up to 50 recipients per send.
+ */
+export const ADMIN_EMAILS: string[] = (
+  process.env.ADMIN_EMAIL ?? "abandonedalleystore@gmail.com"
+)
+  .split(/[,;]/)
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+/** The primary admin address — used where exactly one is needed (Reply-To). */
+export const ADMIN_EMAIL = ADMIN_EMAILS[0] ?? "abandonedalleystore@gmail.com";
 
 /**
  * Send one email, turning Resend's error envelope into a thrown error.

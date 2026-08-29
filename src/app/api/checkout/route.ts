@@ -5,6 +5,7 @@ import {
   sendEmail,
   EMAIL_FROM,
   ADMIN_EMAIL,
+  ADMIN_EMAILS,
   customerOrderHtml,
   adminOrderHtml,
   type OrderForEmail,
@@ -315,7 +316,7 @@ export async function POST(request: Request) {
       }),
       sendEmail({
         from: EMAIL_FROM,
-        to: ADMIN_EMAIL,
+        to: ADMIN_EMAILS,
         subject: `New order (${parsed.region.toUpperCase()}) — ${
           parsed.customer.name
         } (${parsed.shipping.state}) — ${
