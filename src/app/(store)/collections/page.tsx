@@ -25,9 +25,6 @@ export default async function CollectionsPage() {
           <h1 className="aa-display-hero" style={{ fontSize: "var(--text-4xl)", marginTop: "var(--space-2)" }}>
             COLLECTIONS
           </h1>
-          <p className="aa-body" style={{ color: "var(--text-muted)", marginTop: "var(--space-2)" }}>
-            Pick a category. Every piece runs once — when a size goes, it goes.
-          </p>
         </div>
 
         {collections.length === 0 ? (
