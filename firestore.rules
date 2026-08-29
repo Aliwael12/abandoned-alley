@@ -53,6 +53,10 @@ service cloud.firestore {
         request.resource.data.keys().hasOnly([
           'customer','shipping','items','notes','subtotal','shippingFee',
           'shippingZone','droppinAutoPush',
+          // Stock is reserved in the same transaction that creates the order,
+          // so the record of what it took is written at create time, not on a
+          // later approval.
+          'stockDeducted',
           'currency','status','attribution','createdAt'
         ]);
       allow read: if true;

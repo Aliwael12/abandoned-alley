@@ -9,20 +9,22 @@
 //   pending/approved/delivered --cancel--> cancelled
 //     (restores stock only if it had been deducted, i.e. was approved/delivered)
 
-import {
-  doc,
-  runTransaction,
-  serverTimestamp,
-  type DocumentReference,
-} from "firebase/firestore";
+import { doc, runTransaction, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import {
   normalizeStatus,
   isStockReserved,
   type OrderStatus,
 } from "@/lib/order-status";
-import { normalizeStock, sizeOfOrderItem } from "@/lib/inventory";
-import type { Product, StockMap } from "@/lib/products";
+import {
+  deductionsByProduct,
+  findShortfalls,
+  parseStockDeducted,
+  readProductsForItems,
+  writeDeductions,
+  writeRestores,
+  type RawOrderItem,
+} from "@/lib/stock-reservation";
 import { getOrderById, pushOrderToDroppin } from "@/lib/orders-server";
 
 export type ActionResult =
@@ -33,72 +35,6 @@ export type ActionResult =
       dispatch?: { ok: boolean; error?: string };
     }
   | { ok: false; error: string };
-
-type RawOrderItem = {
-  productHandle?: string;
-  variantId?: string;
-  variantTitle?: string;
-  quantity?: number;
-};
-
-/** Sum the ordered quantity per product handle, per size label. */
-function deductionsByProduct(
-  items: RawOrderItem[],
-  productByHandle: Map<string, Product>
-): Map<string, Record<string, number>> {
-  const out = new Map<string, Record<string, number>>();
-  for (const raw of items) {
-    const handle = String(raw.productHandle ?? "");
-    const qty = Math.max(0, Math.floor(Number(raw.quantity ?? 0)));
-    if (!handle || qty <= 0) continue;
-    const size = sizeOfOrderItem(
-      {
-        variantId: String(raw.variantId ?? ""),
-        variantTitle: String(raw.variantTitle ?? ""),
-      },
-      productByHandle.get(handle)
-    );
-    if (!size) continue;
-    const perSize = out.get(handle) ?? {};
-    perSize[size] = (perSize[size] ?? 0) + qty;
-    out.set(handle, perSize);
-  }
-  return out;
-}
-
-/**
- * Parse a recorded `stockDeducted` map ({ "handle::size": qty }) back into the
- * per-handle shape used for restoring. Returns null when there's nothing usable
- * (e.g. a legacy order approved before this field was tracked).
- */
-function parseStockDeducted(
-  raw: unknown
-): Map<string, Record<string, number>> | null {
-  if (!raw || typeof raw !== "object") return null;
-  const out = new Map<string, Record<string, number>>();
-  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
-    const qty = Math.floor(Number(value));
-    if (!Number.isFinite(qty) || qty <= 0) continue;
-    const sep = key.lastIndexOf("::");
-    if (sep <= 0) continue;
-    const handle = key.slice(0, sep);
-    const size = key.slice(sep + 2);
-    if (!handle || !size) continue;
-    const perSize = out.get(handle) ?? {};
-    perSize[size] = (perSize[size] ?? 0) + qty;
-    out.set(handle, perSize);
-  }
-  return out.size ? out : null;
-}
-
-function applyDelta(stock: StockMap, delta: Record<string, number>, sign: 1 | -1): StockMap {
-  const next: StockMap = { ...stock };
-  for (const [size, qty] of Object.entries(delta)) {
-    const current = Number.isFinite(next[size]) ? next[size] : 0;
-    next[size] = Math.max(0, current + sign * qty);
-  }
-  return next;
-}
 
 /**
  * Approve a pending order. Atomically verifies and deducts per-size stock; if
@@ -124,64 +60,33 @@ export async function approveOrder(id: string): Promise<ActionResult> {
         throw new Error(`Can't approve a ${status} order.`);
       }
 
+      // Stock is reserved at CHECKOUT now, so the normal case is that this
+      // order already holds its stock and approval is a pure status flip.
+      // Gating on `stockDeducted` is what stops approval from deducting a
+      // second time; only a legacy order placed before checkout reserved stock
+      // still needs to deduct here.
+      if (parseStockDeducted(order.stockDeducted) !== null) {
+        tx.update(orderRef, {
+          status: "approved",
+          approvedAt: serverTimestamp(),
+        });
+        return { already: false as const };
+      }
+
       const items = Array.isArray(order.items)
         ? (order.items as RawOrderItem[])
         : [];
-
-      // Read every referenced product first (all reads precede writes in a tx).
-      const handles = Array.from(
-        new Set(items.map((i) => String(i.productHandle ?? "")).filter(Boolean))
-      );
-      const productRefs = new Map<string, DocumentReference>(
-        handles.map((h) => [h, doc(db, "products", h)])
-      );
-      const productByHandle = new Map<string, Product>();
-      const stockByHandle = new Map<string, StockMap>();
-      for (const [handle, ref] of productRefs) {
-        const snap = await tx.get(ref);
-        if (!snap.exists()) continue;
-        const data = snap.data() as Product;
-        productByHandle.set(handle, data);
-        stockByHandle.set(handle, normalizeStock((data as { stock?: unknown }).stock));
-      }
-
-      const deductions = deductionsByProduct(items, productByHandle);
-
-      // Verify sufficiency across all sizes before writing anything.
-      const shortfalls: string[] = [];
-      for (const [handle, perSize] of deductions) {
-        const stock = stockByHandle.get(handle);
-        const product = productByHandle.get(handle);
-        const title = product?.title ?? handle;
-        if (!stock) {
-          shortfalls.push(`${title} (no stock record)`);
-          continue;
-        }
-        for (const [size, want] of Object.entries(perSize)) {
-          const have = Number.isFinite(stock[size]) ? stock[size] : 0;
-          if (have < want) {
-            shortfalls.push(`${title} ${size} (need ${want}, have ${have})`);
-          }
-        }
-      }
+      const reads = await readProductsForItems(tx, items);
+      const deductions = deductionsByProduct(items, reads.productByHandle);
+      const shortfalls = findShortfalls(deductions, reads);
       if (shortfalls.length) {
-        throw new Error(`Insufficient stock: ${shortfalls.join("; ")}`);
+        throw new Error(
+          `Insufficient stock: ${shortfalls
+            .map((f) => `${f.title} ${f.size} (need ${f.want}, have ${f.have})`)
+            .join("; ")}`
+        );
       }
-
-      // Deduct and write each product's stock, then flip the order to approved.
-      // Record exactly what was deducted per handle::size so cancellation can
-      // restore precisely that amount, even if the product's stock is later
-      // edited independently.
-      const stockDeducted: Record<string, number> = {};
-      for (const [handle, perSize] of deductions) {
-        const stock = stockByHandle.get(handle);
-        if (!stock) continue;
-        const nextStock = applyDelta(stock, perSize, -1);
-        tx.update(productRefs.get(handle)!, { stock: nextStock });
-        for (const [size, qty] of Object.entries(perSize)) {
-          stockDeducted[`${handle}::${size}`] = qty;
-        }
-      }
+      const stockDeducted = writeDeductions(tx, deductions, reads);
       tx.update(orderRef, {
         status: "approved",
         approvedAt: serverTimestamp(),
@@ -283,39 +188,25 @@ async function closeOrder(
       const status = normalizeStatus(order.status as string);
       if (status === "cancelled") return; // idempotent (covers refunded too)
 
-      const restore = isStockReserved(order.status as string);
+      // Stock is held from checkout now, so a PENDING order can hold stock
+      // too — what to restore can no longer be decided from status alone.
+      // `stockDeducted` is the authority; re-deriving from the line items is a
+      // fallback only for legacy approved/delivered orders placed before that
+      // field existed. A legacy pending order (no record, never approved) has
+      // nothing to give back, and correctly restores nothing.
+      const recorded = parseStockDeducted(order.stockDeducted);
+      const restore = recorded !== null || isStockReserved(order.status as string);
 
       if (restore) {
         const items = Array.isArray(order.items)
           ? (order.items as RawOrderItem[])
           : [];
-        const handles = Array.from(
-          new Set(items.map((i) => String(i.productHandle ?? "")).filter(Boolean))
+        const reads = await readProductsForItems(tx, items);
+        writeRestores(
+          tx,
+          recorded ?? deductionsByProduct(items, reads.productByHandle),
+          reads
         );
-        const productRefs = new Map<string, DocumentReference>(
-          handles.map((h) => [h, doc(db, "products", h)])
-        );
-        const productByHandle = new Map<string, Product>();
-        const stockByHandle = new Map<string, StockMap>();
-        for (const [handle, ref] of productRefs) {
-          const snap = await tx.get(ref);
-          if (!snap.exists()) continue;
-          const data = snap.data() as Product;
-          productByHandle.set(handle, data);
-          stockByHandle.set(handle, normalizeStock((data as { stock?: unknown }).stock));
-        }
-
-        // Prefer the exact amount recorded at approval (handle::size -> qty).
-        // Fall back to re-deriving from ordered quantity only for legacy orders
-        // approved before stockDeducted was tracked.
-        const recorded = parseStockDeducted(order.stockDeducted);
-        const restoreBy = recorded ?? deductionsByProduct(items, productByHandle);
-        for (const [handle, perSize] of restoreBy) {
-          const stock = stockByHandle.get(handle);
-          if (!stock) continue;
-          const nextStock = applyDelta(stock, perSize, 1);
-          tx.update(productRefs.get(handle)!, { stock: nextStock });
-        }
       }
 
       tx.update(orderRef, {

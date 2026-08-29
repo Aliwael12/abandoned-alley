@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { collection, doc, runTransaction, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import {
   sendEmail,
@@ -10,14 +10,19 @@ import {
   type OrderForEmail,
 } from "@/lib/email";
 import { getShippingFees } from "@/lib/settings-server";
-import { getAllProducts } from "@/lib/products-server";
-import { sizeOfOrderItem, stockForSize } from "@/lib/inventory";
 import {
   COUNTRY_EGYPT,
   feeForZone,
   isEgyptGovernorate,
   resolveZone,
 } from "@/lib/shipping";
+import {
+  InsufficientStockError,
+  deductionsByProduct,
+  findShortfalls,
+  readProductsForItems,
+  writeDeductions,
+} from "@/lib/stock-reservation";
 import { isDroppinConfigured } from "@/lib/droppin";
 import { pushOrderToDroppin } from "@/lib/orders-server";
 
@@ -159,45 +164,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: parsed }, { status: 400 });
   }
 
-  // Stock guard: reject the order if any line exceeds the available per-size
-  // stock. This is the authoritative check — the storefront UI also caps qty,
-  // but a client could bypass it. Aggregate per product+size first so multiple
-  // lines of the same variant are summed.
-  try {
-    const products = await getAllProducts();
-    const byHandle = new Map(products.map((p) => [p.handle, p]));
-    const wanted = new Map<string, number>(); // `${handle}::${size}` -> qty
-    const keyOf = (h: string, s: string) => `${h}::${s}`;
-    for (const it of parsed.items) {
-      const product = byHandle.get(it.productHandle);
-      const size = sizeOfOrderItem(it, product);
-      if (!size) continue;
-      const k = keyOf(it.productHandle, size);
-      wanted.set(k, (wanted.get(k) ?? 0) + it.quantity);
-    }
-    for (const [k, qty] of wanted) {
-      const [handle, size] = k.split("::");
-      const product = byHandle.get(handle);
-      const have = stockForSize(product?.stock, size);
-      if (have < qty) {
-        const name = product?.title ?? handle;
-        return NextResponse.json(
-          {
-            error:
-              have <= 0
-                ? `${name} (${size}) is sold out.`
-                : `Only ${have} of ${name} (${size}) left.`,
-          },
-          { status: 409 }
-        );
-      }
-    }
-  } catch (err) {
-    console.error("Stock check failed:", err);
-    // Fail open rather than block checkout on a transient read error; approval
-    // will still catch any genuine shortfall.
-  }
-
   const subtotal = parsed.items.reduce((n, i) => n + i.price * i.quantity, 0);
   const zone = resolveZone(parsed.shipping.country, parsed.shipping.state);
   const fees = await getShippingFees();
@@ -262,12 +228,36 @@ export async function POST(request: Request) {
     createdAt: serverTimestamp(),
   };
 
-  let orderId: string;
+  // Reserve stock and create the order in ONE transaction. Because the order is
+  // dispatched to Droppin as soon as it exists, an order that can't be covered
+  // by stock must never be created at all — so the check that used to be an
+  // advisory read (which failed open) is now the authoritative write.
+  const orderRef = doc(collection(db, "orders"));
+  const orderId = orderRef.id;
   try {
-    const ref = await addDoc(collection(db, "orders"), orderDoc);
-    orderId = ref.id;
+    await runTransaction(db, async (tx) => {
+      const reads = await readProductsForItems(tx, parsed.items);
+      const deductions = deductionsByProduct(parsed.items, reads.productByHandle);
+      const shortfalls = findShortfalls(deductions, reads);
+      if (shortfalls.length) throw new InsufficientStockError(shortfalls);
+      // Recorded on the order so cancelling restores exactly what was taken.
+      const stockDeducted = writeDeductions(tx, deductions, reads);
+      tx.set(orderRef, { ...orderDoc, stockDeducted });
+    });
   } catch (err) {
-    console.error("Firestore error:", err);
+    if (err instanceof InsufficientStockError) {
+      const s = err.shortfalls[0];
+      return NextResponse.json(
+        {
+          error:
+            s.have <= 0
+              ? `${s.title} (${s.size}) is sold out.`
+              : `Only ${s.have} of ${s.title} (${s.size}) left.`,
+        },
+        { status: 409 }
+      );
+    }
+    console.error("Order transaction failed:", err);
     return NextResponse.json({ error: "Failed to save order" }, { status: 500 });
   }
 

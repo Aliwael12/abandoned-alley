@@ -6,10 +6,11 @@ import { METRO_GOVERNORATES, type EgyptGovernorate } from "@/lib/shipping";
 
 /**
  * The order lifecycle:
- *   pending   — default at checkout; awaiting admin review.
- *   approved  — admin confirmed; stock deducted and (for metro) dispatched.
+ *   pending   — default at checkout; stock already reserved and the order
+ *               already dispatched to Droppin; awaiting admin review.
+ *   approved  — admin confirmed.
  *   delivered — fulfilled; counts toward realized revenue.
- *   cancelled — voided; stock restored if it was previously approved.
+ *   cancelled — voided; stock restored if the order was holding any.
  */
 export const ORDER_STATUSES = [
   "pending",
@@ -58,7 +59,11 @@ export function isCancelledStatus(raw: string | null | undefined): boolean {
   return normalizeStatus(raw) === "cancelled";
 }
 
-/** A status that has already had its stock deducted (approval happened). */
+/**
+ * A status that implies stock was deducted, for LEGACY orders only: stock is
+ * now reserved at checkout, so a pending order can hold stock too. Prefer the
+ * order's `stockDeducted` record — see closeOrder in order-actions-server.ts.
+ */
 export function isStockReserved(raw: string | null | undefined): boolean {
   const s = normalizeStatus(raw);
   return s === "approved" || s === "delivered";
