@@ -6,7 +6,9 @@ import { isProductSoldOut, isSizeSoldOut, stockForSize } from "@/lib/inventory";
 import SizeChartPanel from "@/components/SizeChartPanel";
 import ProductCard from "@/components/ProductCard";
 import { useCart } from "@/lib/cart";
-import { trackPixel, PIXEL_CURRENCY } from "@/lib/pixel";
+import { trackPixel } from "@/lib/pixel";
+import { useRegionOrDefault } from "@/lib/region";
+import { formatMoney, priceForRegion, REGION_CURRENCY } from "@/lib/pricing";
 import { Button, Badge } from "./ui";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
@@ -24,6 +26,8 @@ export default function ProductDetail({
   related?: Product[];
 }) {
   const add = useCart((s) => s.add);
+  const region = useRegionOrDefault();
+  const currency = REGION_CURRENCY[region];
   const [active, setActive] = useState(0);
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
@@ -84,6 +88,15 @@ export default function ProductDetail({
     );
   }, [selected, product.variants]);
 
+  // Price for the active region. Variants carry their own prices, but the admin
+  // sets one price per product and it is mirrored down to every variant, so the
+  // variant is the source of truth with the product as the fallback.
+  const regionPrice = useMemo(
+    () =>
+      priceForRegion(matchedVariant, region) ?? priceForRegion(product, region),
+    [matchedVariant, product, region]
+  );
+
   const coverImage = product.media.find((m) => m.type === "image")?.src ?? "";
 
   useEffect(() => {
@@ -91,14 +104,16 @@ export default function ProductDetail({
       content_ids: [product.handle],
       content_name: product.title,
       content_type: "product",
-      value: matchedVariant.price,
-      currency: PIXEL_CURRENCY,
+      value: regionPrice ?? 0,
+      currency,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product.handle]);
 
   const onAdd = () => {
     if (soldOut || selectedSizeSoldOut) return;
+    // Not priced for this region — nothing valid to put in the bag.
+    if (regionPrice === null) return;
     if (isPinProduct && selectedPins.length !== pinPackCount) return;
     if (available > 0 && qty > available) {
       setQty(available);
@@ -132,7 +147,7 @@ export default function ProductDetail({
         variantId: cartVariantId,
         title: cartTitle,
         variantTitle: matchedVariant.title,
-        price: matchedVariant.price,
+        price: regionPrice ?? 0,
         image: cartImage,
       },
       qty
@@ -142,8 +157,8 @@ export default function ProductDetail({
       content_name: product.title,
       content_type: "product",
       contents: [{ id: matchedVariant.id, quantity: qty }],
-      value: matchedVariant.price * qty,
-      currency: PIXEL_CURRENCY,
+      value: (regionPrice ?? 0) * qty,
+      currency,
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 1800);
@@ -300,7 +315,7 @@ export default function ProductDetail({
             {soldOut && <Badge variant="accent">SOLD OUT</Badge>}
           </div>
           <p className="aa-price" style={{ fontSize: "var(--text-xl)" }}>
-            EGP {matchedVariant.price.toFixed(2)}
+            {regionPrice === null ? "—" : formatMoney(regionPrice, region)}
           </p>
           <div style={{ height: 1, background: "var(--border-default)" }} />
           <p
@@ -434,11 +449,14 @@ export default function ProductDetail({
             disabled={
               soldOut ||
               selectedSizeSoldOut ||
+              regionPrice === null ||
               (isPinProduct && selectedPins.length !== pinPackCount)
             }
             style={{ width: "100%" }}
           >
-            {soldOut || selectedSizeSoldOut
+            {regionPrice === null
+              ? "NOT AVAILABLE IN THIS REGION"
+              : soldOut || selectedSizeSoldOut
               ? "SOLD OUT"
               : isPinProduct && selectedPins.length !== pinPackCount
                 ? `CHOOSE ${pinPackCount} PINS`

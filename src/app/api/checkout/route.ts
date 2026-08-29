@@ -12,10 +12,12 @@ import {
 import { getShippingFees } from "@/lib/settings-server";
 import {
   COUNTRY_EGYPT,
+  COUNTRY_USA,
   feeForZone,
   isEgyptGovernorate,
   resolveZone,
 } from "@/lib/shipping";
+import { REGION_CURRENCY, toRegion, type Region } from "@/lib/pricing";
 import {
   InsufficientStockError,
   deductionsByProduct,
@@ -50,6 +52,7 @@ type AttributionIn = {
 };
 
 type IncomingOrder = {
+  region: Region;
   customer: { name: string; email: string; phone: string };
   shipping: {
     address: string;
@@ -93,14 +96,21 @@ function validate(body: unknown): IncomingOrder | string {
   for (const [k, v] of Object.entries(ship)) {
     if (k !== "zip" && !v) return `Shipping ${k} required`;
   }
-  if (resolveZone(ship.country, ship.state) === "international") {
-    return "We currently deliver within Egypt only.";
+  // The region decides which address rules apply and which currency the order
+  // is booked in. The server is authoritative about the destination country.
+  const region = toRegion(b.region);
+  if (region === "us") {
+    if (!ship.zip) return "ZIP code required";
+    ship.country = COUNTRY_USA;
+  } else {
+    if (resolveZone(ship.country, ship.state) === "international") {
+      return "We currently deliver within Egypt only.";
+    }
+    if (!isEgyptGovernorate(ship.state)) {
+      return "Please select a valid Egyptian governorate.";
+    }
+    ship.country = COUNTRY_EGYPT;
   }
-  if (!isEgyptGovernorate(ship.state)) {
-    return "Please select a valid Egyptian governorate.";
-  }
-  // The server is authoritative about the destination country.
-  ship.country = COUNTRY_EGYPT;
 
   const items = b.items;
   if (!Array.isArray(items) || items.length === 0) return "Cart is empty";
@@ -143,6 +153,7 @@ function validate(body: unknown): IncomingOrder | string {
   }
 
   return {
+    region,
     customer: { name, email, phone },
     shipping: ship,
     notes: typeof b.notes === "string" ? b.notes.trim().slice(0, 1000) : undefined,
@@ -165,14 +176,18 @@ export async function POST(request: Request) {
   }
 
   const subtotal = parsed.items.reduce((n, i) => n + i.price * i.quantity, 0);
-  const zone = resolveZone(parsed.shipping.country, parsed.shipping.state);
-  const fees = await getShippingFees();
-  const shippingFee = feeForZone(zone, fees);
+  const isUs = parsed.region === "us";
 
-  // Every Egypt order is dispatched to Droppin automatically the moment it is
-  // placed — there is no admin step. International orders are rejected above;
-  // the zone guard keeps the rule explicit if the US store ever opens.
-  const autoPush = zone !== "international";
+  // US orders are recorded for manual follow-up, not dispatched: Droppin is an
+  // Egypt-only courier, so they carry no carrier fee and never auto-push.
+  const zone = isUs
+    ? "international"
+    : resolveZone(parsed.shipping.country, parsed.shipping.state);
+  const shippingFee = isUs ? 0 : feeForZone(zone, await getShippingFees());
+
+  // Every EGYPT order is dispatched to Droppin the moment it is placed — there
+  // is no admin step.
+  const autoPush = !isUs && zone !== "international";
 
   const SOCIAL_HOSTS: Record<string, string> = {
     "instagram.com": "instagram",
@@ -222,7 +237,8 @@ export async function POST(request: Request) {
     shippingFee,
     shippingZone: zone,
     droppinAutoPush: autoPush,
-    currency: "EGP",
+    region: parsed.region,
+    currency: REGION_CURRENCY[parsed.region],
     status: "pending",
     attribution: attributionDoc,
     createdAt: serverTimestamp(),
@@ -263,6 +279,7 @@ export async function POST(request: Request) {
 
   const emailPayload: OrderForEmail = {
     id: orderId,
+    currency: REGION_CURRENCY[parsed.region],
     customerName: parsed.customer.name,
     customerEmail: parsed.customer.email,
     customerPhone: parsed.customer.phone,
@@ -299,9 +316,11 @@ export async function POST(request: Request) {
       sendEmail({
         from: EMAIL_FROM,
         to: ADMIN_EMAIL,
-        subject: `New order — ${parsed.customer.name} (${parsed.shipping.state}) — EGP ${(
-          subtotal + shippingFee
-        ).toFixed(2)}`,
+        subject: `New order (${parsed.region.toUpperCase()}) — ${
+          parsed.customer.name
+        } (${parsed.shipping.state}) — ${
+          REGION_CURRENCY[parsed.region] === "USD" ? "$" : "EGP "
+        }${(subtotal + shippingFee).toFixed(2)}`,
         html: adminOrderHtml(emailPayload),
         replyTo: parsed.customer.email,
       }),

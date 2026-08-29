@@ -17,11 +17,12 @@ import {
 } from "@/lib/order-status";
 import { EGYPT_GOVERNORATES } from "@/lib/shipping";
 import type { OrderRow } from "../types";
+import { REGION_LABEL, REGIONS } from "@/lib/pricing";
 
-const fmtEgp = (n: number) =>
+const fmtMoney = (n: number, currency: string) =>
   n.toLocaleString("en-US", {
     style: "currency",
-    currency: "EGP",
+    currency: currency === "USD" ? "USD" : "EGP",
     maximumFractionDigits: 0,
   });
 
@@ -72,6 +73,7 @@ export default function OrdersTab({
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
 
+  const [region, setRegion] = useState<string>("all");
   const [governorate, setGovernorate] = useState<string>("all");
   const [status, setStatus] = useState<string>("all");
   const [search, setSearch] = useState("");
@@ -129,6 +131,7 @@ export default function OrdersTab({
 
   const filtered = useMemo(() => {
     let rows = orders ?? [];
+    if (region !== "all") rows = rows.filter((o) => o.region === region);
     if (governorate !== "all") rows = rows.filter((o) => o.governorate === governorate);
     if (status !== "all") rows = rows.filter((o) => o.status === status);
     const q = search.trim().toLowerCase();
@@ -157,7 +160,7 @@ export default function OrdersTab({
       }
     });
     return sorted;
-  }, [orders, governorate, status, search, sortKey, sortDir]);
+  }, [orders, region, governorate, status, search, sortKey, sortDir]);
 
   // Effective selection = chosen ids that are still visible under the current
   // filters. Derived at render time (no effect syncing stored state) so stale
@@ -271,6 +274,19 @@ export default function OrdersTab({
             {ORDER_STATUSES.map((s) => (
               <option key={s} value={s}>
                 {STATUS_LABEL[s]}
+              </option>
+            ))}
+          </select>
+          <select
+            value={region}
+            onChange={(e) => setRegion(e.target.value)}
+            className={`${selectCls} min-w-0`}
+            aria-label="Filter by store region"
+          >
+            <option value="all">All stores</option>
+            {REGIONS.map((r) => (
+              <option key={r} value={r}>
+                {REGION_LABEL[r]}
               </option>
             ))}
           </select>
@@ -413,7 +429,7 @@ export default function OrdersTab({
                           #{o.id.slice(0, 8)}
                         </span>
                         <span className="text-sm font-medium">
-                          {fmtEgp(o.subtotal)}
+                          {fmtMoney(o.subtotal, o.currency)}
                         </span>
                       </div>
                       <div className="min-w-0">
@@ -427,7 +443,7 @@ export default function OrdersTab({
                       <div className="flex items-center gap-2 flex-wrap">
                         <StatusBadge status={o.status} />
                         <span className="text-[11px] text-[var(--text-muted)]">
-                          {o.governorate || "—"} · {o.itemCount} item
+                          {REGION_LABEL[o.region]} · {o.governorate || "—"} · {o.itemCount} item
                           {o.itemCount === 1 ? "" : "s"}
                         </span>
                       </div>
@@ -520,14 +536,20 @@ export default function OrdersTab({
                         </Link>
                       </td>
                       <td className="py-3 pr-4 text-[var(--text-primary)]">{o.itemCount}</td>
-                      <td className="py-3 pr-4 text-[var(--text-primary)]">{o.governorate || "—"}</td>
+                      <td className="py-3 pr-4 text-[var(--text-primary)]">
+                        <span className="text-[10px] tracking-[0.15em] uppercase text-[var(--text-muted)]">
+                          {REGION_LABEL[o.region]}
+                        </span>
+                        <br />
+                        {o.governorate || "—"}
+                      </td>
                       <td className="py-3 pr-4">
                         <StatusBadge status={o.status} />
                       </td>
                       <td className="py-3 pr-4 text-xs text-[var(--text-muted)]">
                         {o.createdAt ? new Date(o.createdAt).toLocaleDateString() : "—"}
                       </td>
-                      <td className="py-3 text-right">{fmtEgp(o.subtotal)}</td>
+                      <td className="py-3 text-right">{fmtMoney(o.subtotal, o.currency)}</td>
                     </tr>
                   );
                 })}

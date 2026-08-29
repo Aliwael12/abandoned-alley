@@ -4,11 +4,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "@/lib/cart";
-import { trackPixel, PIXEL_CURRENCY } from "@/lib/pixel";
+import { trackPixel } from "@/lib/pixel";
+import { useRegionOrDefault } from "@/lib/region";
+import { formatMoney, REGION_CURRENCY } from "@/lib/pricing";
 import { getStoredAttribution } from "@/components/SessionTracker";
 import {
   COUNTRY_EGYPT,
   COUNTRY_OTHER,
+  COUNTRY_USA,
   EGYPT_GOVERNORATES,
   feeForZone,
   resolveZone,
@@ -26,6 +29,8 @@ type FormState = {
   address: string;
   city: string;
   governorate: string;
+  /** US state. Kept separate from `governorate` so neither region's value leaks into the other. */
+  state: string;
   zip: string;
   country: string;
   notes: string;
@@ -38,6 +43,7 @@ const initialForm: FormState = {
   address: "",
   city: "",
   governorate: "",
+  state: "",
   zip: "",
   country: COUNTRY_EGYPT,
   notes: "",
@@ -74,10 +80,21 @@ export default function CartContent() {
     };
   }, []);
 
+  const region = useRegionOrDefault();
+  const isUs = region === "us";
+  const currency = REGION_CURRENCY[region];
+  const money = (n: number) => formatMoney(n, region);
+
   const zone = useMemo(() => resolveZone(form.country, form.governorate), [form.country, form.governorate]);
-  const isEgypt = form.country === COUNTRY_EGYPT;
-  const isInternational = form.country === COUNTRY_OTHER;
-  const shippingFee = fees && isEgypt && form.governorate ? feeForZone(zone, fees) : null;
+  const isEgypt = !isUs && form.country === COUNTRY_EGYPT;
+  const isInternational = !isUs && form.country === COUNTRY_OTHER;
+  // US orders are recorded for manual follow-up rather than dispatched to a
+  // carrier, so they carry no shipping fee.
+  const shippingFee = isUs
+    ? 0
+    : fees && isEgypt && form.governorate
+      ? feeForZone(zone, fees)
+      : null;
 
   const subtotal = items.reduce((n, i) => n + i.price * i.quantity, 0);
   const total = shippingFee !== null ? subtotal + shippingFee : subtotal;
@@ -93,7 +110,7 @@ export default function CartContent() {
       content_type: "product",
       num_items: items.reduce((n, i) => n + i.quantity, 0),
       value: subtotal,
-      currency: PIXEL_CURRENCY,
+      currency,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
@@ -104,15 +121,17 @@ export default function CartContent() {
 
   const canSubmit =
     !submitting &&
-    fees !== null &&
-    isEgypt &&
-    !!form.governorate &&
-    shippingFee !== null &&
     !!form.name.trim() &&
     !!form.email.trim() &&
     !!form.phone.trim() &&
     !!form.address.trim() &&
-    !!form.city.trim();
+    !!form.city.trim() &&
+    (isUs
+      ? !!form.state.trim() && !!form.zip.trim()
+      : fees !== null &&
+        isEgypt &&
+        !!form.governorate &&
+        shippingFee !== null);
 
   async function placeOrder(e: React.FormEvent) {
     e.preventDefault();
@@ -125,7 +144,7 @@ export default function CartContent() {
       content_type: "product",
       num_items: items.reduce((n, i) => n + i.quantity, 0),
       value: total,
-      currency: PIXEL_CURRENCY,
+      currency,
     });
     try {
       const res = await fetch("/api/checkout", {
@@ -133,12 +152,13 @@ export default function CartContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           customer: { name: form.name, email: form.email, phone: form.phone },
+          region,
           shipping: {
             address: form.address,
             city: form.city,
-            state: form.governorate,
+            state: isUs ? form.state : form.governorate,
             zip: form.zip,
-            country: COUNTRY_EGYPT,
+            country: isUs ? COUNTRY_USA : COUNTRY_EGYPT,
           },
           notes: form.notes || undefined,
           items: items.map((i) => ({
@@ -163,7 +183,7 @@ export default function CartContent() {
     }
   }
 
-  const zipLabel = isEgypt ? "Postal code (optional)" : "ZIP code";
+  const zipLabel = isUs ? "ZIP code" : "Postal code (optional)";
 
   return (
     <div className="aa-container" style={{ padding: "var(--space-16) var(--space-6)" }}>
@@ -209,7 +229,7 @@ export default function CartContent() {
                         </Button>
                       </div>
                     </div>
-                    <p className="aa-price" style={{ textAlign: "right" }}>EGP {(item.price * item.quantity).toFixed(2)}</p>
+                    <p className="aa-price" style={{ textAlign: "right" }}>{money(item.price * item.quantity)}</p>
                   </div>
                 ))}
               </Card>
@@ -218,7 +238,7 @@ export default function CartContent() {
                 <h2 className="aa-display-h3" style={{ marginBottom: "var(--space-4)" }}>ORDER SUMMARY</h2>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "var(--space-2)" }}>
                   <span className="aa-caption">SUBTOTAL</span>
-                  <span className="aa-body">EGP {subtotal.toFixed(2)}</span>
+                  <span className="aa-body">{money(subtotal)}</span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "var(--space-4)" }}>
                   <span className="aa-caption">SHIPPING</span>
@@ -227,7 +247,7 @@ export default function CartContent() {
                 <div style={{ height: 1, background: "var(--border-default)", marginBottom: "var(--space-4)" }} />
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "var(--space-6)" }}>
                   <span className="aa-display-h3">TOTAL</span>
-                  <span className="aa-price" style={{ fontSize: "var(--text-lg)" }}>EGP {subtotal.toFixed(2)}</span>
+                  <span className="aa-price" style={{ fontSize: "var(--text-lg)" }}>{money(subtotal)}</span>
                 </div>
                 <Button variant="primary" size="lg" style={{ width: "100%" }} onClick={() => setStep("checkout")}>
                   CHECKOUT
@@ -250,24 +270,26 @@ export default function CartContent() {
           >
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
               <Card style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-                <div className="aa-eyebrow">SHIPPING TO — EGYPT</div>
+                <div className="aa-eyebrow">SHIPPING TO — {isUs ? "UNITED STATES" : "EGYPT"}</div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-4)" }} className="aa-cart-grid">
                   <Input required placeholder="Full name" value={form.name} onChange={(e) => update("name", e.target.value)} autoComplete="name" />
                   <Input required type="email" placeholder="Email" value={form.email} onChange={(e) => update("email", e.target.value)} autoComplete="email" />
                 </div>
                 <Input required type="tel" placeholder="Phone" value={form.phone} onChange={(e) => update("phone", e.target.value)} autoComplete="tel" />
-                <select
-                  required
-                  value={form.country}
-                  onChange={(e) => {
-                    update("country", e.target.value);
-                    if (e.target.value !== COUNTRY_EGYPT) update("governorate", "");
-                  }}
-                  className="aa-input"
-                >
-                  <option value={COUNTRY_EGYPT}>Egypt</option>
-                  <option value={COUNTRY_OTHER}>Outside Egypt</option>
-                </select>
+                {!isUs && (
+                  <select
+                    required
+                    value={form.country}
+                    onChange={(e) => {
+                      update("country", e.target.value);
+                      if (e.target.value !== COUNTRY_EGYPT) update("governorate", "");
+                    }}
+                    className="aa-input"
+                  >
+                    <option value={COUNTRY_EGYPT}>Egypt</option>
+                    <option value={COUNTRY_OTHER}>Outside Egypt</option>
+                  </select>
+                )}
 
                 {isInternational && (
                   <p className="aa-caption" style={{ color: "var(--accent-default)" }}>
@@ -275,25 +297,35 @@ export default function CartContent() {
                   </p>
                 )}
 
-                {isEgypt && (
+                {(isEgypt || isUs) && (
                   <>
                     <Input required placeholder="Street address" value={form.address} onChange={(e) => update("address", e.target.value)} autoComplete="street-address" />
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-4)" }} className="aa-cart-grid">
                       <Input required placeholder="City / Area" value={form.city} onChange={(e) => update("city", e.target.value)} autoComplete="address-level2" />
-                      <select
-                        required
-                        value={form.governorate}
-                        onChange={(e) => update("governorate", e.target.value)}
-                        className="aa-input"
-                      >
-                        <option value="" disabled>Select governorate</option>
-                        {EGYPT_GOVERNORATES.map((g) => (
-                          <option key={g} value={g}>{g}</option>
-                        ))}
-                      </select>
+                      {isUs ? (
+                        <Input
+                          required
+                          placeholder="State"
+                          value={form.state}
+                          onChange={(e) => update("state", e.target.value)}
+                          autoComplete="address-level1"
+                        />
+                      ) : (
+                        <select
+                          required
+                          value={form.governorate}
+                          onChange={(e) => update("governorate", e.target.value)}
+                          className="aa-input"
+                        >
+                          <option value="" disabled>Select governorate</option>
+                          {EGYPT_GOVERNORATES.map((g) => (
+                            <option key={g} value={g}>{g}</option>
+                          ))}
+                        </select>
+                      )}
                     </div>
-                    <Input placeholder={zipLabel} value={form.zip} onChange={(e) => update("zip", e.target.value)} autoComplete="postal-code" />
-                    {zone === "egypt" && (
+                    <Input required={isUs} placeholder={zipLabel} value={form.zip} onChange={(e) => update("zip", e.target.value)} autoComplete="postal-code" />
+                    {!isUs && zone === "egypt" && (
                       <p className="aa-caption">Estimated delivery to {form.governorate}: 3–5 business days.</p>
                     )}
                   </>
@@ -304,7 +336,9 @@ export default function CartContent() {
                 <div className="aa-eyebrow">PAYMENT</div>
                 <p className="aa-body">Cash on delivery.</p>
                 <p className="aa-caption">
-                  Pay the courier in cash when your order arrives. Nothing is charged now.
+                  {isUs
+                    ? "Nothing is charged now — we'll contact you to confirm your order and arrange delivery."
+                    : "Pay the courier in cash when your order arrives. Nothing is charged now."}
                 </p>
               </Card>
 
@@ -322,19 +356,19 @@ export default function CartContent() {
                   <span className="aa-body" style={{ color: "var(--text-muted)" }}>
                     {i.title} × {i.quantity} ({i.variantTitle})
                   </span>
-                  <span className="aa-body">EGP {(i.price * i.quantity).toFixed(2)}</span>
+                  <span className="aa-body">{money(i.price * i.quantity)}</span>
                 </div>
               ))}
               <div style={{ height: 1, background: "var(--border-default)", margin: "var(--space-4) 0" }} />
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "var(--space-2)" }}>
                 <span className="aa-caption">SUBTOTAL</span>
-                <span className="aa-body">EGP {subtotal.toFixed(2)}</span>
+                <span className="aa-body">{money(subtotal)}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "var(--space-4)" }}>
                 <span className="aa-caption">SHIPPING</span>
                 <span className="aa-body">
                   {shippingFee !== null
-                    ? `EGP ${shippingFee.toFixed(2)}`
+                    ? money(shippingFee)
                     : isInternational
                     ? "Unavailable"
                     : feesFailed
@@ -347,7 +381,7 @@ export default function CartContent() {
               <div style={{ height: 1, background: "var(--border-default)", marginBottom: "var(--space-4)" }} />
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "var(--space-6)" }}>
                 <span className="aa-display-h3">TOTAL</span>
-                <span className="aa-price" style={{ fontSize: "var(--text-lg)" }}>EGP {total.toFixed(2)}</span>
+                <span className="aa-price" style={{ fontSize: "var(--text-lg)" }}>{money(total)}</span>
               </div>
               <Button type="submit" variant="primary" size="lg" style={{ width: "100%" }} disabled={!canSubmit}>
                 {submitting
@@ -367,7 +401,7 @@ export default function CartContent() {
 
       {step === "confirmed" && order && (
         <div style={{ textAlign: "center", padding: "var(--space-24) 0", display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-4)" }}>
-          <PurchaseTracker orderId={order.id} value={order.total} currency="EGP" />
+          <PurchaseTracker orderId={order.id} value={order.total} currency={currency} />
           <Image src="/brand/logo-solid-black.png" alt="Abandoned Alley" width={56} height={56} />
           <div className="aa-eyebrow">ORDER CONFIRMED</div>
           <h1 className="aa-display-hero" style={{ fontSize: "var(--text-4xl)" }}>DON&apos;T DIE WONDERING</h1>

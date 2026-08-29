@@ -21,9 +21,16 @@ export type EgyptGovernorate = (typeof EGYPT_GOVERNORATES)[number];
 /** Governorates that get the metro rate. Everything else gets the outer rate. */
 export const METRO_GOVERNORATES: readonly EgyptGovernorate[] = ["Cairo", "Giza"];
 
-/** Country select values. We only ship within Egypt. */
+/** Country select values for the Egypt store, which only ships within Egypt. */
 export const COUNTRY_EGYPT = "Egypt";
 export const COUNTRY_OTHER = "Outside Egypt";
+
+/**
+ * The US store's fixed country. US orders are recorded for manual follow-up —
+ * they are never dispatched to Droppin (an Egypt-only courier) and carry no
+ * shipping fee — so they bypass the zone logic below entirely.
+ */
+export const COUNTRY_USA = "United States";
 
 export type ShippingZone = "metro" | "egypt" | "international";
 

@@ -23,6 +23,7 @@ function normalize(raw: Record<string, unknown>): Product | null {
     vendor: String(raw.vendor ?? "Abandoned Alley"),
     description: String(raw.description ?? ""),
     price: Number(raw.price ?? 0),
+    priceUsd: Number.isFinite(Number(raw.priceUsd)) ? Number(raw.priceUsd) : undefined,
     media: Array.isArray(raw.media) ? (raw.media as Product["media"]) : [],
     options: Array.isArray(raw.options) ? (raw.options as Product["options"]) : [],
     variants: Array.isArray(raw.variants) ? (raw.variants as Product["variants"]) : [],

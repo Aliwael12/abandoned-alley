@@ -6,7 +6,10 @@ export type ProductOption = {
 export type ProductVariant = {
   id: string;
   title: string;
+  /** Egypt price, in EGP. */
   price: number;
+  /** US price, in USD. Independently set by the admin; absent = not sold in the US. */
+  priceUsd?: number;
   options: Record<string, string>;
 };
 
@@ -22,7 +25,10 @@ export type Product = {
   title: string;
   vendor: string;
   description: string;
+  /** Egypt price, in EGP. See lib/pricing.ts for how regions resolve a price. */
   price: number;
+  /** US price, in USD. Independently set by the admin; absent = not sold in the US. */
+  priceUsd?: number;
   media: Media[];
   options: ProductOption[];
   variants: ProductVariant[];

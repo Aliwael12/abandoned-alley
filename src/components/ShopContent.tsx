@@ -4,7 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { Product } from "@/lib/products";
 import { Button } from "./ui";
-import ProductCard from "./ProductCard";
+import ProductGrid from "./ProductGrid";
 
 const CATEGORIES = [
   { value: "tees", label: "TEES" },
@@ -50,19 +50,7 @@ export default function ShopContent({ products }: { products: Product[] }) {
         ))}
       </div>
 
-      {filtered.length === 0 ? (
-        <p className="aa-body" style={{ color: "var(--text-muted)", textAlign: "center" }}>
-          No products in this category yet.
-        </p>
-      ) : (
-        <div className="aa-grid">
-          {filtered.map((p) => (
-            <div key={p.handle} style={{ gridColumn: "span 4" }}>
-              <ProductCard product={p} />
-            </div>
-          ))}
-        </div>
-      )}
+      <ProductGrid products={filtered} emptyMessage="No products in this category yet." />
     </div>
   );
 }

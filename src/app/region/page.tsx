@@ -3,17 +3,15 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { takeReturnPath, useRegion } from "@/lib/region";
 import { InstagramIcon } from "@/components/Socials";
 
 export default function RegionPage() {
   const router = useRouter();
   const setRegion = useRegion((s) => s.setRegion);
-  const [usNotice, setUsNotice] = useState(false);
 
-  const selectEg = () => {
-    setRegion("eg");
+  const select = (region: "eg" | "us") => {
+    setRegion(region);
     // Back to whatever the gate interrupted; the landing menu otherwise.
     router.push(takeReturnPath() ?? "/");
   };
@@ -57,11 +55,11 @@ export default function RegionPage() {
           boxSizing: "border-box",
         }}
       >
-        {/* United States — not a real store yet */}
+        {/* United States — cash on delivery, fulfilled manually from the dashboard */}
         <button
           type="button"
           className="aa-region-panel"
-          onClick={() => setUsNotice(true)}
+          onClick={() => select("us")}
           style={{
             display: "flex",
             flexDirection: "column",
@@ -78,11 +76,6 @@ export default function RegionPage() {
             <p className="aa-body" style={{ color: "var(--text-muted)", marginTop: "var(--space-2)" }}>
               USD · US sizing
             </p>
-            {usNotice && (
-              <p className="aa-caption" style={{ color: "var(--accent-default)", marginTop: "var(--space-4)" }}>
-                NOT AVAILABLE YET — WE&apos;LL ANNOUNCE THE US LAUNCH ON INSTAGRAM
-              </p>
-            )}
           </div>
           <div style={{ height: 4, width: 56, background: "var(--graphic-yellow)" }} />
         </button>
@@ -91,7 +84,7 @@ export default function RegionPage() {
         <button
           type="button"
           className="aa-region-panel"
-          onClick={selectEg}
+          onClick={() => select("eg")}
           style={{
             display: "flex",
             flexDirection: "column",

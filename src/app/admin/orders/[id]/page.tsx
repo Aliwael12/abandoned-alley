@@ -3,6 +3,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import PushToDroppinButton from "./PushToDroppinButton";
+import { REGION_LABEL } from "@/lib/pricing";
 import OrderActions from "./OrderActions";
 import { requireAdmin } from "@/lib/admin-auth";
 import { getOrderById } from "@/lib/orders-server";
@@ -58,8 +59,13 @@ export default async function OrderDetailPage({
           <span className="px-3 py-1 text-[11px] tracking-[0.2em] uppercase border border-[var(--border-default)] rounded">
             {displayStatusLabel(order.status)}
           </span>
+          <span className="px-3 py-1 text-[11px] tracking-[0.2em] uppercase border border-[var(--border-default)] rounded">
+            {REGION_LABEL[order.region]}
+          </span>
           <span className="px-3 py-1 text-[11px] tracking-[0.2em] uppercase border border-[var(--border-default)] rounded text-[var(--text-muted)]">
-            {CARRIER_LABEL.droppin} · {order.shipping.state || "—"}
+            {order.region === "us"
+              ? order.shipping.state || "—"
+              : `${CARRIER_LABEL.droppin} · ${order.shipping.state || "—"}`}
           </span>
           <span className="text-xs text-[var(--text-muted)]">
             {order.createdAt ? new Date(order.createdAt).toLocaleString() : "—"}
@@ -212,9 +218,26 @@ export default async function OrderDetailPage({
 
       <section className="glass  p-6 flex flex-col gap-3">
           <h2 className="font-[family-name:var(--font-bebas)] text-2xl tracking-[0.18em]">
-            Shipping (Droppin)
+            {order.region === "us" ? "Shipping (US)" : "Shipping (Droppin)"}
           </h2>
-          {order.droppin.trackingNumber ? (
+          {order.region === "us" ? (
+            /* Droppin only serves Egypt, so US orders are recorded here for
+               manual follow-up rather than dispatched to any carrier. */
+            <>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-[var(--text-muted)] uppercase tracking-[0.2em] text-xs">
+                  Destination
+                </span>
+                <span className="text-[var(--text-primary)]">
+                  {[order.shipping.state, order.shipping.zip].filter(Boolean).join(" ") || "—"}
+                </span>
+              </div>
+              <p className="text-sm text-[var(--text-muted)]">
+                US order — cash on delivery, arranged manually. It is not sent to
+                Droppin, which only serves Egypt.
+              </p>
+            </>
+          ) : order.droppin.trackingNumber ? (
             <>
               <div className="flex justify-between text-sm">
                 <span className="text-[var(--text-muted)] uppercase tracking-[0.2em] text-xs">

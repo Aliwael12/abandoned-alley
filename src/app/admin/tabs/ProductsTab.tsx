@@ -16,6 +16,12 @@ import {
 } from "lucide-react";
 import type { Media, Product, StockMap } from "@/lib/products";
 import {
+  REGION_CURRENCY,
+  REGION_LABEL,
+  priceForRegion,
+  type Region,
+} from "@/lib/pricing";
+import {
   LOW_STOCK_THRESHOLD,
   productSizes,
   stockBadge,
@@ -34,12 +40,17 @@ type EditState = Partial<
   media?: Media[];
   clearSizeChart?: boolean;
   stock?: StockMap;
+  /** US price in USD; null clears it and removes the product from the US store. */
+  priceUsd?: number | null;
 };
 
 type SizeChartOption = { handle: string; name: string };
 
-const fmtUsd = (n: number) =>
-  n.toLocaleString("en-US", { style: "currency", currency: "EGP" });
+const fmtPrice = (n: number, region: Region) =>
+  n.toLocaleString("en-US", {
+    style: "currency",
+    currency: REGION_CURRENCY[region],
+  });
 
 function MediaEditor({
   media,
@@ -309,6 +320,9 @@ function StockSummary({ product }: { product: Product }) {
 }
 
 export default function ProductsTab({ products, onChanged, onError }: Props) {
+  // Which region's pricing this tab is editing/showing. The two prices are
+  // independent numbers, not a conversion, so only one is in view at a time.
+  const [priceRegion, setPriceRegion] = useState<Region>("eg");
   const [editing, setEditing] = useState<string | null>(null);
   const [draft, setDraft] = useState<EditState>({});
   const [busy, setBusy] = useState<string | null>(null);
@@ -348,6 +362,7 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
       title: p.title,
       description: p.description,
       price: p.price,
+      priceUsd: p.priceUsd,
       media: p.media,
       sizeChartId: p.sizeChartId ?? "",
       clearSizeChart: false,
@@ -483,6 +498,23 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
         <h2 className="font-[family-name:var(--font-bebas)] text-2xl tracking-[0.18em]">
           Catalog ({products.length})
         </h2>
+        <div className="flex items-center gap-2">
+          <div className="inline-flex border border-[var(--border-default)]">
+            {(["eg", "us"] as const).map((r) => (
+              <button
+                key={r}
+                onClick={() => setPriceRegion(r)}
+                style={
+                  priceRegion === r
+                    ? { background: "var(--accent-default)", color: "var(--text-on-accent)" }
+                    : undefined
+                }
+                className="px-3 py-2 text-[11px] tracking-[0.2em] uppercase transition"
+              >
+                {REGION_LABEL[r]}
+              </button>
+            ))}
+          </div>
         <button
           onClick={() => setCreating((v) => !v)}
           style={{ color: creating ? undefined : "var(--text-on-accent)" }}
@@ -495,6 +527,7 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
           {creating ? <X size={14} /> : <Plus size={14} />}
           {creating ? "Cancel" : "New product"}
         </button>
+        </div>
       </div>
 
       {creating && (
@@ -596,13 +629,39 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
                         onChange={(e) => setDraft({ ...draft, description: e.target.value })}
                         className="bg-[var(--surface-card-alt)] border border-[var(--border-default)]  p-3 text-sm outline-none focus:border-[var(--border-strong)] transition resize-none"
                       />
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={draft.price ?? 0}
-                        onChange={(e) => setDraft({ ...draft, price: Number(e.target.value) })}
-                        className={inputCls}
-                      />
+                      <label className="flex flex-col gap-2">
+                        <span className="text-[11px] tracking-[0.3em] uppercase text-[var(--text-muted)]">
+                          {priceRegion === "eg" ? "Price (EGP)" : "Price (USD)"}
+                        </span>
+                        {priceRegion === "eg" ? (
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={draft.price ?? 0}
+                            onChange={(e) => setDraft({ ...draft, price: Number(e.target.value) })}
+                            className={inputCls}
+                          />
+                        ) : (
+                          <input
+                            type="number"
+                            step="0.01"
+                            placeholder="Not sold in the US"
+                            value={draft.priceUsd ?? ""}
+                            onChange={(e) =>
+                              setDraft({
+                                ...draft,
+                                priceUsd: e.target.value === "" ? null : Number(e.target.value),
+                              })
+                            }
+                            className={inputCls}
+                          />
+                        )}
+                        <span className="text-[10px] text-[var(--text-muted)]">
+                          {priceRegion === "eg"
+                            ? "Shown to shoppers in the Egypt store."
+                            : "Shown in the US store. Leave empty to hide this product there."}
+                        </span>
+                      </label>
                       <MediaEditor
                         media={draft.media ?? []}
                         onChange={(media) => setDraft({ ...draft, media })}
@@ -650,7 +709,15 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
                         )}
                       </div>
                       <p className="text-xs text-[var(--text-muted)] line-clamp-2">{p.description}</p>
-                      <p className="text-sm">{fmtUsd(p.price)}</p>
+                      <p className="text-sm">
+                        {priceForRegion(p, priceRegion) === null ? (
+                          <span className="text-[var(--text-muted)]">
+                            No {REGION_CURRENCY[priceRegion]} price
+                          </span>
+                        ) : (
+                          fmtPrice(priceForRegion(p, priceRegion)!, priceRegion)
+                        )}
+                      </p>
                       <p className="text-[10px] text-[var(--text-muted)] font-mono">/{p.handle}</p>
                       <StockSummary product={p} />
                       {p.sizeChartId && (

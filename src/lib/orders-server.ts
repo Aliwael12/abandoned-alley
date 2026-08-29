@@ -12,6 +12,7 @@ import {
   pushPackages,
 } from "@/lib/droppin";
 import type { ShippingZone } from "@/lib/shipping";
+import { toRegion, type Region } from "@/lib/pricing";
 
 export type OrderItem = {
   productHandle: string;
@@ -41,6 +42,8 @@ export type OrderDetail = {
   currency: string;
   status: string;
   shippingZone: ShippingZone;
+  /** Which storefront the order came from. US orders are never dispatched. */
+  region: Region;
   droppinAutoPush: boolean;
   createdAt: number | null;
   droppin: {
@@ -101,6 +104,7 @@ export async function getOrderById(id: string): Promise<OrderDetail | null> {
       data.shippingZone === "metro"
         ? (data.shippingZone as ShippingZone)
         : "metro",
+    region: toRegion(data.region),
     droppinAutoPush:
       typeof data.droppinAutoPush === "boolean" ? data.droppinAutoPush : true,
     createdAt: tsToMillis(data.createdAt),
@@ -136,6 +140,12 @@ export async function pushOrderToDroppin(
 
   const order = await getOrderById(id);
   if (!order) return { ok: false, error: "Order not found." };
+  // Droppin only serves Egypt. US orders are recorded for manual follow-up, so
+  // they must never reach the carrier — not via auto-push, and not via the
+  // admin's manual button either.
+  if (order.region === "us") {
+    return { ok: false, error: "US orders aren't shipped with Droppin." };
+  }
   if (order.droppin.trackingNumber) {
     return { ok: false, error: "Order is already on Droppin." };
   }

@@ -16,7 +16,13 @@ type Patch = Partial<
     Product,
     "title" | "description" | "price" | "disabled" | "media" | "sizeChartId" | "sortOrder"
   >
-> & { image?: string; clearSizeChart?: boolean; stock?: StockMap };
+> & {
+  image?: string;
+  clearSizeChart?: boolean;
+  stock?: StockMap;
+  /** US price in USD; null/"" clears it and removes the product from the US store. */
+  priceUsd?: number | string | null;
+};
 
 function sanitizeMedia(raw: unknown): Media[] | null {
   if (!Array.isArray(raw)) return null;
@@ -82,6 +88,25 @@ export async function PATCH(
     }
     next.price = p;
     next.variants = next.variants.map((v) => ({ ...v, price: p }));
+  }
+  // US price, in USD — independent of the EGP price, not a conversion. Empty
+  // string / null clears it, which takes the product out of the US store.
+  if (body.priceUsd !== undefined) {
+    if (body.priceUsd === null || body.priceUsd === "") {
+      delete next.priceUsd;
+      next.variants = next.variants.map((v) => {
+        const rest = { ...v };
+        delete rest.priceUsd;
+        return rest;
+      });
+    } else {
+      const usd = Number(body.priceUsd);
+      if (!Number.isFinite(usd) || usd < 0) {
+        return NextResponse.json({ error: "Invalid priceUsd" }, { status: 400 });
+      }
+      next.priceUsd = usd;
+      next.variants = next.variants.map((v) => ({ ...v, priceUsd: usd }));
+    }
   }
   if (typeof body.disabled === "boolean") {
     next.disabled = body.disabled;

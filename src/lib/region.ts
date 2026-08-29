@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { useCart } from "@/lib/cart";
+import { REGION_CURRENCY, type Region } from "@/lib/pricing";
 
-export type Region = "us" | "eg";
+export type { Region };
 
 type RegionState = {
   region: Region | null;
@@ -14,9 +16,17 @@ type RegionState = {
 
 export const useRegion = create<RegionState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       region: null,
-      setRegion: (r) => set({ region: r }),
+      setRegion: (r) => {
+        // Prices are quoted per region in different currencies, and cart lines
+        // store the price they were added at. Carrying them across a region
+        // switch would mix EGP and USD in one basket, so the cart is dropped
+        // whenever the region actually changes.
+        const previous = get().region;
+        if (previous && previous !== r) useCart.getState().clear();
+        set({ region: r });
+      },
     }),
     { name: "aa-region" }
   )
@@ -24,6 +34,16 @@ export const useRegion = create<RegionState>()(
 
 export function regionLabel(region: Region | null): string {
   return region === "us" ? "NY · USD" : "CAIRO · EGP";
+}
+
+/** The active region, defaulting to Egypt before the store hydrates. */
+export function useRegionOrDefault(): Region {
+  return useRegion((s) => s.region) ?? "eg";
+}
+
+/** Currency code for the active region, for pixel/analytics payloads. */
+export function useRegionCurrency(): string {
+  return REGION_CURRENCY[useRegionOrDefault()];
 }
 
 /** Where the gate bounced the visitor from, so /region can send them back

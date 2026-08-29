@@ -5,8 +5,12 @@ import { isProductSoldOut } from "@/lib/inventory";
 import Image from "next/image";
 import Link from "next/link";
 import { Card, Badge } from "./ui";
+import { useRegionOrDefault } from "@/lib/region";
+import { formatMoney, priceForRegion } from "@/lib/pricing";
 
 export default function ProductCard({ product }: { product: Product }) {
+  const region = useRegionOrDefault();
+  const price = priceForRegion(product, region);
   const head = product.media[0];
   const coverEntry =
     head && head.type === "image" ? head : product.media.find((m) => m.type === "image");
@@ -41,7 +45,9 @@ export default function ProductCard({ product }: { product: Product }) {
           <div className="aa-eyebrow">{categoryLabel}</div>
           <div className="aa-card-meta">
             <h3 className="aa-display-h3">{product.title}</h3>
-            <p className="aa-price">EGP {product.price.toFixed(2)}</p>
+            <p className="aa-price">
+              {price === null ? "—" : formatMoney(price, region)}
+            </p>
           </div>
         </div>
       </Card>

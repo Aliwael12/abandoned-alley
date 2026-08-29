@@ -37,6 +37,8 @@ export type OrderItemForEmail = {
 
 export type OrderForEmail = {
   id: string;
+  /** Stored order currency ("EGP" | "USD"); defaults to EGP for legacy orders. */
+  currency?: string;
   customerName: string;
   customerEmail: string;
   customerPhone: string;
@@ -58,7 +60,11 @@ export type OrderForEmail = {
 const escape = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-const itemsHtml = (items: OrderItemForEmail[]) =>
+/** Money in the order's own currency — US orders are booked in USD. */
+const money = (amount: number, currency?: string) =>
+  currency === "USD" ? `$${amount.toFixed(2)}` : `EGP ${amount.toFixed(2)}`;
+
+const itemsHtml = (items: OrderItemForEmail[], currency?: string) =>
   items
     .map(
       (i) => `
@@ -68,7 +74,7 @@ const itemsHtml = (items: OrderItemForEmail[]) =>
           <span style="color:#888;font-size:13px;">${escape(i.variantTitle)} &middot; Qty ${i.quantity}</span>
         </td>
         <td style="padding:10px 0;border-bottom:1px solid #222;color:#eee;text-align:right;">
-          EGP ${(i.price * i.quantity).toFixed(2)}
+          ${money(i.price * i.quantity, currency)}
         </td>
       </tr>`
     )
@@ -83,18 +89,18 @@ export function customerOrderHtml(order: OrderForEmail) {
     <p style="color:#888;margin:0 0 24px;">Order confirmation &middot; #${escape(order.id)}</p>
     <p style="color:#eee;">Hey ${escape(order.customerName.split(" ")[0])}, we got your order. We'll reach out shortly with payment details and shipping confirmation.</p>
     <table style="width:100%;border-collapse:collapse;margin-top:24px;">
-      ${itemsHtml(order.items)}
+      ${itemsHtml(order.items, order.currency)}
       <tr>
         <td style="padding:14px 0 0;color:#888;text-transform:uppercase;letter-spacing:0.18em;font-size:12px;">Subtotal</td>
-        <td style="padding:14px 0 0;color:#eee;text-align:right;font-size:14px;">EGP ${order.subtotal.toFixed(2)}</td>
+        <td style="padding:14px 0 0;color:#eee;text-align:right;font-size:14px;">${money(order.subtotal, order.currency)}</td>
       </tr>
       <tr>
         <td style="padding:6px 0 0;color:#888;text-transform:uppercase;letter-spacing:0.18em;font-size:12px;">Shipping</td>
-        <td style="padding:6px 0 0;color:#eee;text-align:right;font-size:14px;">EGP ${order.shippingFee.toFixed(2)}</td>
+        <td style="padding:6px 0 0;color:#eee;text-align:right;font-size:14px;">${money(order.shippingFee, order.currency)}</td>
       </tr>
       <tr>
         <td style="padding:14px 0 0;color:#eee;text-transform:uppercase;letter-spacing:0.18em;font-size:13px;font-weight:bold;border-top:1px solid #222;">Total</td>
-        <td style="padding:14px 0 0;color:#eee;text-align:right;font-size:18px;font-weight:bold;border-top:1px solid #222;">EGP ${total.toFixed(2)}</td>
+        <td style="padding:14px 0 0;color:#eee;text-align:right;font-size:18px;font-weight:bold;border-top:1px solid #222;">${money(total, order.currency)}</td>
       </tr>
     </table>
     <h3 style="margin-top:32px;color:#eee;letter-spacing:0.1em;">Ship to</h3>
@@ -130,18 +136,18 @@ export function adminOrderHtml(order: OrderForEmail) {
       ${metaRow("Governorate", escape(ship.state || "—"))}
     </table>
     <table style="width:100%;border-collapse:collapse;margin-top:24px;">
-      ${itemsHtml(order.items)}
+      ${itemsHtml(order.items, order.currency)}
       <tr>
         <td style="padding:14px 0 0;color:#888;text-transform:uppercase;letter-spacing:0.18em;font-size:12px;">Subtotal</td>
-        <td style="padding:14px 0 0;color:#eee;text-align:right;font-size:14px;">EGP ${order.subtotal.toFixed(2)}</td>
+        <td style="padding:14px 0 0;color:#eee;text-align:right;font-size:14px;">${money(order.subtotal, order.currency)}</td>
       </tr>
       <tr>
         <td style="padding:6px 0 0;color:#888;text-transform:uppercase;letter-spacing:0.18em;font-size:12px;">Shipping</td>
-        <td style="padding:6px 0 0;color:#eee;text-align:right;font-size:14px;">EGP ${order.shippingFee.toFixed(2)}</td>
+        <td style="padding:6px 0 0;color:#eee;text-align:right;font-size:14px;">${money(order.shippingFee, order.currency)}</td>
       </tr>
       <tr>
         <td style="padding:14px 0 0;color:#eee;text-transform:uppercase;letter-spacing:0.18em;font-size:13px;font-weight:bold;border-top:1px solid #222;">Total</td>
-        <td style="padding:14px 0 0;color:#eee;text-align:right;font-size:18px;font-weight:bold;border-top:1px solid #222;">EGP ${total.toFixed(2)}</td>
+        <td style="padding:14px 0 0;color:#eee;text-align:right;font-size:18px;font-weight:bold;border-top:1px solid #222;">${money(total, order.currency)}</td>
       </tr>
     </table>
     <h3 style="margin-top:32px;">Ship to</h3>

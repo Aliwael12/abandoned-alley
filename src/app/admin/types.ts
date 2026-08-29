@@ -1,4 +1,5 @@
 import type { Carrier, OrderStatus } from "@/lib/order-status";
+import type { Region } from "@/lib/pricing";
 
 export type OrderRow = {
   id: string;
@@ -9,6 +10,9 @@ export type OrderRow = {
   status: OrderStatus;
   rawStatus: string;
   governorate: string;
+  /** Which storefront the order came from. Decides its currency. */
+  region: Region;
+  currency: string;
   carrier: Carrier;
   itemCount: number;
   createdAt: number | null;

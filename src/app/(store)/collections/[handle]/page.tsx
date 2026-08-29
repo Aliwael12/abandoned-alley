@@ -1,4 +1,4 @@
-import ProductCard from "@/components/ProductCard";
+import ProductGrid from "@/components/ProductGrid";
 import { getCollectionByHandle } from "@/lib/collections-server";
 import { getActiveProducts } from "@/lib/products-server";
 import Image from "next/image";
@@ -58,19 +58,7 @@ export default async function CollectionDetail({
           </p>
         </div>
 
-        {items.length === 0 ? (
-          <p className="aa-body" style={{ color: "var(--text-muted)", textAlign: "center" }}>
-            No items in this collection yet.
-          </p>
-        ) : (
-          <div className="aa-grid">
-            {items.map((p) => (
-              <div key={p.handle} style={{ gridColumn: "span 4" }}>
-                <ProductCard product={p} />
-              </div>
-            ))}
-          </div>
-        )}
+        <ProductGrid products={items} emptyMessage="No items in this collection yet." />
       </div>
     </RegionGate>
   );

@@ -53,6 +53,9 @@ service cloud.firestore {
         request.resource.data.keys().hasOnly([
           'customer','shipping','items','notes','subtotal','shippingFee',
           'shippingZone','droppinAutoPush',
+          // "eg" | "us" — which storefront the order came from. Decides the
+          // currency and whether it is dispatched to Droppin at all.
+          'region',
           // Stock is reserved in the same transaction that creates the order,
           // so the record of what it took is written at create time, not on a
           // later approval.

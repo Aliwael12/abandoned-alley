@@ -8,6 +8,7 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { isAdmin } from "@/lib/admin-auth";
+import { REGION_CURRENCY, toRegion, type Region } from "@/lib/pricing";
 import {
   carrierForGovernorate,
   normalizeStatus,
@@ -27,6 +28,8 @@ type OrderRow = {
   status: OrderStatus;
   rawStatus: string;
   governorate: string;
+  region: Region;
+  currency: string;
   carrier: Carrier;
   itemCount: number;
   createdAt: number | null;
@@ -59,6 +62,8 @@ export async function GET() {
       return null;
     };
     const governorate = String(shipping.state ?? "");
+    // Legacy orders predate the field and were all Egypt.
+    const region = toRegion(data.region);
     const rawStatus = String(data.status ?? "pending");
     return {
       id: d.id,
@@ -69,6 +74,8 @@ export async function GET() {
       status: normalizeStatus(rawStatus),
       rawStatus,
       governorate,
+      region,
+      currency: String(data.currency ?? REGION_CURRENCY[region]),
       carrier: carrierForGovernorate(),
       itemCount: items.reduce((n, i) => n + Number(i.quantity ?? 0), 0),
       createdAt: toMillis(data.createdAt),
