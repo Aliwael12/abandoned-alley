@@ -36,6 +36,14 @@ export default async function CollectionDetail({
         <div
           style={{
             position: "relative",
+            // `width: 100%` is load-bearing, not decorative. With `aspect-ratio`
+            // and an auto width, `min-height` makes the browser derive the WIDTH
+            // back from the height: on a 375px phone the ratio wanted a 122px-tall
+            // box, min-height forced 240px, and the box resolved to 240 * 16/6 =
+            // 640px — overflowing the 327px content column, pushing the document
+            // to 664px and squashing the whole page. Pinning the width keeps the
+            // ratio driving the height and never the reverse.
+            width: "100%",
             aspectRatio: "16 / 6",
             minHeight: 240,
             border: "1px solid var(--border-default)",
