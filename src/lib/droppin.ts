@@ -129,6 +129,8 @@ export type OrderForDroppin = {
   items: { title: string; variantTitle: string; price: number; quantity: number }[];
   subtotal: number;
   shippingFee: number;
+  /** Amount already deducted by a promo code — cuts what the courier collects. */
+  discountAmount?: number;
   notes?: string | null;
 };
 
@@ -137,6 +139,7 @@ export function buildPackageFromOrder(order: OrderForDroppin): DroppinPushPackag
   const pickupPhone = process.env.DROPPIN_PICKUP_PHONE?.trim() || "";
   const pickupAddress = process.env.DROPPIN_PICKUP_ADDRESS?.trim() || "";
   const deliveryCost = order.shippingFee;
+  const discountAmount = order.discountAmount ?? 0;
 
   const fullAddress = [
     order.shipping.address,
@@ -161,7 +164,7 @@ export function buildPackageFromOrder(order: OrderForDroppin): DroppinPushPackag
     deliveryContactPhone: order.customer.phone,
     deliveryAddress: fullAddress,
     priority: "normal",
-    codAmount: order.subtotal + deliveryCost,
+    codAmount: order.subtotal - discountAmount + deliveryCost,
     deliveryCost,
     shownDeliveryCost: deliveryCost,
     paymentMethod: "cash",

@@ -47,11 +47,16 @@ service cloud.firestore {
         request.resource.data.subtotal is number &&
         request.resource.data.subtotal >= 0 &&
         request.resource.data.subtotal <= 100000 &&
+        request.resource.data.discountAmount is number &&
+        request.resource.data.discountAmount >= 0 &&
+        request.resource.data.discountAmount <= request.resource.data.subtotal &&
+        (request.resource.data.promoCode is string || request.resource.data.promoCode == null) &&
         request.resource.data.shippingZone is string &&
         request.resource.data.droppinAutoPush is bool &&
         request.resource.data.status == 'pending' &&
         request.resource.data.keys().hasOnly([
           'customer','shipping','items','notes','subtotal','shippingFee',
+          'discountAmount','promoCode',
           'shippingZone','droppinAutoPush',
           // "eg" | "us" — which storefront the order came from. Decides the
           // currency and whether it is dispatched to Droppin at all.
@@ -109,6 +114,15 @@ service cloud.firestore {
 
     // Size charts: storefront reads assigned charts; admin writes.
     match /sizeCharts/{handle} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
+    // Promo codes: the checkout form looks codes up (via /api/promo-codes/validate
+    // and the checkout API), so reads stay open like the rest of this MVP's
+    // resources. Same trade-off as products/settings — move admin writes to the
+    // Admin SDK before launch.
+    match /promoCodes/{code} {
       allow read: if true;
       allow create, update, delete: if true;
     }

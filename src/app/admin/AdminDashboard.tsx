@@ -16,6 +16,7 @@ import {
   Ruler,
   Settings,
   ShoppingBag,
+  Tag,
 } from "lucide-react";
 import OverviewTab from "./tabs/OverviewTab";
 import OrdersTab from "./tabs/OrdersTab";
@@ -25,6 +26,7 @@ import CollectionsTab from "./tabs/CollectionsTab";
 import ContactTab from "./tabs/ContactTab";
 import SettingsTab from "./tabs/SettingsTab";
 import SizeChartsTab from "./tabs/SizeChartsTab";
+import PromoCodesTab from "./tabs/PromoCodesTab";
 import type { Product } from "@/lib/products";
 import type { CollectionMeta, OrdersResponse } from "./types";
 
@@ -36,6 +38,7 @@ type Tab =
   | "collections"
   | "contact"
   | "sizeCharts"
+  | "promoCodes"
   | "settings";
 
 const TABS: { id: Tab; label: string; icon: React.ComponentType<{ size?: number }> }[] = [
@@ -46,6 +49,7 @@ const TABS: { id: Tab; label: string; icon: React.ComponentType<{ size?: number 
   { id: "collections", label: "Collections", icon: Layers },
   { id: "contact", label: "Contact", icon: Inbox },
   { id: "sizeCharts", label: "Size charts", icon: Ruler },
+  { id: "promoCodes", label: "Promo codes", icon: Tag },
   { id: "settings", label: "Settings", icon: Settings },
 ];
 
@@ -222,6 +226,7 @@ export default function AdminDashboard() {
               onError={(m) => setError(m)}
             />
           )}
+          {tab === "promoCodes" && <PromoCodesTab onError={(m) => setError(m)} />}
           {tab === "settings" && <SettingsTab onError={(m) => setError(m)} />}
         </>
       )}

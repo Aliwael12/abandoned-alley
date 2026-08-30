@@ -28,6 +28,12 @@ import {
 } from "@/lib/stock-reservation";
 import { isDroppinConfigured } from "@/lib/droppin";
 import { pushOrderToDroppin } from "@/lib/orders-server";
+import { getPromoCodeByCode } from "@/lib/promo-codes-server";
+import {
+  computePromoDiscount,
+  normalizePromoCode,
+  validatePromo,
+} from "@/lib/promo-codes";
 
 export const runtime = "nodejs";
 
@@ -65,6 +71,7 @@ type IncomingOrder = {
   notes?: string;
   items: IncomingItem[];
   attribution?: AttributionIn;
+  promoCode?: string;
 };
 
 function isValidEmail(s: string) {
@@ -153,6 +160,11 @@ function validate(body: unknown): IncomingOrder | string {
     };
   }
 
+  const promoCode =
+    typeof b.promoCode === "string" && b.promoCode.trim()
+      ? normalizePromoCode(b.promoCode)
+      : undefined;
+
   return {
     region,
     customer: { name, email, phone },
@@ -160,6 +172,7 @@ function validate(body: unknown): IncomingOrder | string {
     notes: typeof b.notes === "string" ? b.notes.trim().slice(0, 1000) : undefined,
     items: cleanItems,
     attribution,
+    promoCode,
   };
 }
 
@@ -178,6 +191,23 @@ export async function POST(request: Request) {
 
   const subtotal = parsed.items.reduce((n, i) => n + i.price * i.quantity, 0);
   const isUs = parsed.region === "us";
+
+  // The discount is always recomputed here from the code and this request's
+  // own subtotal — the client never gets to hand over a discount amount.
+  let discountAmount = 0;
+  let appliedPromoCode: string | null = null;
+  if (parsed.promoCode) {
+    const promo = await getPromoCodeByCode(parsed.promoCode);
+    const err = validatePromo(promo, parsed.region);
+    if (err) {
+      return NextResponse.json(
+        { error: `Promo code "${parsed.promoCode}" is no longer valid.` },
+        { status: 400 }
+      );
+    }
+    discountAmount = computePromoDiscount(promo!, subtotal, parsed.region);
+    appliedPromoCode = promo!.code;
+  }
 
   // US orders are recorded for manual follow-up, not dispatched: Droppin is an
   // Egypt-only courier, so they carry no carrier fee and never auto-push.
@@ -235,6 +265,8 @@ export async function POST(request: Request) {
     items: parsed.items,
     notes: parsed.notes ?? null,
     subtotal,
+    discountAmount,
+    promoCode: appliedPromoCode,
     shippingFee,
     shippingZone: zone,
     droppinAutoPush: autoPush,
@@ -288,6 +320,8 @@ export async function POST(request: Request) {
     notes: parsed.notes,
     items: parsed.items,
     subtotal,
+    discountAmount,
+    promoCode: appliedPromoCode ?? undefined,
     shippingFee,
     placedAt: new Date().toLocaleString("en-GB", {
       timeZone: "Africa/Cairo",
@@ -321,7 +355,7 @@ export async function POST(request: Request) {
           parsed.customer.name
         } (${parsed.shipping.state}) — ${
           REGION_CURRENCY[parsed.region] === "USD" ? "$" : "EGP "
-        }${(subtotal + shippingFee).toFixed(2)}`,
+        }${(subtotal - discountAmount + shippingFee).toFixed(2)}`,
         html: adminOrderHtml(emailPayload),
         replyTo: parsed.customer.email,
       }),

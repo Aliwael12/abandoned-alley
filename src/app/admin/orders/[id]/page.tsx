@@ -313,6 +313,14 @@ export default async function OrderDetailPage({
           <span className="text-[var(--text-muted)] uppercase tracking-[0.2em] text-xs">Subtotal</span>
           <span>{fmt(order.subtotal, order.currency)}</span>
         </div>
+        {order.discountAmount > 0 && (
+          <div className="flex justify-between text-sm">
+            <span className="text-[var(--text-muted)] uppercase tracking-[0.2em] text-xs">
+              Discount{order.promoCode ? ` (${order.promoCode})` : ""}
+            </span>
+            <span>-{fmt(order.discountAmount, order.currency)}</span>
+          </div>
+        )}
         <div className="flex justify-between text-sm">
           <span className="text-[var(--text-muted)] uppercase tracking-[0.2em] text-xs">Shipping</span>
           <span>{fmt(order.shippingFee, order.currency)}</span>
@@ -322,7 +330,7 @@ export default async function OrderDetailPage({
             Total
           </span>
           <span className="font-[family-name:var(--font-bebas)] tracking-[0.1em] text-base">
-            {fmt(order.subtotal + order.shippingFee, order.currency)}
+            {fmt(order.subtotal - order.discountAmount + order.shippingFee, order.currency)}
           </span>
         </div>
         <div className="flex justify-between text-sm">

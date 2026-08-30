@@ -66,6 +66,8 @@ export type OrderForEmail = {
   notes?: string;
   items: OrderItemForEmail[];
   subtotal: number;
+  discountAmount?: number;
+  promoCode?: string;
   shippingFee: number;
   /** ISO-ish display string for when the order was placed. */
   placedAt?: string;
@@ -94,9 +96,21 @@ const itemsHtml = (items: OrderItemForEmail[], currency?: string) =>
     )
     .join("");
 
+const discountRowHtml = (discountAmount: number, promoCode: string | undefined, currency: string | undefined) =>
+  discountAmount > 0
+    ? `
+      <tr>
+        <td style="padding:6px 0 0;color:#888;text-transform:uppercase;letter-spacing:0.18em;font-size:12px;">
+          Discount${promoCode ? ` (${escape(promoCode)})` : ""}
+        </td>
+        <td style="padding:6px 0 0;color:#eee;text-align:right;font-size:14px;">-${money(discountAmount, currency)}</td>
+      </tr>`
+    : "";
+
 export function customerOrderHtml(order: OrderForEmail) {
   const ship = order.shipping;
-  const total = order.subtotal + order.shippingFee;
+  const discountAmount = order.discountAmount ?? 0;
+  const total = order.subtotal - discountAmount + order.shippingFee;
   return `
   <div style="background:#0a0a0a;color:#eee;font-family:Helvetica,Arial,sans-serif;padding:32px;max-width:600px;margin:auto;">
     <h1 style="font-family:Impact,sans-serif;letter-spacing:0.18em;font-size:28px;margin:0 0 8px;">ABANDONED ALLEY</h1>
@@ -108,6 +122,7 @@ export function customerOrderHtml(order: OrderForEmail) {
         <td style="padding:14px 0 0;color:#888;text-transform:uppercase;letter-spacing:0.18em;font-size:12px;">Subtotal</td>
         <td style="padding:14px 0 0;color:#eee;text-align:right;font-size:14px;">${money(order.subtotal, order.currency)}</td>
       </tr>
+      ${discountRowHtml(discountAmount, order.promoCode, order.currency)}
       <tr>
         <td style="padding:6px 0 0;color:#888;text-transform:uppercase;letter-spacing:0.18em;font-size:12px;">Shipping</td>
         <td style="padding:6px 0 0;color:#eee;text-align:right;font-size:14px;">${money(order.shippingFee, order.currency)}</td>
@@ -130,7 +145,8 @@ export function customerOrderHtml(order: OrderForEmail) {
 
 export function adminOrderHtml(order: OrderForEmail) {
   const ship = order.shipping;
-  const total = order.subtotal + order.shippingFee;
+  const discountAmount = order.discountAmount ?? 0;
+  const total = order.subtotal - discountAmount + order.shippingFee;
   const itemCount = order.items.reduce((n, i) => n + i.quantity, 0);
   const metaRow = (label: string, value: string) => `
       <tr>
@@ -155,6 +171,7 @@ export function adminOrderHtml(order: OrderForEmail) {
         <td style="padding:14px 0 0;color:#888;text-transform:uppercase;letter-spacing:0.18em;font-size:12px;">Subtotal</td>
         <td style="padding:14px 0 0;color:#eee;text-align:right;font-size:14px;">${money(order.subtotal, order.currency)}</td>
       </tr>
+      ${discountRowHtml(discountAmount, order.promoCode, order.currency)}
       <tr>
         <td style="padding:6px 0 0;color:#888;text-transform:uppercase;letter-spacing:0.18em;font-size:12px;">Shipping</td>
         <td style="padding:6px 0 0;color:#eee;text-align:right;font-size:14px;">${money(order.shippingFee, order.currency)}</td>

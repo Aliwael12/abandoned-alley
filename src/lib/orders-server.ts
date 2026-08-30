@@ -38,6 +38,8 @@ export type OrderDetail = {
   items: OrderItem[];
   notes: string | null;
   subtotal: number;
+  discountAmount: number;
+  promoCode: string | null;
   shippingFee: number;
   currency: string;
   status: string;
@@ -95,6 +97,8 @@ export async function getOrderById(id: string): Promise<OrderDetail | null> {
     })),
     notes: typeof data.notes === "string" ? (data.notes as string) : null,
     subtotal: Number(data.subtotal ?? 0),
+    discountAmount: Number(data.discountAmount ?? 0),
+    promoCode: typeof data.promoCode === "string" ? (data.promoCode as string) : null,
     shippingFee: Number(data.shippingFee ?? 0),
     currency: String(data.currency ?? "EGP"),
     status: String(data.status ?? "pending"),
@@ -158,6 +162,7 @@ export async function pushOrderToDroppin(
       items: order.items,
       subtotal: order.subtotal,
       shippingFee: order.shippingFee,
+      discountAmount: order.discountAmount,
       notes: order.notes,
     });
     const result = await pushPackages([pkg]);

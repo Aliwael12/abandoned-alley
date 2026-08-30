@@ -49,6 +49,13 @@ const initialForm: FormState = {
   notes: "",
 };
 
+type AppliedPromo = {
+  code: string;
+  type: "percentage" | "fixed";
+  /** Percentage: percent value. Fixed: the amount off in the active region's currency. */
+  value: number;
+};
+
 export default function CartContent() {
   const items = useCart((s) => s.items);
   const setQty = useCart((s) => s.setQty);
@@ -62,6 +69,11 @@ export default function CartContent() {
   const [fees, setFees] = useState<ShippingFees | null>(null);
   const [feesFailed, setFeesFailed] = useState(false);
   const [order, setOrder] = useState<{ id: string; total: number } | null>(null);
+
+  const [promoInput, setPromoInput] = useState("");
+  const [appliedPromo, setAppliedPromo] = useState<AppliedPromo | null>(null);
+  const [promoChecking, setPromoChecking] = useState(false);
+  const [promoError, setPromoError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -97,7 +109,41 @@ export default function CartContent() {
       : null;
 
   const subtotal = items.reduce((n, i) => n + i.price * i.quantity, 0);
-  const total = shippingFee !== null ? subtotal + shippingFee : subtotal;
+  const discount = appliedPromo
+    ? Math.min(
+        appliedPromo.type === "percentage" ? subtotal * (appliedPromo.value / 100) : appliedPromo.value,
+        subtotal
+      )
+    : 0;
+  const total = (shippingFee !== null ? subtotal + shippingFee : subtotal) - discount;
+
+  async function applyPromo() {
+    const code = promoInput.trim();
+    if (!code) return;
+    setPromoChecking(true);
+    setPromoError(null);
+    try {
+      const res = await fetch("/api/promo-codes/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, region, subtotal }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error ?? "Invalid code");
+      setAppliedPromo({ code: data.code, type: data.type, value: data.value });
+      setPromoInput("");
+    } catch (err) {
+      setAppliedPromo(null);
+      setPromoError(err instanceof Error ? err.message : "Invalid code");
+    } finally {
+      setPromoChecking(false);
+    }
+  }
+
+  function removePromo() {
+    setAppliedPromo(null);
+    setPromoError(null);
+  }
 
   const initiateCheckoutFired = useRef(false);
   useEffect(() => {
@@ -161,6 +207,7 @@ export default function CartContent() {
             country: isUs ? COUNTRY_USA : COUNTRY_EGYPT,
           },
           notes: form.notes || undefined,
+          promoCode: appliedPromo?.code,
           items: items.map((i) => ({
             productHandle: i.productHandle,
             variantId: i.variantId,
@@ -175,6 +222,7 @@ export default function CartContent() {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error ?? "Order failed");
       clear();
+      setAppliedPromo(null);
       setOrder({ id: data.orderId, total });
       setStep("confirmed");
     } catch (err) {
@@ -378,6 +426,54 @@ export default function CartContent() {
                     : "Select governorate"}
                 </span>
               </div>
+              {discount > 0 && (
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "var(--space-4)" }}>
+                  <span className="aa-caption">DISCOUNT ({appliedPromo?.code})</span>
+                  <span className="aa-body" style={{ color: "var(--accent-default)" }}>−{money(discount)}</span>
+                </div>
+              )}
+
+              <div style={{ marginBottom: "var(--space-4)" }}>
+                {appliedPromo ? (
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span className="aa-caption" style={{ color: "var(--accent-default)" }}>
+                      &quot;{appliedPromo.code}&quot; APPLIED
+                    </span>
+                    <button
+                      type="button"
+                      onClick={removePromo}
+                      className="aa-nav-link"
+                      style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}
+                    >
+                      REMOVE
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", gap: "var(--space-2)" }}>
+                    <Input
+                      placeholder="Promo code"
+                      value={promoInput}
+                      onChange={(e) => setPromoInput(e.target.value)}
+                      style={{ flex: 1 }}
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="md"
+                      onClick={applyPromo}
+                      disabled={promoChecking || !promoInput.trim()}
+                    >
+                      {promoChecking ? "…" : "APPLY"}
+                    </Button>
+                  </div>
+                )}
+                {promoError && (
+                  <p className="aa-caption" style={{ color: "var(--graphic-red)", marginTop: "var(--space-1)" }}>
+                    {promoError}
+                  </p>
+                )}
+              </div>
+
               <div style={{ height: 1, background: "var(--border-default)", marginBottom: "var(--space-4)" }} />
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "var(--space-6)" }}>
                 <span className="aa-display-h3">TOTAL</span>
