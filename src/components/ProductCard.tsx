@@ -19,6 +19,14 @@ export default function ProductCard({
 }) {
   const region = useRegionOrDefault();
   const price = priceForRegion(product, region);
+  // product.price is the ENTRY price — the admin route pins it to the cheapest
+  // variant. When a product's sizes cost different amounts (the pin pack's
+  // "Pack of 3" vs "Pack of 5"), say so rather than advertising the low one as
+  // if it were the only price.
+  const variantPrices = product.variants
+    .map((v) => priceForRegion(v, region))
+    .filter((n): n is number => n !== null);
+  const hasRange = new Set(variantPrices).size > 1;
   const head = product.media[0];
   const coverEntry =
     head && head.type === "image" ? head : product.media.find((m) => m.type === "image");
@@ -54,7 +62,9 @@ export default function ProductCard({
           <div className="aa-card-meta">
             <h3 className="aa-display-h3">{product.title}</h3>
             <p className="aa-price">
-              {price === null ? "—" : formatMoney(price, region)}
+              {price === null
+                ? "—"
+                : `${hasRange ? "FROM " : ""}${formatMoney(price, region)}`}
             </p>
           </div>
         </div>

@@ -91,7 +91,14 @@ export async function PATCH(
       return NextResponse.json({ error: "Invalid price" }, { status: 400 });
     }
     next.price = p;
-    next.variants = next.variants.map((v) => ({ ...v, price: p }));
+    // Mirroring one number onto every variant is only right when the product
+    // has one price to give. Multi-variant products are priced per variant
+    // below, and the editor hides this flat field for them, so mirroring here
+    // could only flatten prices the admin never meant to touch — which is how
+    // the pin pack's "Pack of 5" silently ended up matching its "Pack of 3".
+    if (next.variants.length <= 1) {
+      next.variants = next.variants.map((v) => ({ ...v, price: p }));
+    }
   }
   // US price, in USD — independent of the EGP price, not a conversion. Empty
   // string / null clears it, which takes the product out of the US store.
@@ -109,7 +116,13 @@ export async function PATCH(
         return NextResponse.json({ error: "Invalid priceUsd" }, { status: 400 });
       }
       next.priceUsd = usd;
-      next.variants = next.variants.map((v) => ({ ...v, priceUsd: usd }));
+      // Same guard as the EGP mirror above. The clear branch stays
+      // unconditional on purpose: dropping the US price has to strip it from
+      // every variant, or the product vanishes from the US listing while its
+      // detail page still quotes a price.
+      if (next.variants.length <= 1) {
+        next.variants = next.variants.map((v) => ({ ...v, priceUsd: usd }));
+      }
     }
   }
   // Per-variant overrides. A product whose sizes cost different amounts — the

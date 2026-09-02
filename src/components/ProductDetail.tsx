@@ -92,9 +92,10 @@ export default function ProductDetail({
     );
   }, [selected, product.variants]);
 
-  // Price for the active region. Variants carry their own prices, but the admin
-  // sets one price per product and it is mirrored down to every variant, so the
-  // variant is the source of truth with the product as the fallback.
+  // Price for the active region. Each variant carries its own price — the pin
+  // pack's "Pack of 5" costs more than its "Pack of 3" — so the matched variant
+  // wins, with the product-level price only as a fallback for variants that
+  // predate per-variant pricing.
   const regionPrice = useMemo(
     () =>
       priceForRegion(matchedVariant, region) ?? priceForRegion(product, region),

@@ -15,6 +15,14 @@ const COL = "products";
 
 type ProductDoc = Product & { updatedAt?: unknown };
 
+/** A US price that isn't a usable number is absent, not zero — `null` included,
+ *  which a bare `Number()` would otherwise turn into a real $0.00 price tag. */
+function optionalPrice(raw: unknown): number | undefined {
+  if (raw === null || raw === undefined || raw === "") return undefined;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : undefined;
+}
+
 function normalize(raw: Record<string, unknown>): Product | null {
   if (!raw || typeof raw.handle !== "string") return null;
   return {
@@ -23,10 +31,22 @@ function normalize(raw: Record<string, unknown>): Product | null {
     vendor: String(raw.vendor ?? "Abandoned Alley"),
     description: String(raw.description ?? ""),
     price: Number(raw.price ?? 0),
-    priceUsd: Number.isFinite(Number(raw.priceUsd)) ? Number(raw.priceUsd) : undefined,
+    priceUsd: optionalPrice(raw.priceUsd),
     media: Array.isArray(raw.media) ? (raw.media as Product["media"]) : [],
     options: Array.isArray(raw.options) ? (raw.options as Product["options"]) : [],
-    variants: Array.isArray(raw.variants) ? (raw.variants as Product["variants"]) : [],
+    // Firestore is schemaless and /products accepts writes from anywhere the
+    // public API key reaches, so a variant price can arrive as a string or go
+    // missing. Coerce it like the product-level price above: a variant price
+    // that fails Number.isFinite is silently swallowed by the product-price
+    // fallback in ProductDetail, which reads as "every size costs the same"
+    // rather than as an error.
+    variants: Array.isArray(raw.variants)
+      ? (raw.variants as Product["variants"]).map((v) => ({
+          ...v,
+          price: Number(v.price ?? 0),
+          priceUsd: optionalPrice(v.priceUsd),
+        }))
+      : [],
     collection: String(raw.collection ?? ""),
     disabled: Boolean(raw.disabled),
     stock: normalizeStock(raw.stock),
