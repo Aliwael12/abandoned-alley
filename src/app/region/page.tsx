@@ -3,18 +3,29 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { takeReturnPath, useRegion } from "@/lib/region";
+import { useEffect } from "react";
+import { takeReturnPath, useHydrated, useLocationDecides, useRegion } from "@/lib/region";
 import { InstagramIcon } from "@/components/Socials";
 
 export default function RegionPage() {
   const router = useRouter();
   const setRegion = useRegion((s) => s.setRegion);
+  const hydrated = useHydrated();
+  const locationDecides = useLocationDecides();
+
+  // The visitor's location already picked their store, and would pick it again
+  // on the next page load — so there's no choice to offer here.
+  useEffect(() => {
+    if (locationDecides) router.replace(takeReturnPath() ?? "/");
+  }, [locationDecides, router]);
 
   const select = (region: "eg" | "us") => {
     setRegion(region);
     // Back to whatever the gate interrupted; the landing menu otherwise.
     router.push(takeReturnPath() ?? "/");
   };
+
+  if (hydrated && locationDecides) return null;
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>

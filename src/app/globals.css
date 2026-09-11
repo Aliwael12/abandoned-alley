@@ -690,3 +690,108 @@ select.aa-input {
     transform: none;
   }
 }
+
+/* ==========================================================================
+   Cart drawer — what phones get on add-to-bag (CartDrawer.tsx). Above the
+   sticky header (z 20); the slide itself is driven by framer-motion.
+   ========================================================================== */
+.aa-drawer-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(26, 26, 26, 0.45);
+}
+.aa-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 51;
+  width: min(420px, 92vw);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-page);
+  border-left: 1px solid var(--border-strong);
+}
+.aa-drawer-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border-bottom: 1px solid var(--border-default);
+}
+.aa-drawer-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: calc(-1 * var(--space-2)) calc(-1 * var(--space-3)) 0 0;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.aa-drawer-close:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+.aa-drawer-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+.aa-drawer-lines {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.aa-drawer-line {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: var(--space-3);
+  padding: var(--space-3);
+}
+.aa-drawer-line + .aa-drawer-line {
+  border-top: 1px solid var(--border-default);
+}
+.aa-drawer-thumb {
+  position: relative;
+  width: 64px;
+  height: 80px;
+  background: var(--surface-card-alt);
+}
+/* Suggestion rail: bleeds to the drawer's edges and shows two-and-a-bit cards,
+   so the next one peeking in says "swipe". */
+.aa-drawer-picks {
+  display: flex;
+  gap: var(--space-3);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  margin: 0 calc(-1 * var(--space-5));
+  padding: 0 var(--space-5) var(--space-1);
+  scroll-padding: 0 var(--space-5);
+  scrollbar-width: none;
+}
+.aa-drawer-picks::-webkit-scrollbar {
+  display: none;
+}
+.aa-drawer-pick {
+  flex: 0 0 44%;
+  scroll-snap-align: start;
+}
+.aa-drawer-foot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5) calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--border-default);
+}

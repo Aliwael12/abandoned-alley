@@ -2,8 +2,15 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { isSiteLocked, SITE_UNLOCK_AT } from "@/lib/site-lock";
 import { ADMIN_COOKIE, ADMIN_COOKIE_VALUE } from "@/lib/admin-auth";
+import { COUNTRY_COOKIE, countryFromHeaders } from "@/lib/geo";
 
 export function proxy(request: NextRequest) {
+  const response = route(request);
+  stampCountry(request, response);
+  return response;
+}
+
+function route(request: NextRequest) {
   if (!isSiteLocked()) {
     return NextResponse.next();
   }
@@ -28,6 +35,17 @@ export function proxy(request: NextRequest) {
   }
 
   return NextResponse.rewrite(new URL("/closed", request.url));
+}
+
+/** Hands the visitor's country to the browser, where lib/region.ts picks the
+ * store from it. Page requests only, and only when it changed, so the cookie
+ * isn't rewritten on every hit. Readable by JS on purpose — it's just a
+ * country code. */
+function stampCountry(request: NextRequest, response: NextResponse) {
+  if (request.nextUrl.pathname.startsWith("/api")) return;
+  const country = countryFromHeaders(request.headers);
+  if (!country || request.cookies.get(COUNTRY_COOKIE)?.value === country) return;
+  response.cookies.set(COUNTRY_COOKIE, country, { path: "/", sameSite: "lax" });
 }
 
 export const config = {

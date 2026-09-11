@@ -1,16 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { useCart } from "@/lib/cart";
+import { COUNTRY_COOKIE, countryName, regionForCountry } from "@/lib/geo";
 import { REGION_CURRENCY, type Region } from "@/lib/pricing";
 
 export type { Region };
 
 type RegionState = {
   region: Region | null;
+  /** The visitor's country as proxy.ts detected it, or null when the host
+   * gives no geolocation (local dev). Re-read from the cookie on every page
+   * load rather than persisted, so it follows the visitor around. */
+  country: string | null;
   setRegion: (r: Region) => void;
 };
 
@@ -18,6 +23,7 @@ export const useRegion = create<RegionState>()(
   persist(
     (set, get) => ({
       region: null,
+      country: null,
       setRegion: (r) => {
         // Prices are quoted per region in different currencies, and cart lines
         // store the price they were added at. Carrying them across a region
@@ -28,9 +34,38 @@ export const useRegion = create<RegionState>()(
         set({ region: r });
       },
     }),
-    { name: "aa-region" }
+    { name: "aa-region", partialize: (s) => ({ region: s.region }) }
   )
 );
+
+/** Store visitors from countries neither store ships to browse: the US one,
+ * whose USD prices read anywhere. */
+const BROWSE_REGION: Region = "us";
+
+function readCountryCookie(): string | null {
+  const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${COUNTRY_COOKIE}=([A-Z]{2})(?:;|$)`));
+  return match?.[1] ?? null;
+}
+
+/**
+ * Location picks the store: Egypt gets the Egypt store, the US the New York
+ * one. Anywhere else can browse but not buy — keeping whichever store they
+ * already had, so a traveller's bag survives the trip, or the browse store if
+ * this is their first visit. With no location the manual /region choice stands.
+ */
+function applyLocation() {
+  const country = readCountryCookie();
+  if (!country) return;
+  const { region, setRegion } = useRegion.getState();
+  const local = regionForCountry(country);
+  if (local) setRegion(local);
+  else if (!region) setRegion(BROWSE_REGION);
+  useRegion.setState({ country });
+}
+
+// Once per page load, before anything renders, so no page flashes the wrong
+// store or bounces through /region on the way in.
+if (typeof document !== "undefined") applyLocation();
 
 export function regionLabel(region: Region | null): string {
   return region === "us" ? "NY · USD" : "CAIRO · EGP";
@@ -44,6 +79,27 @@ export function useRegionOrDefault(): Region {
 /** Currency code for the active region, for pixel/analytics payloads. */
 export function useRegionCurrency(): string {
   return REGION_CURRENCY[useRegionOrDefault()];
+}
+
+/** True when location decided the store, leaving nothing to choose on /region. */
+export function useLocationDecides(): boolean {
+  return useRegion((s) => s.country !== null);
+}
+
+/** Name of the visitor's country when neither store ships there — they can
+ * browse, but not buy — otherwise null. */
+export function useUnshippableCountry(): string | null {
+  const country = useRegion((s) => s.country);
+  return country && !regionForCountry(country) ? countryName(country) : null;
+}
+
+const noSubscription = () => () => {};
+
+/** False while rendering on the server and hydrating, true after. The region
+ * and location only exist in the browser, so UI outside the region gate that
+ * depends on them waits for this rather than disagreeing with the server HTML. */
+export function useHydrated(): boolean {
+  return useSyncExternalStore(noSubscription, () => true, () => false);
 }
 
 /** Where the gate bounced the visitor from, so /region can send them back

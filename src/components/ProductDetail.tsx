@@ -5,13 +5,14 @@ import type { SizeChart } from "@/lib/size-charts";
 import { isProductSoldOut, isSizeSoldOut, stockForSize } from "@/lib/inventory";
 import SizeChartPanel from "@/components/SizeChartPanel";
 import ProductCard from "@/components/ProductCard";
+import CartDrawer from "@/components/CartDrawer";
 import { useCart } from "@/lib/cart";
 import { trackPixel } from "@/lib/pixel";
-import { useRegionOrDefault } from "@/lib/region";
+import { useRegionOrDefault, useUnshippableCountry } from "@/lib/region";
 import { formatMoney, priceForRegion, REGION_CURRENCY } from "@/lib/pricing";
 import { Button, Badge } from "./ui";
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -24,6 +25,8 @@ export default function ProductDetail({
 }: {
   product: Product;
   sizeChart?: SizeChart | null;
+  /** The other active products. The first three fill the page's "you might
+   *  also like" row; the phone cart drawer picks its suggestions from all. */
   related?: Product[];
   /** collection handle -> display title. */
   collectionTitles?: Record<string, string>;
@@ -31,9 +34,15 @@ export default function ProductDetail({
   const add = useCart((s) => s.add);
   const region = useRegionOrDefault();
   const currency = REGION_CURRENCY[region];
+  // Set when the visitor is somewhere neither store ships to: browse only.
+  const unshippable = useUnshippableCountry();
   const [active, setActive] = useState(0);
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
+  // Local rather than the cart store's `isOpen`, which is persisted and would
+  // reopen the drawer on every page load.
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const closeDrawer = useCallback(() => setDrawerOpen(false), []);
 
   // The pin pack is the one product where a size ("Pack of 3"/"Pack of 5")
   // isn't the whole story — the shopper also picks which specific designs
@@ -116,6 +125,7 @@ export default function ProductDetail({
   }, [product.handle]);
 
   const onAdd = () => {
+    if (unshippable) return;
     if (soldOut || selectedSizeSoldOut) return;
     // Not priced for this region — nothing valid to put in the bag.
     if (regionPrice === null) return;
@@ -167,6 +177,9 @@ export default function ProductDetail({
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 1800);
+    // Phones get the bag drawer; wider screens keep the inline "ADDED ✓".
+    // Same breakpoint where this page drops to a single column.
+    if (window.matchMedia("(max-width: 767px)").matches) setDrawerOpen(true);
   };
 
   // The pin pack's gallery is just its single cover collage — the other
@@ -452,14 +465,18 @@ export default function ProductDetail({
             size="lg"
             onClick={onAdd}
             disabled={
+              !!unshippable ||
               soldOut ||
               selectedSizeSoldOut ||
               regionPrice === null ||
               (isPinProduct && selectedPins.length !== pinPackCount)
             }
-            style={{ width: "100%" }}
+            // Allowed to wrap: "we don't ship to <country>" can outrun a phone.
+            style={{ width: "100%", whiteSpace: "normal" }}
           >
-            {regionPrice === null
+            {unshippable
+              ? `WE DON'T SHIP TO ${unshippable}`
+              : regionPrice === null
               ? "NOT AVAILABLE IN THIS REGION"
               : soldOut || selectedSizeSoldOut
               ? "SOLD OUT"
@@ -484,7 +501,7 @@ export default function ProductDetail({
             YOU MIGHT ALSO LIKE
           </h2>
           <div className="aa-grid">
-            {related.map((p) => (
+            {related.slice(0, 3).map((p) => (
               <div key={p.handle} style={{ gridColumn: "span 4" }}>
                 <ProductCard product={p} collectionTitle={collectionTitles?.[p.collection]} />
               </div>
@@ -496,6 +513,13 @@ export default function ProductDetail({
       <Link href="/shop" className="aa-nav-link" style={{ display: "inline-block", marginTop: "var(--space-8)" }}>
         ← BACK TO SHOP
       </Link>
+
+      <CartDrawer
+        open={drawerOpen}
+        onClose={closeDrawer}
+        suggestions={related}
+        collectionTitles={collectionTitles}
+      />
     </div>
   );
 }

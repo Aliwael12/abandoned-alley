@@ -35,7 +35,7 @@ export default async function ProductPage({
   const collectionTitles = Object.fromEntries(
     collections.map((c) => [c.handle, c.title])
   );
-  const related = allProducts.filter((p) => p.handle !== product.handle).slice(0, 3);
+  const related = allProducts.filter((p) => p.handle !== product.handle);
   return (
     <RegionGate>
       <ProductDetail

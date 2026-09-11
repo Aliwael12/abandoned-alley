@@ -11,11 +11,14 @@ import { formatMoney, priceForRegion } from "@/lib/pricing";
 export default function ProductCard({
   product,
   collectionTitle,
+  onClick,
 }: {
   product: Product;
   /** Display name for product.collection. Falls back to the handle when the
    *  collection isn't known, so a card never renders blank. */
   collectionTitle?: string;
+  /** Runs as the card's link is followed — e.g. to close the drawer it sits in. */
+  onClick?: () => void;
 }) {
   const region = useRegionOrDefault();
   const price = priceForRegion(product, region);
@@ -35,7 +38,7 @@ export default function ProductCard({
   const categoryLabel = collectionTitle ?? product.collection.replace(/-/g, " ");
 
   return (
-    <Link href={`/products/${product.handle}`} style={{ display: "block" }}>
+    <Link href={`/products/${product.handle}`} onClick={onClick} style={{ display: "block" }}>
       <Card interactive style={{ padding: 0, overflow: "hidden" }}>
         <div style={{ position: "relative", aspectRatio: "4 / 5", background: "var(--surface-card-alt)" }}>
           {cover && (

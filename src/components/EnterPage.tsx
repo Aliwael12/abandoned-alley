@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useCart } from "@/lib/cart";
 import { InstagramIcon } from "./Socials";
 import PinAnimation from "./PinAnimation";
+import ShippingNotice from "./ShippingNotice";
 
 const NAV = [
   { href: "/shop", label: "SHOP" },
@@ -65,6 +66,11 @@ export default function EnterPage() {
       }}
     >
       <PinAnimation key={pinKey} />
+
+      {/* Pinned across the top so the centred menu below doesn't move. */}
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 1 }}>
+        <ShippingNotice />
+      </div>
 
       <button
         type="button"

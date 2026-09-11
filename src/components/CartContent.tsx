@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "@/lib/cart";
 import { trackPixel } from "@/lib/pixel";
-import { useRegionOrDefault } from "@/lib/region";
+import { useRegionOrDefault, useUnshippableCountry } from "@/lib/region";
 import { formatMoney, REGION_CURRENCY } from "@/lib/pricing";
 import { getStoredAttribution } from "@/components/SessionTracker";
 import {
@@ -61,8 +61,20 @@ export default function CartContent() {
   const setQty = useCart((s) => s.setQty);
   const remove = useCart((s) => s.remove);
   const clear = useCart((s) => s.clear);
+  // Somewhere neither store ships to: the bag can be looked at, not ordered.
+  const unshippable = useUnshippableCountry();
 
-  const [step, setStep] = useState<Step>("cart");
+  // The phone cart drawer's CHECKOUT lands on /cart?step=checkout — straight
+  // to the form, since the bag was just reviewed in the drawer. This page only
+  // renders client-side (behind RegionGate), so reading the URL here is safe.
+  const [step, setStep] = useState<Step>(() =>
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("step") === "checkout" &&
+    useCart.getState().items.length > 0 &&
+    !unshippable
+      ? "checkout"
+      : "cart"
+  );
   const [form, setForm] = useState<FormState>(initialForm);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -166,6 +178,7 @@ export default function CartContent() {
   }
 
   const canSubmit =
+    !unshippable &&
     !submitting &&
     !!form.name.trim() &&
     !!form.email.trim() &&
@@ -297,8 +310,14 @@ export default function CartContent() {
                   <span className="aa-display-h3">TOTAL</span>
                   <span className="aa-price" style={{ fontSize: "var(--text-lg)" }}>{money(subtotal)}</span>
                 </div>
-                <Button variant="primary" size="lg" style={{ width: "100%" }} onClick={() => setStep("checkout")}>
-                  CHECKOUT
+                <Button
+                  variant="primary"
+                  size="lg"
+                  style={{ width: "100%", whiteSpace: "normal" }}
+                  onClick={() => setStep("checkout")}
+                  disabled={!!unshippable}
+                >
+                  {unshippable ? `WE DON'T SHIP TO ${unshippable}` : "CHECKOUT"}
                 </Button>
               </Card>
             </div>
@@ -479,8 +498,16 @@ export default function CartContent() {
                 <span className="aa-display-h3">TOTAL</span>
                 <span className="aa-price" style={{ fontSize: "var(--text-lg)" }}>{money(total)}</span>
               </div>
-              <Button type="submit" variant="primary" size="lg" style={{ width: "100%" }} disabled={!canSubmit}>
-                {submitting
+              <Button
+                type="submit"
+                variant="primary"
+                size="lg"
+                style={{ width: "100%", whiteSpace: "normal" }}
+                disabled={!canSubmit}
+              >
+                {unshippable
+                  ? `WE DON'T SHIP TO ${unshippable}`
+                  : submitting
                   ? "PLACING ORDER…"
                   : isInternational
                   ? "EGYPT DELIVERY ONLY"
