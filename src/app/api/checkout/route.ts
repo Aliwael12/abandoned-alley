@@ -280,12 +280,14 @@ export async function POST(request: Request) {
   // Reserve stock and create the order in ONE transaction. Because the order is
   // dispatched to Droppin as soon as it exists, an order that can't be covered
   // by stock must never be created at all — so the check that used to be an
-  // advisory read (which failed open) is now the authoritative write.
+  // advisory read (which failed open) is now the authoritative write. Each store
+  // sells only from its own stock, so this reads and deducts the pool of the
+  // region the order was placed in.
   const orderRef = doc(collection(db, "orders"));
   const orderId = orderRef.id;
   try {
     await runTransaction(db, async (tx) => {
-      const reads = await readProductsForItems(tx, parsed.items);
+      const reads = await readProductsForItems(tx, parsed.items, parsed.region);
       const deductions = deductionsByProduct(parsed.items, reads.productByHandle);
       const shortfalls = findShortfalls(deductions, reads);
       if (shortfalls.length) throw new InsufficientStockError(shortfalls);

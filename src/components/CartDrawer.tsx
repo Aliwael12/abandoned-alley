@@ -47,7 +47,10 @@ export default function CartDrawer({
   const subtotal = items.reduce((n, i) => n + i.price * i.quantity, 0);
   const inBag = new Set(items.map((i) => i.productHandle));
   const picks = suggestions
-    .filter((p) => !inBag.has(p.handle) && isPricedForRegion(p, region) && !isProductSoldOut(p))
+    .filter(
+      (p) =>
+        !inBag.has(p.handle) && isPricedForRegion(p, region) && !isProductSoldOut(p, region)
+    )
     .slice(0, PICK_COUNT);
 
   // While open: freeze the page behind, close on Escape, and hand focus back

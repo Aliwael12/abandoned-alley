@@ -19,7 +19,10 @@ type Patch = Partial<
 > & {
   image?: string;
   clearSizeChart?: boolean;
+  /** Egypt-store stock per size. */
   stock?: StockMap;
+  /** New York-store stock per size — separate inventory from `stock`. */
+  stockUs?: StockMap;
   /** US price in USD; null/"" clears it and removes the product from the US store. */
   priceUsd?: number | string | null;
   /** Per-variant EGP prices, keyed by variant id. Overrides the flat `price`. */
@@ -54,6 +57,17 @@ function sanitizeMedia(raw: unknown): Media[] | null {
     }
   }
   return out;
+}
+
+/**
+ * A submitted stock map cleaned for `product`: only counts for sizes it actually
+ * sells are kept, and every size gets an explicit entry (missing -> 0).
+ */
+function stockForSizes(raw: unknown, product: Product): StockMap {
+  const cleaned = normalizeStock(raw);
+  const stock: StockMap = {};
+  for (const size of productSizes(product)) stock[size] = cleaned[size] ?? 0;
+  return stock;
 }
 
 export async function PATCH(
@@ -213,15 +227,9 @@ export async function PATCH(
     if (id) next.sizeChartId = id;
     else delete next.sizeChartId;
   }
-  if (body.stock !== undefined) {
-    const cleaned = normalizeStock(body.stock);
-    // Only keep counts for sizes this product actually sells, and ensure every
-    // size has an explicit entry (missing -> 0).
-    const sizes = productSizes(next);
-    const stock: StockMap = {};
-    for (const size of sizes) stock[size] = cleaned[size] ?? 0;
-    next.stock = stock;
-  }
+  // Each store keeps its own stock; a request may set either or both.
+  if (body.stock !== undefined) next.stock = stockForSizes(body.stock, next);
+  if (body.stockUs !== undefined) next.stockUs = stockForSizes(body.stockUs, next);
 
   try {
     await upsertProduct(next);

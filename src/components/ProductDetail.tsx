@@ -2,7 +2,12 @@
 
 import { Product } from "@/lib/products";
 import type { SizeChart } from "@/lib/size-charts";
-import { isProductSoldOut, isSizeSoldOut, stockForSize } from "@/lib/inventory";
+import {
+  isProductSoldOut,
+  isSizeSoldOut,
+  stockForSize,
+  stockMapForRegion,
+} from "@/lib/inventory";
 import SizeChartPanel from "@/components/SizeChartPanel";
 import ProductCard from "@/components/ProductCard";
 import CartDrawer from "@/components/CartDrawer";
@@ -34,6 +39,9 @@ export default function ProductDetail({
   const add = useCart((s) => s.add);
   const region = useRegionOrDefault();
   const currency = REGION_CURRENCY[region];
+  // Each store sells only from its own stock, so everything below that asks
+  // "is it in stock?" reads this store's count, never the other's.
+  const regionStock = stockMapForRegion(product, region);
   // Set when the visitor is somewhere neither store ships to: browse only.
   const unshippable = useUnshippableCountry();
   const [active, setActive] = useState(0);
@@ -50,7 +58,7 @@ export default function ProductDetail({
   const isPinProduct = product.handle === "pin-pack";
   const [selectedPins, setSelectedPins] = useState<number[]>([]);
 
-  const soldOut = useMemo(() => isProductSoldOut(product), [product]);
+  const soldOut = useMemo(() => isProductSoldOut(product, region), [product, region]);
   const categoryLabel =
     collectionTitles?.[product.collection] ?? product.collection.replace(/-/g, " ");
 
@@ -59,25 +67,25 @@ export default function ProductDetail({
     for (const opt of product.options) {
       if (opt.name === "Size") {
         const firstAvailable =
-          opt.values.find((v) => !isSizeSoldOut(product, v)) ?? opt.values[0];
+          opt.values.find((v) => !isSizeSoldOut(product, v, region)) ?? opt.values[0];
         o[opt.name] = firstAvailable;
       } else {
         o[opt.name] = opt.values[0];
       }
     }
     return o;
-  }, [product]);
+  }, [product, region]);
   const [selected, setSelected] = useState<Record<string, string>>(initialOptions);
 
   const selectedSize = selected["Size"] ?? "";
-  const selectedSizeSoldOut = !!selectedSize && isSizeSoldOut(product, selectedSize);
-  const available = selectedSize ? stockForSize(product.stock, selectedSize) : 0;
+  const selectedSizeSoldOut = !!selectedSize && isSizeSoldOut(product, selectedSize, region);
+  const available = selectedSize ? stockForSize(regionStock, selectedSize) : 0;
   const pinPackCount = isPinProduct ? Number(selectedSize.replace(/\D/g, "")) || 0 : 0;
 
   function selectOption(name: string, value: string) {
     setSelected({ ...selected, [name]: value });
     if (name === "Size") {
-      const avail = stockForSize(product.stock, value);
+      const avail = stockForSize(regionStock, value);
       if (avail > 0 && qty > avail) setQty(avail);
       // A different pack size means a different pin count to fill — start
       // over rather than carrying a stale, possibly-too-long selection.
@@ -352,7 +360,7 @@ export default function ProductDetail({
                 <div className="aa-eyebrow">{opt.name.toUpperCase()}</div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
                   {opt.values.map((v) => {
-                    const valueSoldOut = isSize && isSizeSoldOut(product, v);
+                    const valueSoldOut = isSize && isSizeSoldOut(product, v, region);
                     const isSelected = selected[opt.name] === v;
                     return (
                       <Button

@@ -39,7 +39,10 @@ type EditState = Partial<
 > & {
   media?: Media[];
   clearSizeChart?: boolean;
+  /** Egypt-store stock per size. */
   stock?: StockMap;
+  /** New York-store stock per size — separate inventory from `stock`. */
+  stockUs?: StockMap;
   /** US price in USD; null clears it and removes the product from the US store. */
   priceUsd?: number | null;
   /** Per-variant EGP prices, keyed by variant id. */
@@ -211,14 +214,161 @@ function MediaEditor({
   );
 }
 
+/** The two stores hold separate inventory, so stock is always shown per store. */
+const STOCK_STORES: { region: Region; label: string }[] = [
+  { region: "eg", label: "Egypt" },
+  { region: "us", label: "New York" },
+];
+
+/** A product's (or an edit draft's) stock, one map per store. */
+const storeStock = (s: {
+  stock?: StockMap;
+  stockUs?: StockMap;
+}): Record<Region, StockMap> => ({ eg: s.stock ?? {}, us: s.stockUs ?? {} });
+
+/** Text colour by how low a count is: red when sold out, amber when low. */
+function stockTone(qty: number): string {
+  const badge = stockBadge(qty);
+  if (badge === "soldout") return "text-[var(--accent)]";
+  if (badge === "low") return "text-[var(--warning-default)]";
+  return "text-[var(--text-primary)]";
+}
+
+/** Border colour for a count's input, mirroring `stockTone`. */
+function stockRing(qty: number): string {
+  const badge = stockBadge(qty);
+  if (badge === "soldout") return "border-[var(--accent)]/60";
+  if (badge === "low") return "border-[var(--warning-default)]/60";
+  return "border-[var(--border-default)]";
+}
+
+function stockTitle(scope: string, size: string, qty: number): string {
+  const badge = stockBadge(qty);
+  if (badge === "soldout") return `${scope} · ${size}: sold out`;
+  if (badge === "low") return `${scope} · ${size}: low (${qty})`;
+  return `${scope} · ${size}: ${qty} in stock`;
+}
+
+/**
+ * Stock per size for both stores at once: a row for Egypt, one for New York and
+ * a combined row, with a total column. Given `onChange`, the per-store cells
+ * become inputs and the combined row follows them; otherwise the counts are
+ * plain numbers, coloured by how low they are.
+ */
+function StockGrid({
+  sizes,
+  stock,
+  onChange,
+}: {
+  sizes: string[];
+  stock: Record<Region, StockMap>;
+  onChange?: (region: Region, next: StockMap) => void;
+}) {
+  const storeTotal = (region: Region) =>
+    sizes.reduce((n, size) => n + stockForSize(stock[region], size), 0);
+  const combinedFor = (size: string) =>
+    STOCK_STORES.reduce((n, s) => n + stockForSize(stock[s.region], size), 0);
+  const combinedTotal = STOCK_STORES.reduce((n, s) => n + storeTotal(s.region), 0);
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="border-collapse text-xs">
+        <thead>
+          <tr className="text-[10px] tracking-[0.2em] uppercase text-[var(--text-muted)]">
+            <th scope="col" className="pb-1.5 pr-3 text-left font-normal">
+              <span className="sr-only">Store</span>
+            </th>
+            {sizes.map((size) => (
+              <th
+                key={size}
+                scope="col"
+                className="px-1 pb-1.5 text-center font-normal whitespace-nowrap"
+              >
+                {size}
+              </th>
+            ))}
+            <th scope="col" className="pb-1.5 pl-3 text-right font-normal">
+              Total
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {STOCK_STORES.map(({ region, label }) => (
+            <tr key={region}>
+              <th
+                scope="row"
+                className="py-0.5 pr-3 text-left font-normal whitespace-nowrap text-[var(--text-muted)]"
+              >
+                {label}
+              </th>
+              {sizes.map((size) => {
+                const qty = stockForSize(stock[region], size);
+                return (
+                  <td key={size} className="px-1 py-0.5 text-center">
+                    {onChange ? (
+                      <input
+                        type="number"
+                        min={0}
+                        step={1}
+                        value={qty}
+                        aria-label={`${label} stock, size ${size}`}
+                        onChange={(e) => {
+                          const n = Math.max(0, Math.floor(Number(e.target.value)));
+                          onChange(region, {
+                            ...stock[region],
+                            [size]: Number.isFinite(n) ? n : 0,
+                          });
+                        }}
+                        className={`h-9 w-14 rounded border bg-transparent px-1 text-center text-sm outline-none transition focus:border-[var(--border-strong)] ${stockRing(qty)}`}
+                      />
+                    ) : (
+                      <span className={stockTone(qty)} title={stockTitle(label, size, qty)}>
+                        {qty}
+                      </span>
+                    )}
+                  </td>
+                );
+              })}
+              <td className="py-0.5 pl-3 text-right text-[var(--text-muted)]">
+                {storeTotal(region)}
+              </td>
+            </tr>
+          ))}
+          <tr className="border-t border-[var(--border-default)] font-medium">
+            <th
+              scope="row"
+              className="pb-0.5 pr-3 pt-1.5 text-left font-normal whitespace-nowrap text-[var(--text-muted)]"
+            >
+              Combined
+            </th>
+            {sizes.map((size) => {
+              const qty = combinedFor(size);
+              return (
+                <td
+                  key={size}
+                  className={`px-1 pb-0.5 pt-1.5 text-center ${stockTone(qty)}`}
+                  title={stockTitle("Combined", size, qty)}
+                >
+                  {qty}
+                </td>
+              );
+            })}
+            <td className="pb-0.5 pl-3 pt-1.5 text-right">{combinedTotal}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function StockEditor({
   sizes,
   stock,
   onChange,
 }: {
   sizes: string[];
-  stock: StockMap;
-  onChange: (next: StockMap) => void;
+  stock: Record<Region, StockMap>;
+  onChange: (region: Region, next: StockMap) => void;
 }) {
   return (
     <div className="flex flex-col gap-3">
@@ -230,57 +380,12 @@ function StockEditor({
           This product has no sizes to stock.
         </p>
       ) : (
-        <div className="flex flex-wrap gap-3">
-          {sizes.map((size) => {
-            const qty = stockForSize(stock, size);
-            const badge = stockBadge(qty);
-            const ring =
-              badge === "soldout"
-                ? "border-[var(--accent)]/60"
-                : badge === "low"
-                  ? "border-[var(--warning-default)]/60"
-                  : "border-[var(--border-default)]";
-            return (
-              <label
-                key={size}
-                className={`flex flex-col gap-1  border ${ring} bg-[var(--surface-card-alt)] px-3 py-2`}
-              >
-                <span className="text-[10px] tracking-[0.2em] uppercase text-[var(--text-muted)]">
-                  {size}
-                </span>
-                <input
-                  type="number"
-                  min={0}
-                  step={1}
-                  value={qty}
-                  onChange={(e) => {
-                    const n = Math.max(0, Math.floor(Number(e.target.value)));
-                    onChange({
-                      ...stock,
-                      [size]: Number.isFinite(n) ? n : 0,
-                    });
-                  }}
-                  className="w-20 bg-transparent border border-[var(--border-default)] rounded h-9 px-2 text-sm outline-none focus:border-[var(--border-strong)] transition"
-                />
-                {badge !== "ok" && (
-                  <span
-                    className={`text-[9px] tracking-[0.2em] uppercase ${
-                      badge === "soldout"
-                        ? "text-[var(--accent)]"
-                        : "text-[var(--warning-default)]"
-                    }`}
-                  >
-                    {badge === "soldout" ? "Sold out" : "Low"}
-                  </span>
-                )}
-              </label>
-            );
-          })}
-        </div>
+        <StockGrid sizes={sizes} stock={stock} onChange={onChange} />
       )}
       <p className="text-[10px] text-[var(--text-muted)]">
-        Low-stock warning at or below {LOW_STOCK_THRESHOLD} units. A size at 0 is
-        sold out on the storefront.
+        Egypt and New York each sell only from their own count — Combined is just
+        the sum, for reference. Low-stock warning at or below {LOW_STOCK_THRESHOLD}{" "}
+        units. A size at 0 is sold out in that store.
       </p>
     </div>
   );
@@ -290,35 +395,11 @@ function StockSummary({ product }: { product: Product }) {
   const sizes = productSizes(product);
   if (sizes.length === 0) return null;
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      <span className="text-[10px] tracking-[0.2em] uppercase text-[var(--text-muted)] mr-1">
+    <div className="flex flex-col gap-1.5">
+      <span className="text-[10px] tracking-[0.2em] uppercase text-[var(--text-muted)]">
         Stock
       </span>
-      {sizes.map((size) => {
-        const qty = stockForSize(product.stock, size);
-        const badge = stockBadge(qty);
-        const cls =
-          badge === "soldout"
-            ? "border-[var(--accent)]/50 text-[var(--accent)]"
-            : badge === "low"
-              ? "border-[var(--warning-default)]/50 text-[var(--warning-default)]"
-              : "border-[var(--border-default)] text-[var(--text-muted)]";
-        return (
-          <span
-            key={size}
-            className={`px-1.5 py-0.5 text-[10px] rounded border ${cls}`}
-            title={
-              badge === "soldout"
-                ? `${size}: sold out`
-                : badge === "low"
-                  ? `${size}: low (${qty})`
-                  : `${size}: ${qty} in stock`
-            }
-          >
-            {size} {qty}
-          </span>
-        );
-      })}
+      <StockGrid sizes={sizes} stock={storeStock(product)} />
     </div>
   );
 }
@@ -360,8 +441,14 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
 
   function startEdit(p: Product) {
     setEditing(p.handle);
+    // Seed every size explicitly (missing -> 0) for both stores, so the inputs
+    // show real numbers and a save writes complete maps.
     const stock: StockMap = {};
-    for (const size of productSizes(p)) stock[size] = stockForSize(p.stock, size);
+    const stockUs: StockMap = {};
+    for (const size of productSizes(p)) {
+      stock[size] = stockForSize(p.stock, size);
+      stockUs[size] = stockForSize(p.stockUs, size);
+    }
     setDraft({
       title: p.title,
       description: p.description,
@@ -375,6 +462,7 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
       sizeChartId: p.sizeChartId ?? "",
       clearSizeChart: false,
       stock,
+      stockUs,
     });
   }
 
@@ -760,8 +848,14 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
                       </label>
                       <StockEditor
                         sizes={productSizes(p)}
-                        stock={draft.stock ?? {}}
-                        onChange={(stock) => setDraft({ ...draft, stock })}
+                        stock={storeStock(draft)}
+                        onChange={(region, next) =>
+                          setDraft(
+                            region === "us"
+                              ? { ...draft, stockUs: next }
+                              : { ...draft, stock: next }
+                          )
+                        }
                       />
                     </>
                   ) : (

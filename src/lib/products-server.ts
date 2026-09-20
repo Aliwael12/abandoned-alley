@@ -50,6 +50,7 @@ function normalize(raw: Record<string, unknown>): Product | null {
     collection: String(raw.collection ?? ""),
     disabled: Boolean(raw.disabled),
     stock: normalizeStock(raw.stock),
+    stockUs: normalizeStock(raw.stockUs),
     sizeChartId:
       typeof raw.sizeChartId === "string" && raw.sizeChartId.trim()
         ? raw.sizeChartId.trim()

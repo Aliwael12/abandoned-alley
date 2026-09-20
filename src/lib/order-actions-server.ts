@@ -16,6 +16,7 @@ import {
   isStockReserved,
   type OrderStatus,
 } from "@/lib/order-status";
+import { toRegion } from "@/lib/pricing";
 import {
   deductionsByProduct,
   findShortfalls,
@@ -76,7 +77,7 @@ export async function approveOrder(id: string): Promise<ActionResult> {
       const items = Array.isArray(order.items)
         ? (order.items as RawOrderItem[])
         : [];
-      const reads = await readProductsForItems(tx, items);
+      const reads = await readProductsForItems(tx, items, toRegion(order.region));
       const deductions = deductionsByProduct(items, reads.productByHandle);
       const shortfalls = findShortfalls(deductions, reads);
       if (shortfalls.length) {
@@ -201,7 +202,9 @@ async function closeOrder(
         const items = Array.isArray(order.items)
           ? (order.items as RawOrderItem[])
           : [];
-        const reads = await readProductsForItems(tx, items);
+        // Back into the store the units came out of: `region` is fixed when
+        // the order is created, and orders that predate it were Egypt's.
+        const reads = await readProductsForItems(tx, items, toRegion(order.region));
         writeRestores(
           tx,
           recorded ?? deductionsByProduct(items, reads.productByHandle),

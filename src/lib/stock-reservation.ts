@@ -7,10 +7,15 @@
 // therefore ship — an order whose stock isn't there. Every order that holds
 // stock records exactly what it took in `stockDeducted` ("handle::size" -> qty),
 // which is the authority for restoring on cancel/refund.
+//
+// Egypt and New York hold separate inventory (`stock` / `stockUs`). An order only
+// ever touches the pool of the store it was placed in — its `region`, which is
+// fixed at creation — so a restore always lands back where the deduction came from.
 
 import { doc, type DocumentReference, type Transaction } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { normalizeStock, sizeOfOrderItem } from "@/lib/inventory";
+import { STOCK_FIELD, normalizeStock, sizeOfOrderItem } from "@/lib/inventory";
+import type { Region } from "@/lib/pricing";
 import type { Product, StockMap } from "@/lib/products";
 
 export type RawOrderItem = {
@@ -25,8 +30,11 @@ export type Shortfall = { title: string; size: string; want: number; have: numbe
 
 /** Everything read from /products for an order's line items. */
 export type ProductReads = {
+  /** The store these reads and any writes built from them belong to. */
+  region: Region;
   productRefs: Map<string, DocumentReference>;
   productByHandle: Map<string, Product>;
+  /** That store's stock per product handle (not the other store's). */
   stockByHandle: Map<string, StockMap>;
 };
 
@@ -67,14 +75,16 @@ export function deductionsByProduct(
 }
 
 /**
- * Read every product an order references. All reads must precede all writes in
- * a Firestore transaction, so callers run this first. A product doc that no
- * longer exists is simply absent from the maps, which `findShortfalls` reports
- * as zero stock — you can't sell what has no record.
+ * Read every product an order references, with the stock of `region`'s store.
+ * All reads must precede all writes in a Firestore transaction, so callers run
+ * this first. A product doc that no longer exists is simply absent from the
+ * maps, which `findShortfalls` reports as zero stock — you can't sell what has
+ * no record.
  */
 export async function readProductsForItems(
   tx: Transaction,
-  items: RawOrderItem[]
+  items: RawOrderItem[],
+  region: Region
 ): Promise<ProductReads> {
   const handles = Array.from(
     new Set(items.map((i) => String(i.productHandle ?? "")).filter(Boolean))
@@ -89,9 +99,9 @@ export async function readProductsForItems(
     if (!snap.exists()) continue;
     const data = snap.data() as Product;
     productByHandle.set(handle, data);
-    stockByHandle.set(handle, normalizeStock((data as { stock?: unknown }).stock));
+    stockByHandle.set(handle, normalizeStock(data[STOCK_FIELD[region]]));
   }
-  return { productRefs, productByHandle, stockByHandle };
+  return { region, productRefs, productByHandle, stockByHandle };
 }
 
 /** Every size the order asks for that stock can't cover. Empty means it fits. */
@@ -140,7 +150,7 @@ export function writeDeductions(
     const stock = reads.stockByHandle.get(handle);
     if (!stock) continue;
     tx.update(reads.productRefs.get(handle)!, {
-      stock: applyDelta(stock, perSize, -1),
+      [STOCK_FIELD[reads.region]]: applyDelta(stock, perSize, -1),
     });
     for (const [size, qty] of Object.entries(perSize)) {
       stockDeducted[`${handle}::${size}`] = qty;
@@ -159,7 +169,7 @@ export function writeRestores(
     const stock = reads.stockByHandle.get(handle);
     if (!stock) continue;
     tx.update(reads.productRefs.get(handle)!, {
-      stock: applyDelta(stock, perSize, 1),
+      [STOCK_FIELD[reads.region]]: applyDelta(stock, perSize, 1),
     });
   }
 }

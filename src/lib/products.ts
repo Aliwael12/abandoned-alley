@@ -34,8 +34,15 @@ export type Product = {
   variants: ProductVariant[];
   collection: string;
   disabled?: boolean;
-  /** Per-size stock, keyed by Size option value (e.g. { S: 12, M: 0 }). */
+  /** Egypt-store stock, keyed by Size option value (e.g. { S: 12, M: 0 }). */
   stock?: StockMap;
+  /**
+   * New York (US) store stock, same shape. The two stores hold separate
+   * inventory and each sells only from its own count, so this is independent of
+   * `stock` — the same base / `Us`-suffix split as `price` / `priceUsd`. Absent
+   * = nothing in stock there yet.
+   */
+  stockUs?: StockMap;
   /** Handle of the assigned size chart in Firestore. */
   sizeChartId?: string;
   /** Explicit display order for shop/collection listings; lower sorts first. Products without one sort after those that have it, alphabetically by title. */

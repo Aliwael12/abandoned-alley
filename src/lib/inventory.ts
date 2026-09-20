@@ -1,13 +1,33 @@
 // Per-size inventory helpers, shared by the storefront, the admin product
-// editor, and the order-approval transaction. Stock is stored on the product
-// document as a map keyed by SIZE LABEL (the Size option value), e.g.
+// editor, and the order transactions. Stock is stored on the product document
+// as a map keyed by SIZE LABEL (the Size option value), e.g.
 //   stock: { S: 12, M: 0, L: 3 }
 // A missing entry means 0 (sizes start at 0 until the admin sets real counts).
+//
+// The two stores hold separate inventory, so a product carries two such maps:
+// Egypt's in `stock` and New York's in `stockUs` (the same base / `Us`-suffix
+// split as `price` / `priceUsd`). A shopper can only ever buy from their own
+// store's count, so every helper that asks "is this available?" takes the region.
 
+import type { Region } from "@/lib/pricing";
 import type { Product, ProductVariant } from "@/lib/products";
 
 /** Per-size stock map: size label -> available units. */
 export type StockMap = Record<string, number>;
+
+/** Which Product field holds each store's stock map. */
+export const STOCK_FIELD: Record<Region, "stock" | "stockUs"> = {
+  eg: "stock",
+  us: "stockUs",
+};
+
+/** The stock map `region`'s store sells from. */
+export function stockMapForRegion(
+  product: Pick<Product, "stock" | "stockUs">,
+  region: Region
+): StockMap | undefined {
+  return product[STOCK_FIELD[region]];
+}
 
 /** Default low-stock threshold; the admin can override per request later. */
 export const LOW_STOCK_THRESHOLD = 2;
@@ -66,16 +86,21 @@ export function productSizes(product: Product): string[] {
   return product.variants.map((v) => sizeOfVariant(v));
 }
 
-/** A size is sold out when its tracked stock is 0. */
-export function isSizeSoldOut(product: Product, size: string): boolean {
-  return stockForSize(product.stock, size) <= 0;
+/** A size is sold out in `region`'s store when its stock there is 0. */
+export function isSizeSoldOut(
+  product: Product,
+  size: string,
+  region: Region
+): boolean {
+  return stockForSize(stockMapForRegion(product, region), size) <= 0;
 }
 
-/** A product is sold out when every one of its sizes is at 0. */
-export function isProductSoldOut(product: Product): boolean {
+/** A product is sold out in `region`'s store when every one of its sizes is at 0 there. */
+export function isProductSoldOut(product: Product, region: Region): boolean {
   const sizes = productSizes(product);
   if (!sizes.length) return false;
-  return sizes.every((s) => stockForSize(product.stock, s) <= 0);
+  const stock = stockMapForRegion(product, region);
+  return sizes.every((s) => stockForSize(stock, s) <= 0);
 }
 
 /** Low stock: at or below the threshold but not yet sold out. */

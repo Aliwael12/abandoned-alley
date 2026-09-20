@@ -34,7 +34,7 @@ export default function ProductCard({
   const coverEntry =
     head && head.type === "image" ? head : product.media.find((m) => m.type === "image");
   const cover = coverEntry?.src ?? "";
-  const soldOut = isProductSoldOut(product);
+  const soldOut = isProductSoldOut(product, region);
   const categoryLabel = collectionTitle ?? product.collection.replace(/-/g, " ");
 
   return (
