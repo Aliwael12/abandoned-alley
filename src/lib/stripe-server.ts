@@ -371,13 +371,40 @@ export async function getCardPaymentSummary(
  * Refund a card order in full. The idempotency key ties the refund to the
  * order, so retrying after a failure further down (the status write) returns
  * the same refund instead of refunding twice.
+ *
+ * A payment already refunded in full — from the Stripe dashboard, or by a
+ * refund that waited on an approval and then went through — counts as done,
+ * so pressing Refund again just brings the order up to date.
  */
 export async function refundCardPayment(
   orderId: string,
   paymentIntentId: string
 ): Promise<Stripe.Refund> {
-  return getStripe().refunds.create(
-    { payment_intent: paymentIntentId, metadata: { orderId } },
-    { idempotencyKey: `refund-order-${orderId}` }
-  );
+  const stripe = getStripe();
+  const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+  const refunds = (await stripe.refunds.list({ payment_intent: paymentIntentId, limit: 100 })).data
+    .filter((r) => r.status === "succeeded" || r.status === "pending");
+  const refunded = refunds.reduce((n, r) => n + r.amount, 0);
+  if (refunds.length && refunded >= pi.amount_received) return refunds[0];
+  if (refunded > 0) {
+    throw new Error(
+      "This payment was already partly refunded in Stripe. Finish the refund in the Stripe dashboard, then press Refund again."
+    );
+  }
+
+  try {
+    return await stripe.refunds.create(
+      { payment_intent: paymentIntentId, metadata: { orderId } },
+      { idempotencyKey: `refund-order-${orderId}` }
+    );
+  } catch (err) {
+    // Keys tagged for AI-agent use are subject to the account's approval
+    // rules: Stripe parks the refund until someone approves it.
+    if (err instanceof Error && /human approval/i.test(err.message)) {
+      throw new Error(
+        "Stripe is holding this refund for approval. Approve it in the Stripe dashboard (Approvals), then press Refund again to update the order."
+      );
+    }
+    throw err;
+  }
 }
