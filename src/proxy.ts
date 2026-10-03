@@ -22,6 +22,13 @@ function route(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Stripe keeps reporting payments while the site is closed — a checkout paid
+  // just before the lock must still become an order, and expired ones must
+  // still give their stock back. A 503 here would only queue retries.
+  if (pathname === "/api/stripe/webhook") {
+    return NextResponse.next();
+  }
+
   // A logged-in admin browses the live site normally.
   if (request.cookies.get(ADMIN_COOKIE)?.value === ADMIN_COOKIE_VALUE) {
     return NextResponse.next();

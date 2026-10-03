@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import type { Region } from "@/lib/pricing";
 
 export const resend = new Resend(process.env.RESEND_API_KEY!);
 
@@ -71,6 +72,8 @@ export type OrderForEmail = {
   shippingFee: number;
   /** ISO-ish display string for when the order was placed. */
   placedAt?: string;
+  /** True when the customer already paid online (US card checkout). */
+  paid?: boolean;
 };
 
 const escape = (s: string) =>
@@ -115,7 +118,11 @@ export function customerOrderHtml(order: OrderForEmail) {
   <div style="background:#0a0a0a;color:#eee;font-family:Helvetica,Arial,sans-serif;padding:32px;max-width:600px;margin:auto;">
     <h1 style="font-family:Impact,sans-serif;letter-spacing:0.18em;font-size:28px;margin:0 0 8px;">ABANDONED ALLEY</h1>
     <p style="color:#888;margin:0 0 24px;">Order confirmation &middot; #${escape(order.id)}</p>
-    <p style="color:#eee;">Hey ${escape(order.customerName.split(" ")[0])}, we got your order. We'll reach out shortly with payment details and shipping confirmation.</p>
+    <p style="color:#eee;">Hey ${escape(order.customerName.split(" ")[0])}, ${
+      order.paid
+        ? "we got your order and your payment. We'll email you again when it ships."
+        : "we got your order. We'll reach out shortly with payment details and shipping confirmation."
+    }</p>
     <table style="width:100%;border-collapse:collapse;margin-top:24px;">
       ${itemsHtml(order.items, order.currency)}
       <tr>
@@ -163,6 +170,7 @@ export function adminOrderHtml(order: OrderForEmail) {
     <table style="width:100%;border-collapse:collapse;margin-top:16px;">
       ${order.placedAt ? metaRow("Placed", escape(order.placedAt)) : ""}
       ${metaRow("Items", String(itemCount))}
+      ${order.paid ? metaRow("Payment", "Paid by card (Stripe)") : ""}
       ${metaRow("Governorate", escape(ship.state || "—"))}
     </table>
     <table style="width:100%;border-collapse:collapse;margin-top:24px;">
@@ -189,4 +197,54 @@ export function adminOrderHtml(order: OrderForEmail) {
     </p>
     ${order.notes ? `<h3 style="margin-top:24px;">Notes</h3><p style="color:#aaa;">${escape(order.notes)}</p>` : ""}
   </div>`;
+}
+
+/** When an order was placed, as the admin inbox reads it (Cairo time). */
+export function placedAtLabel(date: Date = new Date()): string {
+  return date.toLocaleString("en-GB", {
+    timeZone: "Africa/Cairo",
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
+/**
+ * The customer's confirmation and the admin notification for a newly placed
+ * order. Never throws: the order is already saved by the time this runs, so a
+ * failed send is logged for follow-up rather than failing the checkout.
+ */
+export async function sendOrderPlacedEmails(
+  order: OrderForEmail,
+  region: Region
+): Promise<void> {
+  const total =
+    order.subtotal - (order.discountAmount ?? 0) + order.shippingFee;
+  const results = await Promise.allSettled([
+    sendEmail({
+      from: EMAIL_FROM,
+      to: order.customerEmail,
+      subject: `Order confirmation #${order.id}`,
+      html: customerOrderHtml(order),
+      replyTo: ADMIN_EMAIL,
+    }),
+    sendEmail({
+      from: EMAIL_FROM,
+      to: ADMIN_EMAILS,
+      subject: `New order (${region.toUpperCase()})${order.paid ? " · PAID" : ""} — ${
+        order.customerName
+      } (${order.shipping.state}) — ${money(total, order.currency)}`,
+      html: adminOrderHtml(order),
+      replyTo: order.customerEmail,
+    }),
+  ]);
+  const failures = results
+    .map((r, i) =>
+      r.status === "rejected"
+        ? { recipient: i === 0 ? "customer" : "admin", reason: String(r.reason) }
+        : null
+    )
+    .filter(Boolean);
+  if (failures.length) {
+    console.error(`Order ${order.id} email failures:`, failures);
+  }
 }

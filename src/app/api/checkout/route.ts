@@ -1,15 +1,13 @@
 import { NextResponse } from "next/server";
-import { collection, doc, runTransaction, serverTimestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import {
-  sendEmail,
-  EMAIL_FROM,
-  ADMIN_EMAIL,
-  ADMIN_EMAILS,
-  customerOrderHtml,
-  adminOrderHtml,
-  type OrderForEmail,
-} from "@/lib/email";
+  collection,
+  doc,
+  runTransaction,
+  serverTimestamp,
+  updateDoc,
+} from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { placedAtLabel, sendOrderPlacedEmails, type OrderForEmail } from "@/lib/email";
 import { getShippingFees } from "@/lib/settings-server";
 import {
   COUNTRY_EGYPT,
@@ -33,16 +31,25 @@ import {
   computePromoDiscount,
   normalizePromoCode,
   validatePromo,
+  type PromoCode,
 } from "@/lib/promo-codes";
+import { UnpricedItemError, priceItems } from "@/lib/order-pricing";
+import {
+  CHECKOUTS,
+  createCheckoutSession,
+  isCardCheckoutEnabled,
+  releaseCheckout,
+} from "@/lib/stripe-server";
 
 export const runtime = "nodejs";
 
+/** A bag line as the client sends it. There's no price: checkout prices every
+ * line from the product documents (see lib/order-pricing.ts). */
 type IncomingItem = {
   productHandle: string;
   variantId: string;
   title: string;
   variantTitle: string;
-  price: number;
   quantity: number;
 };
 
@@ -127,15 +134,12 @@ function validate(body: unknown): IncomingOrder | string {
     if (!raw || typeof raw !== "object") return "Invalid item";
     const it = raw as Record<string, unknown>;
     const qty = Number(it.quantity);
-    const price = Number(it.price);
-    if (!Number.isFinite(qty) || qty <= 0) return "Invalid quantity";
-    if (!Number.isFinite(price) || price < 0) return "Invalid price";
+    if (!Number.isInteger(qty) || qty <= 0) return "Invalid quantity";
     cleanItems.push({
       productHandle: String(it.productHandle ?? ""),
       variantId: String(it.variantId ?? ""),
-      title: String(it.title ?? ""),
+      title: String(it.title ?? "").slice(0, 200),
       variantTitle: String(it.variantTitle ?? ""),
-      price,
       quantity: qty,
     });
   }
@@ -189,24 +193,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: parsed }, { status: 400 });
   }
 
-  const subtotal = parsed.items.reduce((n, i) => n + i.price * i.quantity, 0);
   const isUs = parsed.region === "us";
+  // US orders are paid up front by card once Stripe is set up; until then (and
+  // for every Egypt order) nothing is charged at checkout.
+  const payByCard = isUs && (await isCardCheckoutEnabled());
 
-  // The discount is always recomputed here from the code and this request's
-  // own subtotal — the client never gets to hand over a discount amount.
-  let discountAmount = 0;
-  let appliedPromoCode: string | null = null;
+  // The discount is always recomputed here, from the code and the server-side
+  // subtotal — the client never gets to hand over a discount amount.
+  let promo: PromoCode | null = null;
   if (parsed.promoCode) {
-    const promo = await getPromoCodeByCode(parsed.promoCode);
-    const err = validatePromo(promo, parsed.region);
-    if (err) {
+    promo = await getPromoCodeByCode(parsed.promoCode);
+    if (validatePromo(promo, parsed.region)) {
       return NextResponse.json(
         { error: `Promo code "${parsed.promoCode}" is no longer valid.` },
         { status: 400 }
       );
     }
-    discountAmount = computePromoDiscount(promo!, subtotal, parsed.region);
-    appliedPromoCode = promo!.code;
   }
 
   // US orders are recorded for manual follow-up, not dispatched: Droppin is an
@@ -259,43 +261,69 @@ export async function POST(request: Request) {
       }
     : null;
 
-  const orderDoc = {
-    customer: parsed.customer,
-    shipping: parsed.shipping,
-    items: parsed.items,
-    notes: parsed.notes ?? null,
-    subtotal,
-    discountAmount,
-    promoCode: appliedPromoCode,
-    shippingFee,
-    shippingZone: zone,
-    droppinAutoPush: autoPush,
-    region: parsed.region,
-    currency: REGION_CURRENCY[parsed.region],
-    status: "pending",
-    attribution: attributionDoc,
-    createdAt: serverTimestamp(),
-  };
-
   // Reserve stock and create the order in ONE transaction. Because the order is
   // dispatched to Droppin as soon as it exists, an order that can't be covered
   // by stock must never be created at all — so the check that used to be an
   // advisory read (which failed open) is now the authoritative write. Each store
   // sells only from its own stock, so this reads and deducts the pool of the
-  // region the order was placed in.
-  const orderRef = doc(collection(db, "orders"));
+  // region the order was placed in. The same reads price every line.
+  //
+  // A card checkout is written to /checkouts instead, holding its stock until
+  // Stripe confirms the payment and turns it into an order under the same id
+  // (see lib/stripe-server.ts).
+  const orderRef = doc(collection(db, payByCard ? CHECKOUTS : "orders"));
   const orderId = orderRef.id;
+  let placed: {
+    items: (IncomingItem & { price: number })[];
+    subtotal: number;
+    discountAmount: number;
+    coverByHandle: Map<string, string | undefined>;
+  };
   try {
-    await runTransaction(db, async (tx) => {
+    placed = await runTransaction(db, async (tx) => {
       const reads = await readProductsForItems(tx, parsed.items, parsed.region);
-      const deductions = deductionsByProduct(parsed.items, reads.productByHandle);
+      const items = priceItems(parsed.items, reads.productByHandle, parsed.region);
+      const deductions = deductionsByProduct(items, reads.productByHandle);
       const shortfalls = findShortfalls(deductions, reads);
       if (shortfalls.length) throw new InsufficientStockError(shortfalls);
+      const subtotal = items.reduce((n, i) => n + i.price * i.quantity, 0);
+      const discountAmount = promo
+        ? computePromoDiscount(promo, subtotal, parsed.region)
+        : 0;
       // Recorded on the order so cancelling restores exactly what was taken.
       const stockDeducted = writeDeductions(tx, deductions, reads);
-      tx.set(orderRef, { ...orderDoc, stockDeducted });
+      tx.set(orderRef, {
+        customer: parsed.customer,
+        shipping: parsed.shipping,
+        items,
+        notes: parsed.notes ?? null,
+        subtotal,
+        discountAmount,
+        promoCode: promo?.code ?? null,
+        shippingFee,
+        shippingZone: zone,
+        droppinAutoPush: autoPush,
+        region: parsed.region,
+        currency: REGION_CURRENCY[parsed.region],
+        status: payByCard ? "open" : "pending",
+        attribution: attributionDoc,
+        createdAt: serverTimestamp(),
+        stockDeducted,
+      });
+      // Product photos for Stripe's payment page.
+      const coverByHandle = new Map<string, string | undefined>();
+      for (const [handle, p] of reads.productByHandle) {
+        coverByHandle.set(handle, p.media?.find((m) => m.type === "image")?.src);
+      }
+      return { items, subtotal, discountAmount, coverByHandle };
     });
   } catch (err) {
+    if (err instanceof UnpricedItemError) {
+      return NextResponse.json(
+        { error: `${err.title} is no longer available. Please remove it from your bag.` },
+        { status: 409 }
+      );
+    }
     if (err instanceof InsufficientStockError) {
       const s = err.shortfalls[0];
       return NextResponse.json(
@@ -312,6 +340,40 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Failed to save order" }, { status: 500 });
   }
 
+  const { items, subtotal, discountAmount } = placed;
+  const total = subtotal - discountAmount + shippingFee;
+
+  // Card checkout: hand the shopper to Stripe. Emails wait until Stripe
+  // confirms the payment; if the session can't even be opened, the stock goes
+  // straight back rather than sitting on a checkout nobody can pay.
+  if (payByCard) {
+    try {
+      const session = await createCheckoutSession({
+        checkoutId: orderId,
+        email: parsed.customer.email,
+        items: items.map((i) => ({ ...i, image: placed.coverByHandle.get(i.productHandle) })),
+        discountAmount,
+        promoCode: promo?.code ?? null,
+        origin: new URL(request.url).origin,
+      });
+      // The session carries the checkout id in its metadata, so fulfillment
+      // doesn't depend on this write — it lets Cancel expire the session.
+      await updateDoc(orderRef, { stripeSessionId: session.id }).catch((err) =>
+        console.error(`Could not record the Stripe session on checkout ${orderId}:`, err)
+      );
+      return NextResponse.json({ ok: true, orderId, total, checkoutUrl: session.url });
+    } catch (err) {
+      console.error(`Stripe session failed for checkout ${orderId}:`, err);
+      await releaseCheckout(orderId, "session_failed").catch((releaseErr) =>
+        console.error(`Could not release checkout ${orderId}:`, releaseErr)
+      );
+      return NextResponse.json(
+        { error: "We couldn't start the payment. Please try again." },
+        { status: 502 }
+      );
+    }
+  }
+
   const emailPayload: OrderForEmail = {
     id: orderId,
     currency: REGION_CURRENCY[parsed.region],
@@ -320,16 +382,12 @@ export async function POST(request: Request) {
     customerPhone: parsed.customer.phone,
     shipping: parsed.shipping,
     notes: parsed.notes,
-    items: parsed.items,
+    items,
     subtotal,
     discountAmount,
-    promoCode: appliedPromoCode ?? undefined,
+    promoCode: promo?.code,
     shippingFee,
-    placedAt: new Date().toLocaleString("en-GB", {
-      timeZone: "Africa/Cairo",
-      dateStyle: "medium",
-      timeStyle: "short",
-    }),
+    placedAt: placedAtLabel(),
   };
 
   // The carrier push runs alongside the confirmation emails so it costs the
@@ -341,27 +399,8 @@ export async function POST(request: Request) {
     console.warn(`Droppin is not configured; order ${orderId} was not dispatched.`);
   }
 
-  const [emailResults, pushResult] = await Promise.all([
-    Promise.allSettled([
-      sendEmail({
-        from: EMAIL_FROM,
-        to: parsed.customer.email,
-        subject: `Order confirmation #${orderId}`,
-        html: customerOrderHtml(emailPayload),
-        replyTo: ADMIN_EMAIL,
-      }),
-      sendEmail({
-        from: EMAIL_FROM,
-        to: ADMIN_EMAILS,
-        subject: `New order (${parsed.region.toUpperCase()}) — ${
-          parsed.customer.name
-        } (${parsed.shipping.state}) — ${
-          REGION_CURRENCY[parsed.region] === "USD" ? "$" : "EGP "
-        }${(subtotal - discountAmount + shippingFee).toFixed(2)}`,
-        html: adminOrderHtml(emailPayload),
-        replyTo: parsed.customer.email,
-      }),
-    ]),
+  const [, pushResult] = await Promise.all([
+    sendOrderPlacedEmails(emailPayload, parsed.region),
     // getOrderById runs outside pushOrderToDroppin's own try/catch, so guard
     // the whole call rather than trusting its return shape.
     shouldPush
@@ -372,20 +411,9 @@ export async function POST(request: Request) {
       : Promise.resolve(null),
   ]);
 
-  const emailErrors = emailResults
-    .map((r, i) =>
-      r.status === "rejected"
-        ? { recipient: i === 0 ? "customer" : "admin", reason: String(r.reason) }
-        : null
-    )
-    .filter(Boolean);
-  if (emailErrors.length) {
-    console.error(`Order ${orderId} email failures:`, emailErrors);
-  }
-
   if (pushResult && !pushResult.ok) {
     console.error(`Droppin auto-push failed for order ${orderId}:`, pushResult.error);
   }
 
-  return NextResponse.json({ ok: true, orderId });
+  return NextResponse.json({ ok: true, orderId, total });
 }

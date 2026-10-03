@@ -20,7 +20,8 @@ import {
 import { Button, Card, Input } from "./ui";
 import PurchaseTracker from "./PurchaseTracker";
 
-type Step = "cart" | "checkout" | "confirmed";
+/** `confirming`: back from Stripe's payment page, waiting on /api/stripe/confirm. */
+type Step = "cart" | "checkout" | "confirming" | "confirmed";
 
 type FormState = {
   name: string;
@@ -56,7 +57,36 @@ type AppliedPromo = {
   value: number;
 };
 
-export default function CartContent() {
+/**
+ * The checkout form, kept for the round trip to Stripe's payment page so that
+ * backing out of it doesn't mean typing the address in again. sessionStorage:
+ * it only has to survive that one tab's trip.
+ */
+const DRAFT_KEY = "aa-checkout-draft";
+type Draft = { form: FormState; appliedPromo: AppliedPromo | null };
+
+function readDraft(): Draft | null {
+  try {
+    const raw = sessionStorage.getItem(DRAFT_KEY);
+    return raw ? (JSON.parse(raw) as Draft) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Releases a card checkout's held stock — see /api/stripe/cancel. */
+function cancelCheckout(orderId: string) {
+  fetch("/api/stripe/cancel", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ orderId }),
+    keepalive: true,
+  }).catch(() => {
+    // The stock still comes back when the Stripe session expires.
+  });
+}
+
+export default function CartContent({ cardPayments }: { cardPayments: boolean }) {
   const items = useCart((s) => s.items);
   const setQty = useCart((s) => s.setQty);
   const remove = useCart((s) => s.remove);
@@ -64,26 +94,94 @@ export default function CartContent() {
   // Somewhere neither store ships to: the bag can be looked at, not ordered.
   const unshippable = useUnshippableCountry();
 
+  // Stripe sends the shopper back to /cart?session_id=… after paying, or to
+  // /cart?step=checkout&cancelled=<order id> if they back out. Captured once on
+  // mount; the effect below acts on it and cleans the URL.
+  const [stripeReturn] = useState(() => {
+    if (typeof window === "undefined") return { sessionId: null, cancelled: null };
+    const q = new URLSearchParams(window.location.search);
+    return { sessionId: q.get("session_id"), cancelled: q.get("cancelled") };
+  });
+  const [draft] = useState(() => (stripeReturn.cancelled ? readDraft() : null));
+
   // The phone cart drawer's CHECKOUT lands on /cart?step=checkout — straight
   // to the form, since the bag was just reviewed in the drawer. This page only
   // renders client-side (behind RegionGate), so reading the URL here is safe.
   const [step, setStep] = useState<Step>(() =>
-    typeof window !== "undefined" &&
-    new URLSearchParams(window.location.search).get("step") === "checkout" &&
-    useCart.getState().items.length > 0 &&
-    !unshippable
+    stripeReturn.sessionId
+      ? "confirming"
+      : typeof window !== "undefined" &&
+        new URLSearchParams(window.location.search).get("step") === "checkout" &&
+        useCart.getState().items.length > 0 &&
+        !unshippable
       ? "checkout"
       : "cart"
   );
-  const [form, setForm] = useState<FormState>(initialForm);
+  const [form, setForm] = useState<FormState>(draft?.form ?? initialForm);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fees, setFees] = useState<ShippingFees | null>(null);
   const [feesFailed, setFeesFailed] = useState(false);
-  const [order, setOrder] = useState<{ id: string; total: number } | null>(null);
+  /** `processing`: paid with a method Stripe hasn't confirmed yet. */
+  const [order, setOrder] = useState<{ id: string; total: number; processing?: boolean } | null>(null);
+  /** The card checkout this tab just left for Stripe with, if any. */
+  const leftForStripe = useRef<string | null>(null);
 
   const [promoInput, setPromoInput] = useState("");
-  const [appliedPromo, setAppliedPromo] = useState<AppliedPromo | null>(null);
+  const [appliedPromo, setAppliedPromo] = useState<AppliedPromo | null>(draft?.appliedPromo ?? null);
+
+  useEffect(() => {
+    const { sessionId, cancelled } = stripeReturn;
+    if (!sessionId && !cancelled) return;
+    window.history.replaceState(null, "", window.location.pathname);
+    try {
+      sessionStorage.removeItem(DRAFT_KEY);
+    } catch {
+      // storage blocked — nothing to clean up
+    }
+    if (cancelled) {
+      cancelCheckout(cancelled);
+      return;
+    }
+
+    let stale = false;
+    fetch("/api/stripe/confirm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId }),
+    })
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error ?? "We couldn't confirm your payment yet.");
+        return data as { orderId: string; total: number; paid: boolean };
+      })
+      .then((data) => {
+        if (stale) return;
+        clear();
+        setOrder({ id: data.orderId, total: data.total, processing: !data.paid });
+        setStep("confirmed");
+      })
+      .catch((err) => {
+        if (!stale) setError(err instanceof Error ? err.message : "We couldn't confirm your payment yet.");
+      });
+    return () => {
+      stale = true;
+    };
+  }, [stripeReturn, clear]);
+
+  // The browser's Back button from Stripe restores this page from the
+  // back/forward cache mid-"redirecting". Re-enable the form, and release the
+  // checkout that was left behind so resubmitting the bag isn't blocked by it.
+  useEffect(() => {
+    const onShow = (e: PageTransitionEvent) => {
+      if (!e.persisted || !leftForStripe.current) return;
+      cancelCheckout(leftForStripe.current);
+      leftForStripe.current = null;
+      setSubmitting(false);
+    };
+    window.addEventListener("pageshow", onShow);
+    return () => window.removeEventListener("pageshow", onShow);
+  }, []);
   const [promoChecking, setPromoChecking] = useState(false);
   const [promoError, setPromoError] = useState<string | null>(null);
 
@@ -106,6 +204,8 @@ export default function CartContent() {
 
   const region = useRegionOrDefault();
   const isUs = region === "us";
+  // US orders are paid by card on Stripe's page once it's switched on.
+  const payByCard = isUs && cardPayments;
   const currency = REGION_CURRENCY[region];
   const money = (n: number) => formatMoney(n, region);
 
@@ -221,12 +321,12 @@ export default function CartContent() {
           },
           notes: form.notes || undefined,
           promoCode: appliedPromo?.code,
+          // No prices: the server prices every line from the catalog.
           items: items.map((i) => ({
             productHandle: i.productHandle,
             variantId: i.variantId,
             title: i.title,
             variantTitle: i.variantTitle,
-            price: i.price,
             quantity: i.quantity,
           })),
           attribution: getStoredAttribution(),
@@ -234,9 +334,21 @@ export default function CartContent() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error ?? "Order failed");
+      if (data.checkoutUrl) {
+        // Card checkout: off to Stripe. The bag stays put until the payment is
+        // confirmed, and the form is kept in case the shopper backs out.
+        try {
+          sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ form, appliedPromo } satisfies Draft));
+        } catch {
+          // storage blocked — they'd just retype the form
+        }
+        leftForStripe.current = data.orderId;
+        window.location.assign(data.checkoutUrl);
+        return;
+      }
       clear();
       setAppliedPromo(null);
-      setOrder({ id: data.orderId, total });
+      setOrder({ id: data.orderId, total: typeof data.total === "number" ? data.total : total });
       setStep("confirmed");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -401,12 +513,23 @@ export default function CartContent() {
 
               <Card style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
                 <div className="aa-eyebrow">PAYMENT</div>
-                <p className="aa-body">Cash on delivery.</p>
-                <p className="aa-caption">
-                  {isUs
-                    ? "Nothing is charged now — we'll contact you to confirm your order and arrange delivery."
-                    : "Pay the courier in cash when your order arrives. Nothing is charged now."}
-                </p>
+                {payByCard ? (
+                  <>
+                    <p className="aa-body">Card, Apple Pay or Google Pay.</p>
+                    <p className="aa-caption">
+                      You&apos;ll pay on Stripe&apos;s secure checkout page next, then come straight back here.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="aa-body">Cash on delivery.</p>
+                    <p className="aa-caption">
+                      {isUs
+                        ? "Nothing is charged now — we'll contact you to confirm your order and arrange delivery."
+                        : "Pay the courier in cash when your order arrives. Nothing is charged now."}
+                    </p>
+                  </>
+                )}
               </Card>
 
               {error && <p className="aa-caption" style={{ color: "var(--graphic-red)" }}>{error}</p>}
@@ -508,7 +631,13 @@ export default function CartContent() {
                 {unshippable
                   ? `WE DON'T SHIP TO ${unshippable}`
                   : submitting
-                  ? "PLACING ORDER…"
+                  ? payByCard
+                    ? "OPENING PAYMENT…"
+                    : "PLACING ORDER…"
+                  : isUs
+                  ? payByCard
+                    ? "CONTINUE TO PAYMENT"
+                    : "PLACE ORDER"
                   : isInternational
                   ? "EGYPT DELIVERY ONLY"
                   : fees === null
@@ -522,15 +651,34 @@ export default function CartContent() {
         </>
       )}
 
+      {step === "confirming" && (
+        <div style={{ textAlign: "center", padding: "var(--space-24) 0", display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-4)" }}>
+          <div className="aa-eyebrow">{error ? "PAYMENT RECEIVED?" : "ONE MOMENT"}</div>
+          <h1 className="aa-display-hero" style={{ fontSize: "var(--text-4xl)" }}>
+            {error ? "WE'RE CHECKING" : "CONFIRMING PAYMENT…"}
+          </h1>
+          {error && (
+            <>
+              <p className="aa-body" style={{ color: "var(--text-muted)", maxWidth: 420 }}>
+                {error} If you were charged, your confirmation email is on its way — please don&apos;t pay again.
+              </p>
+              <Link href="/shop"><Button variant="primary" size="lg">CONTINUE SHOPPING</Button></Link>
+            </>
+          )}
+        </div>
+      )}
+
       {step === "confirmed" && order && (
         <div style={{ textAlign: "center", padding: "var(--space-24) 0", display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-4)" }}>
-          <PurchaseTracker orderId={order.id} value={order.total} currency={currency} />
+          {!order.processing && <PurchaseTracker orderId={order.id} value={order.total} currency={currency} />}
           <Image src="/brand/logo-solid-black.png" alt="Abandoned Alley" width={56} height={56} />
-          <div className="aa-eyebrow">ORDER CONFIRMED</div>
+          <div className="aa-eyebrow">{order.processing ? "PAYMENT PROCESSING" : "ORDER CONFIRMED"}</div>
           <h1 className="aa-display-hero" style={{ fontSize: "var(--text-4xl)" }}>DON&apos;T DIE WONDERING</h1>
           <p className="aa-numeric" style={{ fontSize: "var(--text-md)" }}>ORDER #{order.id}</p>
           <p className="aa-body" style={{ color: "var(--text-muted)", maxWidth: 420 }}>
-            We&apos;ll email tracking once it ships from Cairo.
+            {order.processing
+              ? "Your bank is still confirming the payment. We'll email you as soon as it clears."
+              : `We'll email tracking once it ships from ${isUs ? "New York" : "Cairo"}.`}
           </p>
           <Link href="/shop"><Button variant="primary" size="lg">CONTINUE SHOPPING</Button></Link>
         </div>
