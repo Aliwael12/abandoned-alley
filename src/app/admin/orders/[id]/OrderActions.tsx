@@ -23,9 +23,12 @@ const ACTION_LABEL: Record<Action, string> = {
 export default function OrderActions({
   orderId,
   status,
+  paidByCard = false,
 }: {
   orderId: string;
   status: OrderStatus;
+  /** Paid through Stripe: Refund returns the money, and plain Cancel is off. */
+  paidByCard?: boolean;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState<Action | null>(null);
@@ -35,7 +38,9 @@ export default function OrderActions({
     const label = ACTION_LABEL[action];
     const prompt =
       action === "refund"
-        ? "Refund this order? This restores the ordered items to stock and marks the order refunded."
+        ? paidByCard
+          ? "Refund this order? The full payment goes back to the customer's card through Stripe, the items return to stock, and the order is marked refunded."
+          : "Refund this order? This restores the ordered items to stock and marks the order refunded."
         : `${label} this order?`;
     if (!confirm(prompt)) return;
     setBusy(action);
@@ -61,7 +66,8 @@ export default function OrderActions({
 
   const canApprove = status === "pending";
   const canDeliver = status === "approved";
-  const canCancel = status !== "cancelled" && status !== "delivered";
+  // A card order's money only comes back through Refund, so it has no Cancel.
+  const canCancel = !paidByCard && status !== "cancelled" && status !== "delivered";
   // A refund closes out an order and returns its stock — available for any
   // order that isn't already closed (pending, approved, or delivered). A
   // refunded order normalizes to "cancelled", so this hides once refunded.
@@ -142,7 +148,9 @@ export default function OrderActions({
       )}
       {canRefund && (
         <p className="text-[11px] text-[var(--text-muted)]">
-          Refunding marks the order refunded and returns its items to stock.
+          {paidByCard
+            ? "Refunding returns the full payment to the customer's card through Stripe, marks the order refunded, and returns its items to stock."
+            : "Refunding marks the order refunded and returns its items to stock."}
         </p>
       )}
       {error && <p className="text-sm text-[var(--warning-default)]/90">{error}</p>}

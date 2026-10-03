@@ -55,6 +55,16 @@ export type OrderDetail = {
     error: string | null;
     pushedAt: number | null;
   };
+  /** How the customer paid. `card` orders were paid up front through Stripe
+   * Checkout; anything else is settled on delivery or arranged manually. The
+   * stored flags are only a pointer — open Firestore rules make them
+   * forgeable, so the admin page confirms them against Stripe. */
+  payment: {
+    method: "card" | null;
+    stripePaymentIntentId: string | null;
+    amountPaid: number | null;
+    stripeRefundId: string | null;
+  };
 };
 
 function tsToMillis(ts: unknown): number | null {
@@ -122,6 +132,13 @@ export async function getOrderById(id: string): Promise<OrderDetail | null> {
       status: typeof data.droppinStatus === "string" ? data.droppinStatus : null,
       error: typeof data.droppinError === "string" ? data.droppinError : null,
       pushedAt: tsToMillis(data.droppinPushedAt),
+    },
+    payment: {
+      method: data.paymentMethod === "card" ? "card" : null,
+      stripePaymentIntentId:
+        typeof data.stripePaymentIntentId === "string" ? data.stripePaymentIntentId : null,
+      amountPaid: typeof data.amountPaid === "number" ? data.amountPaid : null,
+      stripeRefundId: typeof data.stripeRefundId === "string" ? data.stripeRefundId : null,
     },
   };
 }

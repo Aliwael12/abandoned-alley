@@ -14,6 +14,11 @@ import {
   normalizeStatus,
 } from "@/lib/order-status";
 import type { Product } from "@/lib/products";
+import {
+  getCardPaymentSummary,
+  isStripeConfigured,
+  type CardPaymentSummary,
+} from "@/lib/stripe-server";
 
 export const metadata = { title: "Order — Abandoned Alley Admin" };
 export const dynamic = "force-dynamic";
@@ -36,6 +41,26 @@ export default async function OrderDetailPage({
 
   const itemCount = order.items.reduce((n, i) => n + i.quantity, 0);
   const status = normalizeStatus(order.status);
+  const paidByCard = order.payment.method === "card";
+
+  // Ask Stripe, not the order document: the open Firestore rules let anyone
+  // write a "paid" flag, but only a real payment shows up in Stripe.
+  let stripePayment: CardPaymentSummary | null = null;
+  let stripeError: string | null = null;
+  if (paidByCard) {
+    if (!order.payment.stripePaymentIntentId) {
+      stripeError = "This order has no Stripe payment on record.";
+    } else if (!isStripeConfigured()) {
+      stripeError = "Stripe isn't configured on this deployment, so the payment can't be checked.";
+    } else {
+      try {
+        stripePayment = await getCardPaymentSummary(order.payment.stripePaymentIntentId);
+      } catch (err) {
+        stripeError = `Couldn't reach Stripe: ${err instanceof Error ? err.message : String(err)}`;
+      }
+    }
+  }
+  const paymentVerified = stripePayment?.status === "succeeded";
 
   return (
     <div className="max-w-[1100px] mx-auto px-4 md:px-8 py-12 flex flex-col gap-8">
@@ -77,7 +102,7 @@ export default async function OrderDetailPage({
         <h2 className="font-[family-name:var(--font-bebas)] text-2xl tracking-[0.18em]">
           Order actions
         </h2>
-        <OrderActions orderId={order.id} status={status} />
+        <OrderActions orderId={order.id} status={status} paidByCard={paidByCard} />
       </section>
 
       <div className="grid md:grid-cols-2 gap-6">
@@ -233,8 +258,10 @@ export default async function OrderDetailPage({
                 </span>
               </div>
               <p className="text-sm text-[var(--text-muted)]">
-                US order — cash on delivery, arranged manually. It is not sent to
-                Droppin, which only serves Egypt.
+                {paidByCard
+                  ? "US order — paid by card, shipped manually."
+                  : "US order — payment and delivery arranged manually."}{" "}
+                It is not sent to Droppin, which only serves Egypt.
               </p>
             </>
           ) : order.droppin.trackingNumber ? (
@@ -304,6 +331,62 @@ export default async function OrderDetailPage({
             </>
           )}
         </section>
+
+      <section className="glass  p-6 flex flex-col gap-3">
+        <h2 className="font-[family-name:var(--font-bebas)] text-2xl tracking-[0.18em]">
+          Payment
+        </h2>
+        <div className="flex justify-between text-sm">
+          <span className="text-[var(--text-muted)] uppercase tracking-[0.2em] text-xs">Method</span>
+          <span>
+            {paidByCard
+              ? "Card (Stripe)"
+              : order.region === "us"
+              ? "Arranged manually"
+              : "Cash on delivery"}
+          </span>
+        </div>
+        {paidByCard && stripePayment && (
+          <>
+            <div className="flex justify-between text-sm">
+              <span className="text-[var(--text-muted)] uppercase tracking-[0.2em] text-xs">
+                Stripe status
+              </span>
+              <span className={paymentVerified ? "text-[var(--success-default)]" : "text-[var(--warning-default)]"}>
+                {paymentVerified ? "Paid — verified with Stripe" : stripePayment.status}
+              </span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-[var(--text-muted)] uppercase tracking-[0.2em] text-xs">Received</span>
+              <span>{fmt(stripePayment.amountReceived, stripePayment.currency)}</span>
+            </div>
+            {stripePayment.amountRefunded > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-[var(--text-muted)] uppercase tracking-[0.2em] text-xs">Refunded</span>
+                <span>-{fmt(stripePayment.amountRefunded, stripePayment.currency)}</span>
+              </div>
+            )}
+            <a
+              href={stripePayment.dashboardUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs tracking-[0.2em] uppercase text-[var(--text-muted)] hover:text-[var(--text-primary)] transition self-start"
+            >
+              Open in Stripe ↗
+            </a>
+          </>
+        )}
+        {paidByCard && stripeError && (
+          <p className="text-sm text-[var(--warning-default)]/90">
+            {stripeError} Don&apos;t ship until you&apos;ve confirmed the payment in the Stripe dashboard.
+          </p>
+        )}
+        {paidByCard && stripePayment && !paymentVerified && (
+          <p className="text-sm text-[var(--warning-default)]/90">
+            Stripe doesn&apos;t show this payment as completed. Don&apos;t ship until it does.
+          </p>
+        )}
+      </section>
 
       <section className="glass  p-6 flex flex-col gap-3">
         <h2 className="font-[family-name:var(--font-bebas)] text-2xl tracking-[0.18em]">

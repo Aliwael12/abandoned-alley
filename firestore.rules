@@ -95,7 +95,9 @@ service cloud.firestore {
         request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'status','approvedAt','deliveredAt','cancelledAt','refundedAt','stockDeducted',
           'droppinPackageId','droppinTrackingNumber','droppinStatus',
-          'droppinPushedAt','droppinError','droppinPushAttemptedAt'
+          'droppinPushedAt','droppinError','droppinPushAttemptedAt',
+          // The Stripe refund behind a refunded card order.
+          'stripeRefundId'
         ]);
       allow delete: if false;
     }

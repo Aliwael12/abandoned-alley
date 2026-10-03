@@ -8,8 +8,10 @@
 //   approved --deliver--> delivered
 //   pending/approved/delivered --cancel--> cancelled
 //     (restores stock only if it had been deducted, i.e. was approved/delivered)
+//   any open order --refund--> refunded (card orders are refunded in Stripe
+//     first; they can't be plain-cancelled)
 
-import { doc, runTransaction, serverTimestamp } from "firebase/firestore";
+import { doc, runTransaction, serverTimestamp, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import {
   normalizeStatus,
@@ -27,6 +29,7 @@ import {
   type RawOrderItem,
 } from "@/lib/stock-reservation";
 import { getOrderById, pushOrderToDroppin } from "@/lib/orders-server";
+import { refundCardPayment } from "@/lib/stripe-server";
 
 export type ActionResult =
   | {
@@ -231,6 +234,15 @@ async function closeOrder(
  * stock is restored atomically. Cancelling a pending order changes no stock.
  */
 export async function cancelOrder(id: string): Promise<ActionResult> {
+  // Cancelling would keep a card customer's money. Refund is the way to close
+  // out an order paid through Stripe — it returns the payment as well.
+  const order = await getOrderById(id);
+  if (order?.payment.method === "card" && normalizeStatus(order.status) !== "cancelled") {
+    return {
+      ok: false,
+      error: "This order was paid by card. Use Refund so the customer gets their money back.",
+    };
+  }
   return closeOrder(
     id,
     { status: "cancelled", timestampField: "cancelledAt" },
@@ -245,11 +257,41 @@ export async function cancelOrder(id: string): Promise<ActionResult> {
  * a pending order — which never deducted stock — only flips the status.
  */
 export async function refundOrder(id: string): Promise<ActionResult> {
-  return closeOrder(
+  // A card order gets its money back through Stripe first: if that fails, the
+  // order stays as it was rather than reading "refunded" with nothing refunded.
+  const order = await getOrderById(id);
+  const paymentIntent = order?.payment.stripePaymentIntentId;
+  let stripeRefundId: string | null = null;
+  if (order && paymentIntent && normalizeStatus(order.status) !== "cancelled") {
+    try {
+      stripeRefundId = (await refundCardPayment(id, paymentIntent)).id;
+    } catch (err) {
+      return {
+        ok: false,
+        error: `Stripe refund failed: ${err instanceof Error ? err.message : String(err)}`,
+      };
+    }
+  }
+
+  const result = await closeOrder(
     id,
     { status: "refunded", timestampField: "refundedAt" },
     "Refund failed."
   );
+  if (stripeRefundId) {
+    if (!result.ok) {
+      // The money is back with the customer; only our bookkeeping failed.
+      // Retrying is safe — the Stripe refund is idempotent per order.
+      return {
+        ok: false,
+        error: `The card was refunded in Stripe (${stripeRefundId}), but the order couldn't be updated: ${result.error} Try Refund again.`,
+      };
+    }
+    await updateDoc(doc(db, "orders", id), { stripeRefundId }).catch((err) =>
+      console.error(`Could not record Stripe refund ${stripeRefundId} on order ${id}:`, err)
+    );
+  }
+  return result;
 }
 
 export type OrderAction = "approve" | "deliver" | "cancel" | "refund";

@@ -335,3 +335,49 @@ export async function abandonCheckout(checkoutId: string): Promise<void> {
     await fulfillCheckoutSession(sessionId);
   }
 }
+
+export type CardPaymentSummary = {
+  /** Stripe's PaymentIntent status — "succeeded" means the money is in. */
+  status: string;
+  amountReceived: number;
+  amountRefunded: number;
+  currency: string;
+  /** Link to the payment in the Stripe dashboard. */
+  dashboardUrl: string;
+};
+
+/**
+ * What Stripe itself says about an order's payment. The admin page shows this
+ * rather than the order's own "paid" flag, which the open Firestore rules
+ * leave writable by anyone.
+ */
+export async function getCardPaymentSummary(
+  paymentIntentId: string
+): Promise<CardPaymentSummary> {
+  const pi = await getStripe().paymentIntents.retrieve(paymentIntentId, {
+    expand: ["latest_charge"],
+  });
+  const charge = typeof pi.latest_charge === "object" ? pi.latest_charge : null;
+  return {
+    status: pi.status,
+    amountReceived: pi.amount_received / 100,
+    amountRefunded: (charge?.amount_refunded ?? 0) / 100,
+    currency: pi.currency.toUpperCase(),
+    dashboardUrl: `https://dashboard.stripe.com/${pi.livemode ? "" : "test/"}payments/${pi.id}`,
+  };
+}
+
+/**
+ * Refund a card order in full. The idempotency key ties the refund to the
+ * order, so retrying after a failure further down (the status write) returns
+ * the same refund instead of refunding twice.
+ */
+export async function refundCardPayment(
+  orderId: string,
+  paymentIntentId: string
+): Promise<Stripe.Refund> {
+  return getStripe().refunds.create(
+    { payment_intent: paymentIntentId, metadata: { orderId } },
+    { idempotencyKey: `refund-order-${orderId}` }
+  );
+}
