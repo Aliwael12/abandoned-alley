@@ -1,12 +1,12 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { ADMIN_COOKIE, verifyAdminSession } from "@/lib/admin-session";
 
-export const ADMIN_COOKIE = "aa_admin";
-export const ADMIN_COOKIE_VALUE = "ok";
+export { ADMIN_COOKIE };
 
 export async function isAdmin(): Promise<boolean> {
   const c = await cookies();
-  return c.get(ADMIN_COOKIE)?.value === ADMIN_COOKIE_VALUE;
+  return verifyAdminSession(c.get(ADMIN_COOKIE)?.value);
 }
 
 export async function requireAdmin() {

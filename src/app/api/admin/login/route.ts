@@ -1,8 +1,19 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { ADMIN_COOKIE, ADMIN_COOKIE_VALUE } from "@/lib/admin-auth";
+import { createHash, timingSafeEqual } from "node:crypto";
+import {
+  ADMIN_COOKIE,
+  ADMIN_SESSION_SECONDS,
+  createAdminSession,
+} from "@/lib/admin-session";
 
 export const runtime = "nodejs";
+
+/** Equal-length digests, so the comparison takes the same time whatever the guess. */
+function passwordMatches(given: string, expected: string): boolean {
+  const digest = (s: string) => createHash("sha256").update(s).digest();
+  return timingSafeEqual(digest(given), digest(expected));
+}
 
 export async function POST(request: Request) {
   let body: { password?: string };
@@ -16,17 +27,22 @@ export async function POST(request: Request) {
   if (!expected) {
     return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
   }
-  if (!body.password || body.password !== expected) {
+  if (typeof body.password !== "string" || !passwordMatches(body.password, expected)) {
     return NextResponse.json({ error: "Invalid password" }, { status: 401 });
   }
 
+  const session = await createAdminSession();
+  if (!session) {
+    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
+  }
+
   const c = await cookies();
-  c.set(ADMIN_COOKIE, ADMIN_COOKIE_VALUE, {
+  c.set(ADMIN_COOKIE, session, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 60 * 8, // 8 hours
+    maxAge: ADMIN_SESSION_SECONDS,
   });
 
   return NextResponse.json({ ok: true });

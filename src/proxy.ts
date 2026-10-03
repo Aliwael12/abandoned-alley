@@ -1,16 +1,16 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { isSiteLocked, SITE_UNLOCK_AT } from "@/lib/site-lock";
-import { ADMIN_COOKIE, ADMIN_COOKIE_VALUE } from "@/lib/admin-auth";
+import { ADMIN_COOKIE, verifyAdminSession } from "@/lib/admin-session";
 import { COUNTRY_COOKIE, countryFromHeaders } from "@/lib/geo";
 
-export function proxy(request: NextRequest) {
-  const response = route(request);
+export async function proxy(request: NextRequest) {
+  const response = await route(request);
   stampCountry(request, response);
   return response;
 }
 
-function route(request: NextRequest) {
+async function route(request: NextRequest) {
   if (!isSiteLocked()) {
     return NextResponse.next();
   }
@@ -30,7 +30,7 @@ function route(request: NextRequest) {
   }
 
   // A logged-in admin browses the live site normally.
-  if (request.cookies.get(ADMIN_COOKIE)?.value === ADMIN_COOKIE_VALUE) {
+  if (await verifyAdminSession(request.cookies.get(ADMIN_COOKIE)?.value)) {
     return NextResponse.next();
   }
 
