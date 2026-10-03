@@ -4,17 +4,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Menu, X } from "lucide-react";
+import { ArrowLeftRight, Menu, X } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { BagIcon } from "./Socials";
 import { NavLink, Badge } from "./ui";
-import {
-  regionLabel,
-  useHydrated,
-  useLocationDecides,
-  useRegion,
-  useUnshippableCountry,
-} from "@/lib/region";
+import { otherRegion, regionLabel, useHydrated, useRegion } from "@/lib/region";
 
 const NAV = [
   { href: "/shop", label: "SHOP", match: ["/shop", "/products"] },
@@ -24,13 +18,25 @@ const NAV = [
 export default function Header() {
   const pathname = usePathname();
   const region = useRegion((s) => s.region);
+  const chooseRegion = useRegion((s) => s.chooseRegion);
   const hydrated = useHydrated();
-  const locationDecides = useLocationDecides();
-  const unshippable = useUnshippableCountry();
   const isCart = pathname === "/cart";
   const cartItems = useCart((s) => s.items);
   const cartCount = cartItems.reduce((n, i) => n + i.quantity, 0);
   const [menuOpen, setMenuOpen] = useState(false);
+
+  // Flip between the two stores. Each quotes its own currency, so switching
+  // empties the bag — ask first if there's something in it.
+  function switchStore() {
+    const next = otherRegion(region);
+    if (
+      cartCount > 0 &&
+      !window.confirm(`Switch to the ${next === "us" ? "New York (USD)" : "Cairo (EGP)"} store? Your bag will be emptied.`)
+    ) {
+      return;
+    }
+    chooseRegion(next);
+  }
 
   return (
     <header
@@ -112,17 +118,24 @@ export default function Header() {
             justifySelf: "end",
           }}
         >
-          {/* Region and location live in the browser only, so the badge waits
-              for hydration. Where location picked the store there's nothing
-              to switch to, so it's a label rather than a link to /region. */}
-          {hydrated &&
-            (locationDecides ? (
-              <Badge variant="outline">{unshippable ? "BROWSE ONLY" : regionLabel(region)}</Badge>
-            ) : (
-              <Link href="/region" aria-label="Change region">
-                <Badge variant="outline">{regionLabel(region)}</Badge>
-              </Link>
-            ))}
+          {/* The region lives in the browser only, so the switch waits for
+              hydration. One click flips to the other store. */}
+          {hydrated && (
+            <button
+              type="button"
+              onClick={switchStore}
+              aria-label={`Switch to the ${otherRegion(region) === "us" ? "New York" : "Cairo"} store`}
+              title={`Switch to ${regionLabel(otherRegion(region))}`}
+              style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}
+            >
+              <Badge variant="outline">
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  {regionLabel(region)}
+                  <ArrowLeftRight size={12} aria-hidden />
+                </span>
+              </Badge>
+            </button>
+          )}
           {isCart ? (
             <span className="aa-nav-link" style={{ color: "var(--accent-default)" }}>
               <BagIcon size={20} />

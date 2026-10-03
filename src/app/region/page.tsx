@@ -9,7 +9,7 @@ import { InstagramIcon } from "@/components/Socials";
 
 export default function RegionPage() {
   const router = useRouter();
-  const setRegion = useRegion((s) => s.setRegion);
+  const chooseRegion = useRegion((s) => s.chooseRegion);
   const hydrated = useHydrated();
   const locationDecides = useLocationDecides();
 
@@ -20,7 +20,7 @@ export default function RegionPage() {
   }, [locationDecides, router]);
 
   const select = (region: "eg" | "us") => {
-    setRegion(region);
+    chooseRegion(region);
     // Back to whatever the gate interrupted; the landing menu otherwise.
     router.push(takeReturnPath() ?? "/");
   };

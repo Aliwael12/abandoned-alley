@@ -16,7 +16,12 @@ type RegionState = {
    * gives no geolocation (local dev). Re-read from the cookie on every page
    * load rather than persisted, so it follows the visitor around. */
   country: string | null;
+  /** The shopper picked this store themselves (header switch or /region), so
+   * location no longer overrides it on later page loads. Persisted. */
+  chosen: boolean;
   setRegion: (r: Region) => void;
+  /** A deliberate switch by the shopper: sticks across page loads. */
+  chooseRegion: (r: Region) => void;
 };
 
 export const useRegion = create<RegionState>()(
@@ -24,6 +29,7 @@ export const useRegion = create<RegionState>()(
     (set, get) => ({
       region: null,
       country: null,
+      chosen: false,
       setRegion: (r) => {
         // Prices are quoted per region in different currencies, and cart lines
         // store the price they were added at. Carrying them across a region
@@ -33,8 +39,12 @@ export const useRegion = create<RegionState>()(
         if (previous && previous !== r) useCart.getState().clear();
         set({ region: r });
       },
+      chooseRegion: (r) => {
+        get().setRegion(r);
+        set({ chosen: true });
+      },
     }),
-    { name: "aa-region", partialize: (s) => ({ region: s.region }) }
+    { name: "aa-region", partialize: (s) => ({ region: s.region, chosen: s.chosen }) }
   )
 );
 
@@ -51,14 +61,17 @@ function readCountryCookie(): string | null {
  * Location picks the store: Egypt gets the Egypt store, the US the New York
  * one. Anywhere else can browse but not buy — keeping whichever store they
  * already had, so a traveller's bag survives the trip, or the browse store if
- * this is their first visit. With no location the manual /region choice stands.
+ * this is their first visit. With no location the manual /region choice stands,
+ * and a store the shopper switched to themselves always beats location.
  */
 function applyLocation() {
   const country = readCountryCookie();
   if (!country) return;
-  const { region, setRegion } = useRegion.getState();
+  const { region, chosen, setRegion } = useRegion.getState();
   const local = regionForCountry(country);
-  if (local) setRegion(local);
+  if (chosen && region) {
+    // Keep their pick; just record where they are.
+  } else if (local) setRegion(local);
   else if (!region) setRegion(BROWSE_REGION);
   useRegion.setState({ country });
 }
@@ -69,6 +82,11 @@ if (typeof document !== "undefined") applyLocation();
 
 export function regionLabel(region: Region | null): string {
   return region === "us" ? "NY · USD" : "CAIRO · EGP";
+}
+
+/** The other store — there are exactly two. */
+export function otherRegion(region: Region | null): Region {
+  return region === "us" ? "eg" : "us";
 }
 
 /** The active region, defaulting to Egypt before the store hydrates. */
