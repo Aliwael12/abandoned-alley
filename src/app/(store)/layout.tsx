@@ -2,11 +2,13 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import PinAnimation from "@/components/PinAnimation";
 import ShippingNotice from "@/components/ShippingNotice";
+import OfferBanner from "@/components/OfferBanner";
 
 export default function StoreLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
       <PinAnimation />
+      <OfferBanner />
       <Header />
       <ShippingNotice />
       {/* Explicit z-index (not `auto`) so this creates a stacking context and

@@ -49,6 +49,10 @@ export type Product = {
   sortOrder?: number;
   /** Garment category, used to filter the shop page independently of `collection` (the drop/season). */
   category?: "tees" | "sweats" | "accessories";
+  /** Handles of products that make a matching outfit with this one (the
+   * Skyline tee and the Brownie shorts). "Complete the fit" suggests these
+   * first. Either side listing the other is enough. */
+  pairsWith?: string[];
 };
 
 export const products: Product[] = [

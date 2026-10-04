@@ -29,6 +29,8 @@ type Patch = Partial<
   variantPrices?: Record<string, number | string | null>;
   /** Per-variant USD prices, keyed by variant id. Overrides the flat `priceUsd`. */
   variantPricesUsd?: Record<string, number | string | null>;
+  /** Handles of matching products for "complete the fit"; [] clears them. */
+  pairsWith?: unknown;
 };
 
 function sanitizeMedia(raw: unknown): Media[] | null {
@@ -226,6 +228,21 @@ export async function PATCH(
     const id = body.sizeChartId.trim();
     if (id) next.sizeChartId = id;
     else delete next.sizeChartId;
+  }
+  if (body.pairsWith !== undefined) {
+    if (!Array.isArray(body.pairsWith)) {
+      return NextResponse.json({ error: "Invalid pairsWith" }, { status: 400 });
+    }
+    const pairs = Array.from(
+      new Set(
+        body.pairsWith
+          .filter((h): h is string => typeof h === "string")
+          .map((h) => h.trim())
+          .filter((h) => h && h !== next.handle)
+      )
+    ).slice(0, 20);
+    if (pairs.length) next.pairsWith = pairs;
+    else delete next.pairsWith;
   }
   // Each store keeps its own stock; a request may set either or both.
   if (body.stock !== undefined) next.stock = stockForSizes(body.stock, next);

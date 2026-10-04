@@ -11,6 +11,8 @@ import {
 import SizeChartPanel from "@/components/SizeChartPanel";
 import ProductCard from "@/components/ProductCard";
 import CartDrawer from "@/components/CartDrawer";
+import { OFFER_COPY } from "@/lib/offer";
+import { useLiveOffer } from "@/lib/use-offer";
 import { useCart } from "@/lib/cart";
 import { trackPixel } from "@/lib/pixel";
 import { useRegionOrDefault, useUnshippableCountry } from "@/lib/region";
@@ -50,6 +52,7 @@ export default function ProductDetail({
   // Local rather than the cart store's `isOpen`, which is persisted and would
   // reopen the drawer on every page load.
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const offer = useLiveOffer();
   const closeDrawer = useCallback(() => setDrawerOpen(false), []);
 
   // The pin pack is the one product where a size ("Pack of 3"/"Pack of 5")
@@ -185,9 +188,9 @@ export default function ProductDetail({
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 1800);
-    // Phones get the bag drawer; wider screens keep the inline "ADDED ✓".
-    // Same breakpoint where this page drops to a single column.
-    if (window.matchMedia("(max-width: 767px)").matches) setDrawerOpen(true);
+    // The bag drawer opens on every screen size, so the spend-offer progress
+    // is the first thing a shopper sees after adding something.
+    setDrawerOpen(true);
   };
 
   // The pin pack's gallery is just its single cover collage — the other
@@ -343,6 +346,11 @@ export default function ProductDetail({
           <p className="aa-price" style={{ fontSize: "var(--text-xl)" }}>
             {regionPrice === null ? "—" : formatMoney(regionPrice, region)}
           </p>
+          {offer && (
+            <p className="aa-caption" style={{ color: "var(--accent-default)" }}>
+              {OFFER_COPY.productLine(offer)}
+            </p>
+          )}
           <div style={{ height: 1, background: "var(--border-default)" }} />
           <p
             className="aa-body"

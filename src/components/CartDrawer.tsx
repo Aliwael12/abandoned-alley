@@ -12,14 +12,18 @@ import { isProductSoldOut } from "@/lib/inventory";
 import { formatMoney, isPricedForRegion } from "@/lib/pricing";
 import { useRegionOrDefault } from "@/lib/region";
 import ProductCard from "./ProductCard";
+import OfferProgress from "./OfferProgress";
+import CompleteTheFit from "./CompleteTheFit";
+import { useLiveOffer } from "@/lib/use-offer";
 import { Button } from "./ui";
 
 /** How many "you might also like" cards the drawer offers. */
 const PICK_COUNT = 6;
 
 /**
- * The phone add-to-bag drawer: slides in over the product page with the bag as
- * it now stands, the way to checkout, and more products to keep going with.
+ * The add-to-bag drawer: slides in over the product page with the bag as it
+ * now stands, the way to checkout, and more products to keep going with. While
+ * the Egypt spend offer runs, its progress bar and "complete the fit" lead.
  * Portalled to <body> because <main> is its own stacking context beneath the
  * sticky header — a fixed layer inside it could never cover the header.
  */
@@ -40,6 +44,7 @@ export default function CartDrawer({
   const items = useCart((s) => s.items);
   const setQty = useCart((s) => s.setQty);
   const region = useRegionOrDefault();
+  const offer = useLiveOffer();
   const reduceMotion = useReducedMotion();
   const closeRef = useRef<HTMLButtonElement>(null);
 
@@ -120,6 +125,12 @@ export default function CartDrawer({
           </div>
 
           <div className="aa-drawer-body">
+            {offer && items.length > 0 && (
+              <>
+                <OfferProgress offer={offer} subtotal={subtotal} />
+                <CompleteTheFit offer={offer} subtotal={subtotal} />
+              </>
+            )}
             {items.length === 0 ? (
               <p className="aa-body" style={{ color: "var(--text-muted)" }}>
                 Your bag is empty.

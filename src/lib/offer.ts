@@ -39,7 +39,27 @@ export type OfferTier = "none" | "free_delivery" | "discount";
 
 /** Placeholder copy until the copywriter's lines arrive — kept in one place
  * so swapping them in touches nothing else. */
+const egp = (n: number) => Math.round(n).toLocaleString("en-US");
+
 export const OFFER_COPY = {
+  /** Announcement bar. The discount leads; free delivery is the smaller half. */
+  banner: (o: OfferConfig, endsLabel: string | null) =>
+    `${egp(o.discountAmount)} OFF AT ${egp(o.discountAt)} · free delivery at ${egp(o.freeDeliveryAt)}${
+      endsLabel ? ` · ends ${endsLabel}` : ""
+    }`,
+  /** Line under the price on product pages. */
+  productLine: (o: OfferConfig) => `Counts toward ${egp(o.discountAmount)} off at ${egp(o.discountAt)}`,
+  /** Progress bar: the main line always talks about the discount. */
+  awayFromDiscount: (gap: number, o: OfferConfig) => `${egp(gap)} EGP away from ${egp(o.discountAmount)} off`,
+  toFreeDelivery: (gap: number) => `${egp(gap)} to free delivery`,
+  freeDeliveryUnlocked: "Free delivery unlocked",
+  allUnlocked: (o: OfferConfig) => `${egp(o.discountAmount)} off + free delivery unlocked`,
+  discountBadge: (o: OfferConfig) => `${egp(o.discountAmount)} OFF`,
+  /** "Complete the fit" row. */
+  fitTitle: "COMPLETE THE FIT",
+  fitUnlocksDiscount: (o: OfferConfig) => `Add → ${egp(o.discountAmount)} off`,
+  fitUnlocksFreeDelivery: "Add → free delivery",
+  fitGap: (gap: number, o: OfferConfig) => `Add → ${egp(gap)} away from ${egp(o.discountAmount)} off`,
   discountLabel: (amount: number) => `${amount} OFF offer`,
   freeDelivery: "FREE",
   saved: (amount: number) => `You saved EGP ${amount}`,

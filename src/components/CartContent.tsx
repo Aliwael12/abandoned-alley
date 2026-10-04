@@ -2,7 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { OFFER_COPY, checkoutTotals, isOfferLive, type OfferConfig } from "@/lib/offer";
+import { OFFER_COPY, checkoutTotals } from "@/lib/offer";
+import { useLiveOffer } from "@/lib/use-offer";
+import OfferProgress from "./OfferProgress";
+import CompleteTheFit from "./CompleteTheFit";
 import Link from "next/link";
 import { useCart } from "@/lib/cart";
 import { trackPixel } from "@/lib/pixel";
@@ -144,8 +147,8 @@ export default function CartContent({ cardPayments }: { cardPayments: boolean })
     processing?: boolean;
     breakdown?: Breakdown;
   } | null>(null);
-  /** The spend offer while it runs (Egypt only), for previewing totals. */
-  const [offerConfig, setOfferConfig] = useState<OfferConfig | null>(null);
+  /** The spend offer while it runs, in the Egypt store only, for previewing totals. */
+  const offer = useLiveOffer();
   /** The card checkout this tab just left for Stripe with, if any. */
   const leftForStripe = useRef<string | null>(null);
 
@@ -224,21 +227,6 @@ export default function CartContent({ cardPayments }: { cardPayments: boolean })
     };
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/offer", { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data: { offer: OfferConfig | null } | null) => {
-        if (!cancelled) setOfferConfig(data?.offer ?? null);
-      })
-      .catch(() => {
-        // No offer preview; checkout still applies it if it's running.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   const region = useRegionOrDefault();
   const isUs = region === "us";
   // US orders are paid by card on Stripe's page once it's switched on.
@@ -268,7 +256,6 @@ export default function CartContent({ cardPayments }: { cardPayments: boolean })
   // applies. /api/checkout makes the same call with the same function when the
   // order is placed; this is the preview. Until a governorate is picked the fee
   // is unknown and counts as 0.
-  const offer = offerConfig && isOfferLive(offerConfig, region) ? offerConfig : null;
   const totals = checkoutTotals({
     subtotal,
     shippingFee: shippingFee ?? 0,
@@ -429,6 +416,13 @@ export default function CartContent({ cardPayments }: { cardPayments: boolean })
               <Link href="/shop"><Button variant="primary" size="lg">CONTINUE SHOPPING</Button></Link>
             </div>
           ) : (
+            <>
+            {offer && (
+              <Card style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", marginBottom: "var(--space-8)" }}>
+                <OfferProgress offer={offer} subtotal={subtotal} />
+                <CompleteTheFit offer={offer} subtotal={subtotal} />
+              </Card>
+            )}
             <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: "var(--space-10)" }} className="aa-cart-grid">
               <Card style={{ padding: 0 }}>
                 {items.map((item, i) => (
@@ -489,6 +483,7 @@ export default function CartContent({ cardPayments }: { cardPayments: boolean })
                 </Button>
               </Card>
             </div>
+            </>
           )}
         </>
       )}

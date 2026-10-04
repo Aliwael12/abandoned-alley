@@ -60,6 +60,9 @@ function normalize(raw: Record<string, unknown>): Product | null {
       raw.category === "tees" || raw.category === "sweats" || raw.category === "accessories"
         ? raw.category
         : undefined,
+    pairsWith: Array.isArray(raw.pairsWith)
+      ? (raw.pairsWith as unknown[]).filter((h): h is string => typeof h === "string" && !!h)
+      : undefined,
   };
 }
 

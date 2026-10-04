@@ -49,6 +49,8 @@ type EditState = Partial<
   variantPrices?: Record<string, number | null>;
   /** Per-variant USD prices, keyed by variant id. */
   variantPricesUsd?: Record<string, number | null>;
+  /** Matching products for the cart's "complete the fit" suggestion. */
+  pairsWith?: string[];
 };
 
 type SizeChartOption = { handle: string; name: string };
@@ -461,6 +463,7 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
       media: p.media,
       sizeChartId: p.sizeChartId ?? "",
       clearSizeChart: false,
+      pairsWith: p.pairsWith ?? [],
       stock,
       stockUs,
     });
@@ -846,6 +849,37 @@ export default function ProductsTab({ products, onChanged, onError }: Props) {
                           ))}
                         </select>
                       </label>
+                      <fieldset className="flex flex-col gap-2">
+                        <legend className="text-[11px] tracking-[0.3em] uppercase text-[var(--text-muted)] mb-2">
+                          Pairs with
+                        </legend>
+                        <div className="flex flex-wrap gap-x-4 gap-y-1">
+                          {products
+                            .filter((o) => o.handle !== p.handle)
+                            .map((o) => (
+                              <label key={o.handle} className="inline-flex items-center gap-2 text-sm">
+                                <input
+                                  type="checkbox"
+                                  checked={(draft.pairsWith ?? []).includes(o.handle)}
+                                  onChange={(e) => {
+                                    const current = draft.pairsWith ?? [];
+                                    setDraft({
+                                      ...draft,
+                                      pairsWith: e.target.checked
+                                        ? [...current, o.handle]
+                                        : current.filter((h) => h !== o.handle),
+                                    });
+                                  }}
+                                />
+                                {o.title}
+                              </label>
+                            ))}
+                        </div>
+                        <span className="text-xs text-[var(--text-muted)]">
+                          Pieces that make an outfit with this one. The cart suggests them
+                          first when the spend offer runs.
+                        </span>
+                      </fieldset>
                       <StockEditor
                         sizes={productSizes(p)}
                         stock={storeStock(draft)}

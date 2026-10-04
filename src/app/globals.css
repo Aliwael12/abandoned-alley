@@ -795,3 +795,135 @@ select.aa-input {
   padding: var(--space-4) var(--space-5) calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid var(--border-default);
 }
+
+/* ---------------------------------------------------------------------------
+   Spend offer (Egypt): announcement bar, progress bar, "complete the fit".
+   --------------------------------------------------------------------------- */
+
+.aa-offer-banner {
+  background: var(--accent-default);
+  color: var(--text-on-accent);
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-align: center;
+  padding: var(--space-2) var(--space-4);
+}
+.aa-offer-banner-track {
+  display: inline-flex;
+}
+/* Too long for the bar (phones): loop two copies sideways instead of wrapping. */
+.aa-offer-banner--marquee {
+  text-align: left;
+  padding-left: 0;
+  padding-right: 0;
+}
+.aa-offer-banner--marquee .aa-offer-banner-track {
+  animation: aa-offer-marquee 18s linear infinite;
+}
+.aa-offer-banner--marquee .aa-offer-banner-track > span {
+  padding-right: var(--space-12);
+}
+@keyframes aa-offer-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .aa-offer-banner--marquee { overflow-x: auto; }
+  .aa-offer-banner--marquee .aa-offer-banner-track { animation: none; }
+}
+
+.aa-offer-progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.aa-offer-progress-main {
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+/* Rail (track + free-delivery tick) on the left, discount badge at its end. */
+.aa-offer-progress-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+.aa-offer-progress-rail {
+  position: relative;
+  flex: 1;
+}
+.aa-offer-progress-track {
+  height: 8px;
+  background: var(--surface-card-alt);
+  border: 1px solid var(--border-default);
+  overflow: hidden;
+}
+.aa-offer-progress-fill {
+  height: 100%;
+  background: var(--accent-default);
+  transition: width 0.3s ease;
+}
+.aa-offer-progress-tick {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  color: var(--text-primary);
+}
+.aa-offer-progress-tick.is-reached {
+  background: var(--accent-default);
+  border-color: var(--accent-default);
+  color: var(--text-on-accent);
+}
+.aa-offer-progress-badge {
+  flex-shrink: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  padding: 2px var(--space-2);
+  border: 2px solid var(--accent-default);
+  color: var(--accent-default);
+  background: var(--surface-card);
+}
+.aa-offer-progress-badge.is-reached {
+  background: var(--accent-default);
+  color: var(--text-on-accent);
+}
+
+.aa-fit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-default);
+}
+.aa-fit-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.aa-fit-thumb {
+  position: relative;
+  width: 56px;
+  height: 70px;
+  flex-shrink: 0;
+  background: var(--surface-card-alt);
+}
+.aa-fit-sizes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
