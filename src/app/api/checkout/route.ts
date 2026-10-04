@@ -1,12 +1,5 @@
 import { NextResponse } from "next/server";
-import {
-  collection,
-  doc,
-  runTransaction,
-  serverTimestamp,
-  updateDoc,
-} from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { newId, sql, withJson } from "@/lib/db";
 import { placedAtLabel, sendOrderPlacedEmails, type OrderForEmail } from "@/lib/email";
 import { getOfferConfig, getShippingFees } from "@/lib/settings-server";
 import { checkoutTotals, isOfferLive, type CheckoutTotals } from "@/lib/offer";
@@ -37,6 +30,7 @@ import {
 import { UnpricedItemError, priceItems } from "@/lib/order-pricing";
 import {
   CHECKOUTS,
+  ORDER_JSON_COLUMNS,
   createCheckoutSession,
   isCardCheckoutEnabled,
   releaseCheckout,
@@ -280,15 +274,15 @@ export async function POST(request: Request) {
   // A card checkout is written to /checkouts instead, holding its stock until
   // Stripe confirms the payment and turns it into an order under the same id
   // (see lib/stripe-server.ts).
-  const orderRef = doc(collection(db, payByCard ? CHECKOUTS : "orders"));
-  const orderId = orderRef.id;
+  const table = payByCard ? CHECKOUTS : "orders";
+  const orderId = newId();
   let placed: {
     items: (IncomingItem & { price: number })[];
     totals: CheckoutTotals;
     coverByHandle: Map<string, string | undefined>;
   };
   try {
-    placed = await runTransaction(db, async (tx) => {
+    placed = await sql.begin(async (tx) => {
       const reads = await readProductsForItems(tx, parsed.items, parsed.region);
       const items = priceItems(parsed.items, reads.productByHandle, parsed.region);
       const deductions = deductionsByProduct(items, reads.productByHandle);
@@ -305,8 +299,9 @@ export async function POST(request: Request) {
           : null,
       });
       // Recorded on the order so cancelling restores exactly what was taken.
-      const stockDeducted = writeDeductions(tx, deductions, reads);
-      tx.set(orderRef, {
+      const stockDeducted = await writeDeductions(tx, deductions, reads);
+      const order = {
+        id: orderId,
         customer: parsed.customer,
         shipping: parsed.shipping,
         items,
@@ -321,7 +316,7 @@ export async function POST(request: Request) {
         currency: REGION_CURRENCY[parsed.region],
         status: payByCard ? "open" : "pending",
         attribution: attributionDoc,
-        createdAt: serverTimestamp(),
+        createdAt: new Date(),
         stockDeducted,
         // While the offer runs, every Egypt order records what it got from it,
         // so the admin can count offer orders and what they cost.
@@ -332,7 +327,8 @@ export async function POST(request: Request) {
               deliveryFeeWaived: totals.deliveryFeeWaived,
             }
           : {}),
-      });
+      };
+      await tx`insert into ${tx(table)} ${tx(withJson(tx, order, ORDER_JSON_COLUMNS))}`;
       // Product photos for Stripe's payment page.
       const coverByHandle = new Map<string, string | undefined>();
       for (const [handle, p] of reads.productByHandle) {
@@ -394,7 +390,7 @@ export async function POST(request: Request) {
       });
       // The session carries the checkout id in its metadata, so fulfillment
       // doesn't depend on this write — it lets Cancel expire the session.
-      await updateDoc(orderRef, { stripeSessionId: session.id }).catch((err) =>
+      await sql`update checkouts set stripe_session_id = ${session.id} where id = ${orderId}`.catch((err) =>
         console.error(`Could not record the Stripe session on checkout ${orderId}:`, err)
       );
       return NextResponse.json({ ok: true, orderId, total, checkoutUrl: session.url });

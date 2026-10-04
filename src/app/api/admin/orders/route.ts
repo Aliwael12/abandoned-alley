@@ -1,12 +1,5 @@
 import { NextResponse } from "next/server";
-import {
-  Timestamp,
-  collection,
-  getDocs,
-  orderBy,
-  query,
-} from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { sql, toMillis } from "@/lib/db";
 import { isAdmin } from "@/lib/admin-auth";
 import { REGION_CURRENCY, toRegion, type Region } from "@/lib/pricing";
 import {
@@ -43,32 +36,24 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let snap;
+  let orders;
   try {
-    snap = await getDocs(query(collection(db, "orders"), orderBy("createdAt", "desc")));
+    orders = await sql`select * from orders order by created_at desc`;
   } catch (err) {
     console.error("Orders fetch error:", err);
     return NextResponse.json({ error: "Failed to load orders" }, { status: 500 });
   }
 
-  const rows: OrderRow[] = snap.docs.map((d) => {
-    const data = d.data() as Record<string, unknown>;
+  const rows: OrderRow[] = orders.map((data) => {
     const customer = (data.customer ?? {}) as Record<string, unknown>;
     const shipping = (data.shipping ?? {}) as Record<string, unknown>;
     const items = Array.isArray(data.items) ? (data.items as { quantity: number }[]) : [];
-    const toMillis = (ts: unknown): number | null => {
-      if (ts instanceof Timestamp) return ts.toMillis();
-      if (typeof ts === "object" && ts !== null && "seconds" in ts) {
-        return (ts as { seconds: number }).seconds * 1000;
-      }
-      return null;
-    };
     const governorate = String(shipping.state ?? "");
     // Legacy orders predate the field and were all Egypt.
     const region = toRegion(data.region);
     const rawStatus = String(data.status ?? "pending");
     return {
-      id: d.id,
+      id: String(data.id),
       customerName: String(customer.name ?? ""),
       customerEmail: String(customer.email ?? ""),
       customerPhone: String(customer.phone ?? ""),

@@ -1,16 +1,5 @@
-import {
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
-  serverTimestamp,
-  setDoc,
-} from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { sql, withJson } from "@/lib/db";
 import type { SizeChart, SizeChartColumnDef, SizeChartRow } from "@/lib/size-charts";
-
-const COL = "sizeCharts";
 
 function normalizeRow(raw: unknown): SizeChartRow | null {
   if (!raw || typeof raw !== "object") return null;
@@ -80,9 +69,9 @@ function normalize(raw: Record<string, unknown>): SizeChart | null {
 
 export async function getAllSizeCharts(): Promise<SizeChart[]> {
   try {
-    const snap = await getDocs(collection(db, COL));
-    return snap.docs
-      .map((d) => normalize(d.data() as Record<string, unknown>))
+    const rows = await sql`select * from size_charts`;
+    return rows
+      .map((r) => normalize(r))
       .filter((c): c is SizeChart => c !== null)
       .sort((a, b) => a.name.localeCompare(b.name));
   } catch (err) {
@@ -93,40 +82,40 @@ export async function getAllSizeCharts(): Promise<SizeChart[]> {
 
 export async function getSizeChartByHandle(handle: string): Promise<SizeChart | null> {
   try {
-    const snap = await getDoc(doc(db, COL, handle));
-    if (snap.exists()) {
-      return normalize(snap.data() as Record<string, unknown>);
-    }
+    const [row] = await sql`select * from size_charts where handle = ${handle}`;
+    if (row) return normalize(row);
   } catch (err) {
     console.error("getSizeChartByHandle failed:", err);
   }
   return null;
 }
 
-function toFirestoreDoc(chart: SizeChart): Record<string, unknown> {
+export async function upsertSizeChart(chart: SizeChart): Promise<void> {
   const columnDefs =
     chart.columnDefs ??
     chart.columns.map((label, i) => ({
       id: `${chart.handle}-col-${i}`,
       label,
     }));
-  const data: Record<string, unknown> = {
-    handle: chart.handle,
-    name: chart.name,
-    columns: chart.columns,
-    columnDefs,
-    rows: chart.rows,
-    updatedAt: serverTimestamp(),
-  };
   const note = typeof chart.note === "string" ? chart.note.trim() : "";
-  if (note) data.note = note;
-  return data;
-}
-
-export async function upsertSizeChart(chart: SizeChart): Promise<void> {
-  await setDoc(doc(db, COL, chart.handle), toFirestoreDoc(chart));
+  const row = withJson(
+    sql,
+    {
+      handle: chart.handle,
+      name: chart.name,
+      note: note || null,
+      columns: chart.columns,
+      columnDefs,
+      rows: chart.rows,
+      updatedAt: new Date(),
+    },
+    ["columnDefs", "rows"]
+  );
+  await sql`
+    insert into size_charts ${sql(row)}
+    on conflict (handle) do update set ${sql(row)}`;
 }
 
 export async function deleteSizeChart(handle: string): Promise<void> {
-  await deleteDoc(doc(db, COL, handle));
+  await sql`delete from size_charts where handle = ${handle}`;
 }

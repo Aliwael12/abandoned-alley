@@ -11,10 +11,14 @@
 // Egypt and New York hold separate inventory (`stock` / `stockUs`). An order only
 // ever touches the pool of the store it was placed in — its `region`, which is
 // fixed at creation — so a restore always lands back where the deduction came from.
+//
+// Everything here runs inside a Postgres transaction (sql.begin). The product
+// rows are read FOR UPDATE, so a concurrent checkout for the same products
+// waits until this one commits instead of both selling the last unit.
 
-import { doc, type DocumentReference, type Transaction } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import type { Db } from "@/lib/db";
 import { STOCK_FIELD, normalizeStock, sizeOfOrderItem } from "@/lib/inventory";
+import { normalizeProduct } from "@/lib/products-server";
 import type { Region } from "@/lib/pricing";
 import type { Product, StockMap } from "@/lib/products";
 
@@ -32,7 +36,6 @@ export type Shortfall = { title: string; size: string; want: number; have: numbe
 export type ProductReads = {
   /** The store these reads and any writes built from them belong to. */
   region: Region;
-  productRefs: Map<string, DocumentReference>;
   productByHandle: Map<string, Product>;
   /** That store's stock per product handle (not the other store's). */
   stockByHandle: Map<string, StockMap>;
@@ -75,33 +78,33 @@ export function deductionsByProduct(
 }
 
 /**
- * Read every product an order references, with the stock of `region`'s store.
- * All reads must precede all writes in a Firestore transaction, so callers run
- * this first. A product doc that no longer exists is simply absent from the
- * maps, which `findShortfalls` reports as zero stock — you can't sell what has
- * no record.
+ * Read every product an order references, with the stock of `region`'s store,
+ * locking those rows until the transaction ends. Rows are locked in handle
+ * order, so two transactions over overlapping products can't deadlock. A
+ * product that no longer exists is simply absent from the maps, which
+ * `findShortfalls` reports as zero stock — you can't sell what has no record.
  */
 export async function readProductsForItems(
-  tx: Transaction,
+  tx: Db,
   items: RawOrderItem[],
   region: Region
 ): Promise<ProductReads> {
   const handles = Array.from(
     new Set(items.map((i) => String(i.productHandle ?? "")).filter(Boolean))
-  );
-  const productRefs = new Map<string, DocumentReference>(
-    handles.map((h) => [h, doc(db, "products", h)])
-  );
+  ).sort();
   const productByHandle = new Map<string, Product>();
   const stockByHandle = new Map<string, StockMap>();
-  for (const [handle, ref] of productRefs) {
-    const snap = await tx.get(ref);
-    if (!snap.exists()) continue;
-    const data = snap.data() as Product;
-    productByHandle.set(handle, data);
-    stockByHandle.set(handle, normalizeStock(data[STOCK_FIELD[region]]));
+  if (handles.length) {
+    const rows = await tx`
+      select * from products where handle in ${tx(handles)} order by handle for update`;
+    for (const row of rows) {
+      const product = normalizeProduct(row);
+      if (!product) continue;
+      productByHandle.set(product.handle, product);
+      stockByHandle.set(product.handle, normalizeStock(product[STOCK_FIELD[region]]));
+    }
   }
-  return { region, productRefs, productByHandle, stockByHandle };
+  return { region, productByHandle, stockByHandle };
 }
 
 /** Every size the order asks for that stock can't cover. Empty means it fits. */
@@ -140,18 +143,16 @@ export function applyDelta(
  * if the product's stock is edited independently in the meantime.
  * Verify with `findShortfalls` before calling this.
  */
-export function writeDeductions(
-  tx: Transaction,
+export async function writeDeductions(
+  tx: Db,
   deductions: Map<string, Record<string, number>>,
   reads: ProductReads
-): Record<string, number> {
+): Promise<Record<string, number>> {
   const stockDeducted: Record<string, number> = {};
   for (const [handle, perSize] of deductions) {
     const stock = reads.stockByHandle.get(handle);
     if (!stock) continue;
-    tx.update(reads.productRefs.get(handle)!, {
-      [STOCK_FIELD[reads.region]]: applyDelta(stock, perSize, -1),
-    });
+    await writeStock(tx, handle, reads.region, applyDelta(stock, perSize, -1));
     for (const [size, qty] of Object.entries(perSize)) {
       stockDeducted[`${handle}::${size}`] = qty;
     }
@@ -160,18 +161,24 @@ export function writeDeductions(
 }
 
 /** Put back what `restoreBy` says was taken. */
-export function writeRestores(
-  tx: Transaction,
+export async function writeRestores(
+  tx: Db,
   restoreBy: Map<string, Record<string, number>>,
   reads: ProductReads
-): void {
+): Promise<void> {
   for (const [handle, perSize] of restoreBy) {
     const stock = reads.stockByHandle.get(handle);
     if (!stock) continue;
-    tx.update(reads.productRefs.get(handle)!, {
-      [STOCK_FIELD[reads.region]]: applyDelta(stock, perSize, 1),
-    });
+    await writeStock(tx, handle, reads.region, applyDelta(stock, perSize, 1));
   }
+}
+
+/** Replace one store's stock map on a product (the row is locked by the caller). */
+async function writeStock(tx: Db, handle: string, region: Region, stock: StockMap) {
+  await tx`
+    update products
+    set ${tx(STOCK_FIELD[region])} = ${tx.json(stock)}, updated_at = now()
+    where handle = ${handle}`;
 }
 
 /**

@@ -1,19 +1,6 @@
-import {
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
-  serverTimestamp,
-  setDoc,
-} from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { sql, withJson } from "@/lib/db";
 import { products as STATIC_PRODUCTS, type Product } from "@/lib/products";
 import { normalizeStock } from "@/lib/inventory";
-
-const COL = "products";
-
-type ProductDoc = Product & { updatedAt?: unknown };
 
 /** A US price that isn't a usable number is absent, not zero — `null` included,
  *  which a bare `Number()` would otherwise turn into a real $0.00 price tag. */
@@ -23,7 +10,8 @@ function optionalPrice(raw: unknown): number | undefined {
   return Number.isFinite(n) ? n : undefined;
 }
 
-function normalize(raw: Record<string, unknown>): Product | null {
+/** A products row (or any product-shaped record) as a clean Product. */
+export function normalizeProduct(raw: Record<string, unknown>): Product | null {
   if (!raw || typeof raw.handle !== "string") return null;
   return {
     handle: String(raw.handle),
@@ -34,9 +22,8 @@ function normalize(raw: Record<string, unknown>): Product | null {
     priceUsd: optionalPrice(raw.priceUsd),
     media: Array.isArray(raw.media) ? (raw.media as Product["media"]) : [],
     options: Array.isArray(raw.options) ? (raw.options as Product["options"]) : [],
-    // Firestore is schemaless and /products accepts writes from anywhere the
-    // public API key reaches, so a variant price can arrive as a string or go
-    // missing. Coerce it like the product-level price above: a variant price
+    // Variant prices are edited by hand and can arrive as strings or go
+    // missing. Coerce them like the product-level price above: a variant price
     // that fails Number.isFinite is silently swallowed by the product-price
     // fallback in ProductDetail, which reads as "every size costs the same"
     // rather than as an error.
@@ -55,7 +42,9 @@ function normalize(raw: Record<string, unknown>): Product | null {
       typeof raw.sizeChartId === "string" && raw.sizeChartId.trim()
         ? raw.sizeChartId.trim()
         : undefined,
-    sortOrder: Number.isFinite(Number(raw.sortOrder)) ? Number(raw.sortOrder) : undefined,
+    // optionalPrice, not Number(): a missing sort order is null in Postgres,
+    // and Number(null) would put the product first instead of last.
+    sortOrder: optionalPrice(raw.sortOrder),
     category:
       raw.category === "tees" || raw.category === "sweats" || raw.category === "accessories"
         ? raw.category
@@ -75,20 +64,20 @@ function byDisplayOrder(a: Product, b: Product): number {
 }
 
 /**
- * All products from Firestore. Falls back to the bundled static catalog when
- * Firestore is empty so the storefront keeps working out of the box.
+ * All products. Falls back to the bundled static catalog when the table is
+ * empty (or unreachable) so the storefront keeps working out of the box.
  */
 export async function getAllProducts(): Promise<Product[]> {
   try {
-    const snap = await getDocs(collection(db, COL));
-    if (!snap.empty) {
-      return snap.docs
-        .map((d) => normalize(d.data() as Record<string, unknown>))
+    const rows = await sql`select * from products`;
+    if (rows.length) {
+      return rows
+        .map((r) => normalizeProduct(r))
         .filter((p): p is Product => p !== null)
         .sort(byDisplayOrder);
     }
   } catch (err) {
-    console.error("Firestore products fetch failed, using static seed:", err);
+    console.error("Products fetch failed, using static seed:", err);
   }
   return STATIC_PRODUCTS;
 }
@@ -100,52 +89,48 @@ export async function getActiveProducts(): Promise<Product[]> {
 
 export async function getProductByHandle(handle: string): Promise<Product | null> {
   try {
-    const snap = await getDoc(doc(db, COL, handle));
-    if (snap.exists()) {
-      return normalize(snap.data() as Record<string, unknown>);
-    }
+    const [row] = await sql`select * from products where handle = ${handle}`;
+    if (row) return normalizeProduct(row);
   } catch (err) {
-    console.error("Firestore product fetch failed:", err);
+    console.error("Product fetch failed:", err);
   }
   const fallback = STATIC_PRODUCTS.find((p) => p.handle === handle);
   return fallback ?? null;
 }
 
-const isPlainObject = (v: unknown): v is Record<string, unknown> =>
-  typeof v === "object" &&
-  v !== null &&
-  [Object.prototype, null].includes(Object.getPrototypeOf(v));
-
-/**
- * Firestore rejects `undefined` field values outright ("Unsupported field
- * value: undefined"), and a Product legitimately carries optional fields —
- * `sizeChartId` on a product with no chart, `alt`/`poster` on media entries.
- * Drop those keys instead of sending them, so an absent option is written as
- * an absent field. Only plain objects/arrays are walked, to avoid mangling
- * FieldValue sentinels like serverTimestamp().
- */
-function stripUndefined<T>(value: T): T {
-  if (Array.isArray(value)) {
-    return value.map((v) => stripUndefined(v)) as unknown as T;
-  }
-  if (isPlainObject(value)) {
-    const out: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(value)) {
-      if (v === undefined) continue;
-      out[k] = stripUndefined(v);
-    }
-    return out as T;
-  }
-  return value;
-}
-
+/** Insert or fully replace a product. */
 export async function upsertProduct(p: Product): Promise<void> {
-  const docData: ProductDoc = { ...stripUndefined(p), updatedAt: serverTimestamp() };
-  await setDoc(doc(db, COL, p.handle), docData);
+  const row = withJson(
+    sql,
+    {
+      handle: p.handle,
+      title: p.title,
+      vendor: p.vendor,
+      description: p.description,
+      price: p.price,
+      priceUsd: p.priceUsd ?? null,
+      media: p.media,
+      options: p.options,
+      variants: p.variants,
+      collection: p.collection,
+      disabled: Boolean(p.disabled),
+      stock: p.stock ?? {},
+      stockUs: p.stockUs ?? {},
+      sizeChartId: p.sizeChartId ?? null,
+      sortOrder: p.sortOrder ?? null,
+      category: p.category ?? null,
+      pairsWith: p.pairsWith ?? null,
+      updatedAt: new Date(),
+    },
+    ["media", "options", "variants", "stock", "stockUs"]
+  );
+  await sql`
+    insert into products ${sql(row)}
+    on conflict (handle) do update set ${sql(row)}`;
 }
 
 export async function deleteProduct(handle: string): Promise<void> {
-  await deleteDoc(doc(db, COL, handle));
+  await sql`delete from products where handle = ${handle}`;
 }
 
 /** Set `sizeChartId` on the given products; clear it on others that used this chart. */

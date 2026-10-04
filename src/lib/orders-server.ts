@@ -1,11 +1,4 @@
-import {
-  Timestamp,
-  doc,
-  getDoc,
-  serverTimestamp,
-  updateDoc,
-} from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { sql, toMillis as tsToMillis } from "@/lib/db";
 import {
   buildPackageFromOrder,
   isDroppinConfigured,
@@ -74,24 +67,15 @@ export type OrderDetail = {
   } | null;
 };
 
-function tsToMillis(ts: unknown): number | null {
-  if (ts instanceof Timestamp) return ts.toMillis();
-  if (ts && typeof ts === "object" && "seconds" in ts) {
-    return (ts as { seconds: number }).seconds * 1000;
-  }
-  return null;
-}
-
 export async function getOrderById(id: string): Promise<OrderDetail | null> {
-  const snap = await getDoc(doc(db, "orders", id));
-  if (!snap.exists()) return null;
-  const data = snap.data() as Record<string, unknown>;
+  const [data] = await sql`select * from orders where id = ${id}`;
+  if (!data) return null;
   const customer = (data.customer ?? {}) as Record<string, unknown>;
   const shipping = (data.shipping ?? {}) as Record<string, unknown>;
   const items = Array.isArray(data.items) ? (data.items as OrderItem[]) : [];
 
   return {
-    id: snap.id,
+    id: String(data.id),
     customer: {
       name: String(customer.name ?? ""),
       email: String(customer.email ?? ""),
@@ -202,28 +186,28 @@ export async function pushOrderToDroppin(
     const result = await pushPackages([pkg]);
     const created = result.createdPackages?.[0];
     if (result.success && created) {
-      await updateDoc(doc(db, "orders", id), {
+      await sql`update orders set ${sql({
         droppinPackageId: created.id,
         droppinTrackingNumber: created.trackingNumber,
         droppinStatus: created.status,
-        droppinPushedAt: serverTimestamp(),
+        droppinPushedAt: new Date(),
         droppinError: null,
-      });
+      })} where id = ${id}`;
       return { ok: true, trackingNumber: created.trackingNumber };
     }
     const error = result.error || "Unknown push failure";
-    await updateDoc(doc(db, "orders", id), {
+    await sql`update orders set ${sql({
       droppinError: error,
-      droppinPushAttemptedAt: serverTimestamp(),
-    });
+      droppinPushAttemptedAt: new Date(),
+    })} where id = ${id}`;
     return { ok: false, error };
   } catch (err) {
     const error = err instanceof Error ? err.message : String(err);
     try {
-      await updateDoc(doc(db, "orders", id), {
+      await sql`update orders set ${sql({
         droppinError: error,
-        droppinPushAttemptedAt: serverTimestamp(),
-      });
+        droppinPushAttemptedAt: new Date(),
+      })} where id = ${id}`;
     } catch {
       // best-effort
     }

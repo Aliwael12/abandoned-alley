@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { collection, getDocs, query, where } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { sql } from "@/lib/db";
 import { resend, EMAIL_FROM } from "@/lib/email";
 import { isAdmin } from "@/lib/admin-auth";
 
@@ -36,12 +35,10 @@ export async function POST(request: Request) {
 
   let emails: string[];
   try {
-    const snap = await getDocs(
-      query(collection(db, "subscribers"), where("status", "==", "subscribed"))
-    );
-    emails = snap.docs.map((d) => String(d.data().email)).filter(Boolean);
+    const rows = await sql`select email from subscribers where status = 'subscribed'`;
+    emails = rows.map((r) => String(r.email)).filter(Boolean);
   } catch (err) {
-    console.error("Firestore subscribers fetch error:", err);
+    console.error("Subscribers fetch error:", err);
     return NextResponse.json({ error: "Failed to load subscribers" }, { status: 500 });
   }
 

@@ -1,16 +1,5 @@
-import {
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
-  serverTimestamp,
-  setDoc,
-} from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { sql } from "@/lib/db";
 import { collections as STATIC_COLLECTIONS } from "@/lib/products";
-
-const COL = "collections";
 
 export type CollectionMeta = {
   handle: string;
@@ -41,14 +30,14 @@ function fallback(): CollectionMeta[] {
 
 export async function getAllCollections(): Promise<CollectionMeta[]> {
   try {
-    const snap = await getDocs(collection(db, COL));
-    if (!snap.empty) {
-      return snap.docs
-        .map((d) => normalize(d.data() as Record<string, unknown>))
+    const rows = await sql`select * from collections order by created_at`;
+    if (rows.length) {
+      return rows
+        .map((r) => normalize(r))
         .filter((c): c is CollectionMeta => c !== null);
     }
   } catch (err) {
-    console.error("Firestore collections fetch failed, using static seed:", err);
+    console.error("Collections fetch failed, using static seed:", err);
   }
   return fallback();
 }
@@ -57,39 +46,40 @@ export async function getCollectionByHandle(
   handle: string
 ): Promise<CollectionMeta | null> {
   try {
-    const snap = await getDoc(doc(db, COL, handle));
-    if (snap.exists()) {
-      return normalize(snap.data() as Record<string, unknown>);
-    }
+    const [row] = await sql`select * from collections where handle = ${handle}`;
+    if (row) return normalize(row);
   } catch (err) {
-    console.error("Firestore collection fetch failed:", err);
+    console.error("Collection fetch failed:", err);
   }
   return fallback().find((c) => c.handle === handle) ?? null;
 }
 
 export async function upsertCollection(c: CollectionMeta): Promise<void> {
-  const docData: Record<string, unknown> = {
+  const row = {
     handle: c.handle,
     title: c.title,
     image: c.image,
     description: c.description ?? "",
-    updatedAt: serverTimestamp(),
+    updatedAt: new Date(),
   };
-  await setDoc(doc(db, COL, c.handle), docData, { merge: true });
+  await sql`
+    insert into collections ${sql(row)}
+    on conflict (handle) do update set ${sql(row)}`;
 }
 
 export async function createCollection(c: CollectionMeta): Promise<void> {
-  const docData: Record<string, unknown> = {
-    handle: c.handle,
-    title: c.title,
-    image: c.image,
-    description: c.description ?? "",
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  };
-  await setDoc(doc(db, COL, c.handle), docData);
+  const now = new Date();
+  await sql`
+    insert into collections ${sql({
+      handle: c.handle,
+      title: c.title,
+      image: c.image,
+      description: c.description ?? "",
+      createdAt: now,
+      updatedAt: now,
+    })}`;
 }
 
 export async function deleteCollection(handle: string): Promise<void> {
-  await deleteDoc(doc(db, COL, handle));
+  await sql`delete from collections where handle = ${handle}`;
 }

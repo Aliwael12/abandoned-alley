@@ -1,18 +1,9 @@
 import { NextResponse } from "next/server";
-import { Timestamp, collection, getDocs, orderBy, query } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { sql, toMillis } from "@/lib/db";
 import { isAdmin } from "@/lib/admin-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-function tsToMillis(ts: unknown): number | null {
-  if (ts instanceof Timestamp) return ts.toMillis();
-  if (ts && typeof ts === "object" && "seconds" in ts) {
-    return (ts as { seconds: number }).seconds * 1000;
-  }
-  return null;
-}
 
 export async function GET() {
   if (!(await isAdmin())) {
@@ -20,18 +11,15 @@ export async function GET() {
   }
 
   try {
-    const snap = await getDocs(
-      query(collection(db, "contact"), orderBy("createdAt", "desc"))
-    );
-    const messages = snap.docs.map((d) => {
-      const data = d.data() as Record<string, unknown>;
+    const rows = await sql`select * from contact_messages order by created_at desc`;
+    const messages = rows.map((data) => {
       return {
-        id: d.id,
+        id: String(data.id),
         name: String(data.name ?? ""),
         email: String(data.email ?? ""),
         message: String(data.message ?? ""),
         status: String(data.status ?? "new"),
-        createdAt: tsToMillis(data.createdAt),
+        createdAt: toMillis(data.createdAt),
       };
     });
     return NextResponse.json({ messages });

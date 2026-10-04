@@ -1,6 +1,7 @@
 // Order lifecycle actions: approve, deliver, cancel. Each runs the stock-side
-// effect atomically via a Firestore transaction (client Web SDK runTransaction),
-// then performs any external side effect (carrier dispatch) afterwards.
+// effect atomically in a Postgres transaction that locks the order row (and
+// any product rows it touches), then performs any external side effect
+// (carrier dispatch) afterwards.
 //
 // Lifecycle (see src/lib/order-status.ts):
 //   pending --approve--> approved  (deducts stock; dispatches to Droppin if
@@ -11,8 +12,7 @@
 //   any open order --refund--> refunded (card orders are refunded in Stripe
 //     first; they can't be plain-cancelled)
 
-import { doc, runTransaction, serverTimestamp, updateDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { sql, withJson, type Db } from "@/lib/db";
 import {
   normalizeStatus,
   isStockReserved,
@@ -31,6 +31,13 @@ import {
 import { getOrderById, pushOrderToDroppin } from "@/lib/orders-server";
 import { refundCardPayment } from "@/lib/stripe-server";
 
+/** Lock and read an order inside a transaction; throws if it doesn't exist. */
+async function lockOrder(tx: Db, id: string): Promise<Record<string, unknown>> {
+  const [order] = await tx`select * from orders where id = ${id} for update`;
+  if (!order) throw new Error("Order not found.");
+  return order;
+}
+
 export type ActionResult =
   | {
       ok: true;
@@ -47,13 +54,9 @@ export type ActionResult =
  * auto-push did not already place.
  */
 export async function approveOrder(id: string): Promise<ActionResult> {
-  const orderRef = doc(db, "orders", id);
-
   try {
-    const committed = await runTransaction(db, async (tx) => {
-      const orderSnap = await tx.get(orderRef);
-      if (!orderSnap.exists()) throw new Error("Order not found.");
-      const order = orderSnap.data() as Record<string, unknown>;
+    const committed = await sql.begin(async (tx) => {
+      const order = await lockOrder(tx, id);
 
       const status = normalizeStatus(order.status as string);
       if (status === "approved") {
@@ -70,10 +73,7 @@ export async function approveOrder(id: string): Promise<ActionResult> {
       // second time; only a legacy order placed before checkout reserved stock
       // still needs to deduct here.
       if (parseStockDeducted(order.stockDeducted) !== null) {
-        tx.update(orderRef, {
-          status: "approved",
-          approvedAt: serverTimestamp(),
-        });
+        await tx`update orders set status = 'approved', approved_at = now() where id = ${id}`;
         return { already: false as const };
       }
 
@@ -90,12 +90,10 @@ export async function approveOrder(id: string): Promise<ActionResult> {
             .join("; ")}`
         );
       }
-      const stockDeducted = writeDeductions(tx, deductions, reads);
-      tx.update(orderRef, {
-        status: "approved",
-        approvedAt: serverTimestamp(),
-        stockDeducted,
-      });
+      const stockDeducted = await writeDeductions(tx, deductions, reads);
+      await tx`update orders set ${tx(
+        withJson(tx, { status: "approved", approvedAt: new Date(), stockDeducted }, ["stockDeducted"])
+      )} where id = ${id}`;
       return { already: false as const };
     });
 
@@ -138,14 +136,10 @@ export async function approveOrder(id: string): Promise<ActionResult> {
 
 /** Mark an order delivered. Allowed from approved (or already-delivered no-op). */
 export async function deliverOrder(id: string): Promise<ActionResult> {
-  const orderRef = doc(db, "orders", id);
   try {
-    await runTransaction(db, async (tx) => {
-      const snap = await tx.get(orderRef);
-      if (!snap.exists()) throw new Error("Order not found.");
-      const status = normalizeStatus(
-        (snap.data() as Record<string, unknown>).status as string
-      );
+    await sql.begin(async (tx) => {
+      const order = await lockOrder(tx, id);
+      const status = normalizeStatus(order.status as string);
       if (status === "delivered") return; // idempotent
       if (status === "cancelled") throw new Error("Can't deliver a cancelled order.");
       // Delivering a still-pending order implicitly skips approval; that would
@@ -153,10 +147,7 @@ export async function deliverOrder(id: string): Promise<ActionResult> {
       if (status === "pending") {
         throw new Error("Approve the order before marking it delivered.");
       }
-      tx.update(orderRef, {
-        status: "delivered",
-        deliveredAt: serverTimestamp(),
-      });
+      await tx`update orders set status = 'delivered', delivered_at = now() where id = ${id}`;
     });
     return { ok: true, status: "delivered" };
   } catch (err) {
@@ -183,12 +174,9 @@ async function closeOrder(
   to: { status: "cancelled" | "refunded"; timestampField: string },
   failMessage: string
 ): Promise<ActionResult> {
-  const orderRef = doc(db, "orders", id);
   try {
-    await runTransaction(db, async (tx) => {
-      const orderSnap = await tx.get(orderRef);
-      if (!orderSnap.exists()) throw new Error("Order not found.");
-      const order = orderSnap.data() as Record<string, unknown>;
+    await sql.begin(async (tx) => {
+      const order = await lockOrder(tx, id);
       const status = normalizeStatus(order.status as string);
       if (status === "cancelled") return; // idempotent (covers refunded too)
 
@@ -208,17 +196,14 @@ async function closeOrder(
         // Back into the store the units came out of: `region` is fixed when
         // the order is created, and orders that predate it were Egypt's.
         const reads = await readProductsForItems(tx, items, toRegion(order.region));
-        writeRestores(
+        await writeRestores(
           tx,
           recorded ?? deductionsByProduct(items, reads.productByHandle),
           reads
         );
       }
 
-      tx.update(orderRef, {
-        status: to.status,
-        [to.timestampField]: serverTimestamp(),
-      });
+      await tx`update orders set ${tx({ status: to.status, [to.timestampField]: new Date() })} where id = ${id}`;
     });
     return { ok: true, status: to.status };
   } catch (err) {
@@ -287,7 +272,7 @@ export async function refundOrder(id: string): Promise<ActionResult> {
         error: `The card was refunded in Stripe (${stripeRefundId}), but the order couldn't be updated: ${result.error} Try Refund again.`,
       };
     }
-    await updateDoc(doc(db, "orders", id), { stripeRefundId }).catch((err) =>
+    await sql`update orders set stripe_refund_id = ${stripeRefundId} where id = ${id}`.catch((err) =>
       console.error(`Could not record Stripe refund ${stripeRefundId} on order ${id}:`, err)
     );
   }

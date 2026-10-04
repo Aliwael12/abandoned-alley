@@ -1,11 +1,5 @@
 import { NextResponse } from "next/server";
-import {
-  collection,
-  doc,
-  serverTimestamp,
-  setDoc,
-} from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { sql } from "@/lib/db";
 
 export const runtime = "nodejs";
 
@@ -26,13 +20,11 @@ export async function POST(request: Request) {
   }
 
   try {
-    await setDoc(
-      doc(collection(db, "subscribers"), email),
-      { email, subscribedAt: serverTimestamp(), status: "subscribed" },
-      { merge: true }
-    );
+    await sql`
+      insert into subscribers (email, status, subscribed_at) values (${email}, 'subscribed', now())
+      on conflict (email) do update set status = 'subscribed', subscribed_at = now()`;
   } catch (err) {
-    console.error("Firestore subscribe error:", err);
+    console.error("Subscribe error:", err);
     return NextResponse.json({ error: "Failed to subscribe" }, { status: 500 });
   }
 

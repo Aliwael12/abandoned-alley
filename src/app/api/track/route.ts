@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { sql } from "@/lib/db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -93,7 +92,7 @@ export async function POST(request: Request) {
   };
 
   try {
-    await addDoc(collection(db, "sessions"), {
+    await sql`insert into sessions ${sql({
       sessionId: body.sessionId ?? null,
       path: body.path ?? null,
       referrer: referrer ?? null,
@@ -102,9 +101,9 @@ export async function POST(request: Request) {
       country,
       region,
       city,
-      utm: cleanUtm,
-      createdAt: serverTimestamp(),
-    });
+      utm: sql.json(cleanUtm),
+      createdAt: new Date(),
+    })}`;
   } catch (err) {
     console.error("Track error:", err);
     return NextResponse.json({ ok: false }, { status: 500 });

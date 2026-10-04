@@ -1,12 +1,5 @@
 import { NextResponse } from "next/server";
-import {
-  Timestamp,
-  collection,
-  getDocs,
-  orderBy,
-  query,
-} from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { sql, toMillis } from "@/lib/db";
 import { isAdmin } from "@/lib/admin-auth";
 
 export const runtime = "nodejs";
@@ -84,14 +77,7 @@ type SessionDoc = {
   createdAt?: unknown;
 };
 
-function tsToMillis(ts: unknown): number | null {
-  if (ts instanceof Timestamp) return ts.toMillis();
-  if (typeof ts === "object" && ts !== null && "seconds" in ts) {
-    return (ts as { seconds: number }).seconds * 1000;
-  }
-  if (typeof ts === "number") return ts;
-  return null;
-}
+const tsToMillis = toMillis;
 
 function isoDay(ms: number): string {
   return new Date(ms).toISOString().slice(0, 10);
@@ -178,12 +164,15 @@ export async function GET(request: Request) {
 
   const fetchFloor = Math.min(periodStart, prevStart);
 
-  let orderSnap;
-  let sessionSnap;
+  // Only what the report window needs: everything since the earlier of the
+  // two periods' starts.
+  const since = new Date(fetchFloor);
+  let orderRows;
+  let sessionRows;
   try {
-    [orderSnap, sessionSnap] = await Promise.all([
-      getDocs(query(collection(db, "orders"), orderBy("createdAt", "desc"))),
-      getDocs(query(collection(db, "sessions"), orderBy("createdAt", "desc"))),
+    [orderRows, sessionRows] = await Promise.all([
+      sql`select * from orders where created_at >= ${since} order by created_at desc`,
+      sql`select * from sessions where created_at >= ${since} order by created_at desc`,
     ]);
   } catch (err) {
     console.error("Analytics fetch error:", err);
@@ -193,9 +182,9 @@ export async function GET(request: Request) {
     );
   }
 
-  const orders = orderSnap.docs
-    .map((d) => {
-      const data = d.data() as OrderDoc;
+  const orders = orderRows
+    .map((row) => {
+      const data = row as unknown as OrderDoc;
       return { ...data, _createdAt: tsToMillis(data.createdAt) };
     })
     .filter(
@@ -203,9 +192,9 @@ export async function GET(request: Request) {
         typeof o._createdAt === "number" && o._createdAt >= fetchFloor
     );
 
-  const sessions = sessionSnap.docs
-    .map((d) => {
-      const data = d.data() as SessionDoc;
+  const sessions = sessionRows
+    .map((row) => {
+      const data = row as unknown as SessionDoc;
       return { ...data, _createdAt: tsToMillis(data.createdAt) };
     })
     .filter(

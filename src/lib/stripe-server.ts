@@ -12,8 +12,7 @@
 // every step here is idempotent: whichever arrives second finds the work done.
 
 import Stripe from "stripe";
-import { doc, getDoc, runTransaction, serverTimestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { sql, withJson } from "@/lib/db";
 import { isAdmin } from "@/lib/admin-auth";
 import { placedAtLabel, sendOrderPlacedEmails, type OrderForEmail } from "@/lib/email";
 import { toRegion } from "@/lib/pricing";
@@ -24,8 +23,11 @@ import {
   type RawOrderItem,
 } from "@/lib/stock-reservation";
 
-/** Card checkouts awaiting payment. Same id as the order they turn into. */
+/** Card checkouts awaiting payment (a table). Same id as the order they turn into. */
 export const CHECKOUTS = "checkouts";
+
+/** jsonb columns shared by orders and checkouts. */
+export const ORDER_JSON_COLUMNS = ["customer", "shipping", "items", "attribution", "stockDeducted"] as const;
 
 /**
  * Stock is held while the shopper pays, so don't leave it locked for Stripe's
@@ -180,24 +182,20 @@ export async function releaseCheckout(
   checkoutId: string,
   reason: "expired" | "cancelled" | "payment_failed" | "session_failed"
 ): Promise<void> {
-  const ref = doc(db, CHECKOUTS, checkoutId);
-  await runTransaction(db, async (tx) => {
-    const snap = await tx.get(ref);
-    if (!snap.exists()) return;
-    const checkout = snap.data() as Record<string, unknown>;
-    if (checkout.status !== "open") return;
+  await sql.begin(async (tx) => {
+    const [checkout] = await tx`select * from checkouts where id = ${checkoutId} for update`;
+    if (!checkout || checkout.status !== "open") return;
 
     const held = parseStockDeducted(checkout.stockDeducted);
     if (held) {
       const items = Array.isArray(checkout.items) ? (checkout.items as RawOrderItem[]) : [];
       const reads = await readProductsForItems(tx, items, toRegion(checkout.region));
-      writeRestores(tx, held, reads);
+      await writeRestores(tx, held, reads);
     }
-    tx.update(ref, {
-      status: "released",
-      releasedAt: serverTimestamp(),
-      releaseReason: reason,
-    });
+    await tx`
+      update checkouts
+      set status = 'released', released_at = now(), release_reason = ${reason}
+      where id = ${checkoutId}`;
   });
 }
 
@@ -209,15 +207,12 @@ async function placePaidOrder(
   checkoutId: string,
   session: Stripe.Checkout.Session
 ): Promise<Record<string, unknown> | null> {
-  const checkoutRef = doc(db, CHECKOUTS, checkoutId);
-  const orderRef = doc(db, "orders", checkoutId);
-  return runTransaction(db, async (tx) => {
-    const snap = await tx.get(checkoutRef);
-    if (!snap.exists()) throw new Error(`Checkout ${checkoutId} not found.`);
-    const checkout = snap.data() as Record<string, unknown>;
+  return sql.begin(async (tx) => {
+    const [checkout] = await tx`select * from checkouts where id = ${checkoutId} for update`;
+    if (!checkout) throw new Error(`Checkout ${checkoutId} not found.`);
     if (checkout.status === "paid") return null;
 
-    const order: Record<string, unknown> = {};
+    const order: Record<string, unknown> = { id: checkoutId };
     for (const key of ORDER_FIELDS) {
       if (key in checkout) order[key] = checkout[key];
     }
@@ -236,22 +231,21 @@ async function placePaidOrder(
     const paymentIntent = session.payment_intent;
     Object.assign(order, {
       status: "pending",
-      createdAt: serverTimestamp(),
+      createdAt: new Date(),
       paymentMethod: "card",
       paymentStatus: "paid",
       stripeSessionId: session.id,
       stripePaymentIntentId:
         typeof paymentIntent === "string" ? paymentIntent : paymentIntent?.id ?? null,
       amountPaid: (session.amount_total ?? 0) / 100,
-      paidAt: serverTimestamp(),
+      paidAt: new Date(),
     });
 
-    tx.set(orderRef, order);
-    tx.update(checkoutRef, {
-      status: "paid",
-      paidAt: serverTimestamp(),
-      stripeSessionId: session.id,
-    });
+    await tx`insert into orders ${tx(withJson(tx, order, ORDER_JSON_COLUMNS))}`;
+    await tx`
+      update checkouts
+      set status = 'paid', paid_at = now(), stripe_session_id = ${session.id}
+      where id = ${checkoutId}`;
     return order;
   });
 }
@@ -316,9 +310,8 @@ export async function fulfillCheckoutSession(
  * resubmitting the same bag isn't told its own held items are sold out.
  */
 export async function abandonCheckout(checkoutId: string): Promise<void> {
-  const snap = await getDoc(doc(db, CHECKOUTS, checkoutId));
-  if (!snap.exists()) return;
-  const checkout = snap.data() as Record<string, unknown>;
+  const [checkout] = await sql`select status, stripe_session_id from checkouts where id = ${checkoutId}`;
+  if (!checkout) return;
   const sessionId = checkout.stripeSessionId;
   if (checkout.status !== "open" || typeof sessionId !== "string") return;
 
