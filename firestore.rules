@@ -78,7 +78,11 @@ service cloud.firestore {
           // forgeable through these open rules, so treat Stripe's dashboard,
           // not this document, as the proof of payment.
           'paymentMethod','paymentStatus','stripeSessionId',
-          'stripePaymentIntentId','amountPaid','paidAt'
+          'stripePaymentIntentId','amountPaid','paidAt',
+          // Egypt spend offer, recorded on every Egypt order while it runs:
+          // the tier reached ('none' | 'free_delivery' | 'discount'), its
+          // discount, and the delivery fee it waived.
+          'offerTier','offerDiscount','deliveryFeeWaived'
         ]);
       allow read: if true;
       // Admin lifecycle actions (approve / deliver / cancel) and carrier

@@ -8,7 +8,8 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { placedAtLabel, sendOrderPlacedEmails, type OrderForEmail } from "@/lib/email";
-import { getShippingFees } from "@/lib/settings-server";
+import { getOfferConfig, getShippingFees } from "@/lib/settings-server";
+import { checkoutTotals, isOfferLive, type CheckoutTotals } from "@/lib/offer";
 import {
   COUNTRY_EGYPT,
   COUNTRY_USA,
@@ -79,6 +80,8 @@ type IncomingOrder = {
   items: IncomingItem[];
   attribution?: AttributionIn;
   promoCode?: string;
+  /** The cart showed the spend offer — so if it has since ended, say so. */
+  offerExpected: boolean;
 };
 
 function isValidEmail(s: string) {
@@ -177,6 +180,7 @@ function validate(body: unknown): IncomingOrder | string {
     items: cleanItems,
     attribution,
     promoCode,
+    offerExpected: b.offerExpected === true,
   };
 }
 
@@ -216,7 +220,12 @@ export async function POST(request: Request) {
   const zone = isUs
     ? "international"
     : resolveZone(parsed.shipping.country, parsed.shipping.state);
-  const shippingFee = isUs ? 0 : feeForZone(zone, await getShippingFees());
+  const [fees, offerConfig] = await Promise.all([getShippingFees(), getOfferConfig()]);
+  // The zone's normal fee; the spend offer may waive it below.
+  const zoneFee = isUs ? 0 : feeForZone(zone, fees);
+  // The server decides whether the offer applies, at the moment of ordering —
+  // if it ended while the cart was open, the order is at normal prices.
+  const offer = isOfferLive(offerConfig, parsed.region) ? offerConfig : null;
 
   // Every EGYPT order is dispatched to Droppin the moment it is placed — there
   // is no admin step.
@@ -275,8 +284,7 @@ export async function POST(request: Request) {
   const orderId = orderRef.id;
   let placed: {
     items: (IncomingItem & { price: number })[];
-    subtotal: number;
-    discountAmount: number;
+    totals: CheckoutTotals;
     coverByHandle: Map<string, string | undefined>;
   };
   try {
@@ -287,9 +295,15 @@ export async function POST(request: Request) {
       const shortfalls = findShortfalls(deductions, reads);
       if (shortfalls.length) throw new InsufficientStockError(shortfalls);
       const subtotal = items.reduce((n, i) => n + i.price * i.quantity, 0);
-      const discountAmount = promo
-        ? computePromoDiscount(promo, subtotal, parsed.region)
-        : 0;
+      // The offer and a code never stack: whichever saves more applies.
+      const totals = checkoutTotals({
+        subtotal,
+        shippingFee: zoneFee,
+        offer,
+        promo: promo
+          ? { code: promo.code, discount: computePromoDiscount(promo, subtotal, parsed.region) }
+          : null,
+      });
       // Recorded on the order so cancelling restores exactly what was taken.
       const stockDeducted = writeDeductions(tx, deductions, reads);
       tx.set(orderRef, {
@@ -298,9 +312,9 @@ export async function POST(request: Request) {
         items,
         notes: parsed.notes ?? null,
         subtotal,
-        discountAmount,
-        promoCode: promo?.code ?? null,
-        shippingFee,
+        discountAmount: totals.discountAmount,
+        promoCode: totals.promoCode,
+        shippingFee: totals.shippingFee,
         shippingZone: zone,
         droppinAutoPush: autoPush,
         region: parsed.region,
@@ -309,13 +323,22 @@ export async function POST(request: Request) {
         attribution: attributionDoc,
         createdAt: serverTimestamp(),
         stockDeducted,
+        // While the offer runs, every Egypt order records what it got from it,
+        // so the admin can count offer orders and what they cost.
+        ...(totals.offerTier !== null
+          ? {
+              offerTier: totals.offerTier,
+              offerDiscount: totals.offerDiscount,
+              deliveryFeeWaived: totals.deliveryFeeWaived,
+            }
+          : {}),
       });
       // Product photos for Stripe's payment page.
       const coverByHandle = new Map<string, string | undefined>();
       for (const [handle, p] of reads.productByHandle) {
         coverByHandle.set(handle, p.media?.find((m) => m.type === "image")?.src);
       }
-      return { items, subtotal, discountAmount, coverByHandle };
+      return { items, totals, coverByHandle };
     });
   } catch (err) {
     if (err instanceof UnpricedItemError) {
@@ -340,8 +363,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Failed to save order" }, { status: 500 });
   }
 
-  const { items, subtotal, discountAmount } = placed;
-  const total = subtotal - discountAmount + shippingFee;
+  const { items, totals } = placed;
+  const { subtotal, discountAmount, shippingFee, total } = totals;
+  // Everything the confirmation screen needs to show the same breakdown.
+  const breakdown = {
+    subtotal,
+    discountAmount,
+    offerDiscount: totals.offerDiscount,
+    promoCode: totals.promoCode,
+    shippingFee,
+    deliveryFeeWaived: totals.deliveryFeeWaived,
+    saved: totals.saved,
+    total,
+    outcome: totals.outcome,
+    offerEnded: parsed.offerExpected && !offer,
+  };
 
   // Card checkout: hand the shopper to Stripe. Emails wait until Stripe
   // confirms the payment; if the session can't even be opened, the stock goes
@@ -353,7 +389,7 @@ export async function POST(request: Request) {
         email: parsed.customer.email,
         items: items.map((i) => ({ ...i, image: placed.coverByHandle.get(i.productHandle) })),
         discountAmount,
-        promoCode: promo?.code ?? null,
+        promoCode: totals.promoCode,
         origin: new URL(request.url).origin,
       });
       // The session carries the checkout id in its metadata, so fulfillment
@@ -385,8 +421,10 @@ export async function POST(request: Request) {
     items,
     subtotal,
     discountAmount,
-    promoCode: promo?.code,
+    promoCode: totals.promoCode ?? undefined,
+    offerDiscount: totals.offerDiscount,
     shippingFee,
+    deliveryFeeWaived: totals.deliveryFeeWaived,
     placedAt: placedAtLabel(),
   };
 
@@ -415,5 +453,5 @@ export async function POST(request: Request) {
     console.error(`Droppin auto-push failed for order ${orderId}:`, pushResult.error);
   }
 
-  return NextResponse.json({ ok: true, orderId, total });
+  return NextResponse.json({ ok: true, orderId, total, breakdown });
 }

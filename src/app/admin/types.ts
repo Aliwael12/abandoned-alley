@@ -1,5 +1,6 @@
 import type { Carrier, OrderStatus } from "@/lib/order-status";
 import type { Region } from "@/lib/pricing";
+import type { OfferTier } from "@/lib/offer";
 
 export type OrderRow = {
   id: string;
@@ -17,6 +18,10 @@ export type OrderRow = {
   itemCount: number;
   createdAt: number | null;
   deliveredAt: number | null;
+  /** Spend-offer tier the order reached; null when the offer wasn't running. */
+  offerTier: OfferTier | null;
+  /** What the offer cost on this order: its discount plus the waived fee. */
+  offerCost: number;
 };
 
 export type OrdersResponse = {

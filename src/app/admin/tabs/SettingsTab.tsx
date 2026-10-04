@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Check, Loader2 } from "lucide-react";
+import OfferSettings from "./OfferSettings";
 
 type Props = {
   onError: (msg: string) => void;
@@ -68,6 +69,7 @@ export default function SettingsTab({ onError }: Props) {
     "bg-[var(--surface-card-alt)] border border-[var(--border-default)]  h-10 px-3 text-sm outline-none focus:border-[var(--border-strong)] transition w-full";
 
   return (
+    <div className="flex flex-col gap-10">
     <div className="flex flex-col gap-6 max-w-xl">
       <h2 className="font-[family-name:var(--font-bebas)] text-2xl tracking-[0.18em]">
         Store settings
@@ -135,6 +137,9 @@ export default function SettingsTab({ onError }: Props) {
           )}
         </div>
       </div>
+    </div>
+
+    <OfferSettings onError={onError} />
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
+import { OFFER_COPY, checkoutTotals, isOfferLive, type OfferConfig } from "@/lib/offer";
 import Link from "next/link";
 import { useCart } from "@/lib/cart";
 import { trackPixel } from "@/lib/pixel";
@@ -19,6 +20,20 @@ import {
 } from "@/lib/shipping";
 import { Button, Card, Input } from "./ui";
 import PurchaseTracker from "./PurchaseTracker";
+
+/** The totals /api/checkout settled on, shown again on the confirmation screen. */
+type Breakdown = {
+  subtotal: number;
+  discountAmount: number;
+  offerDiscount: number;
+  promoCode: string | null;
+  shippingFee: number;
+  deliveryFeeWaived: number;
+  saved: number;
+  total: number;
+  /** The cart showed the spend offer, but it had ended by the time of ordering. */
+  offerEnded: boolean;
+};
 
 /** `confirming`: back from Stripe's payment page, waiting on /api/stripe/confirm. */
 type Step = "cart" | "checkout" | "confirming" | "confirmed";
@@ -123,7 +138,14 @@ export default function CartContent({ cardPayments }: { cardPayments: boolean })
   const [fees, setFees] = useState<ShippingFees | null>(null);
   const [feesFailed, setFeesFailed] = useState(false);
   /** `processing`: paid with a method Stripe hasn't confirmed yet. */
-  const [order, setOrder] = useState<{ id: string; total: number; processing?: boolean } | null>(null);
+  const [order, setOrder] = useState<{
+    id: string;
+    total: number;
+    processing?: boolean;
+    breakdown?: Breakdown;
+  } | null>(null);
+  /** The spend offer while it runs (Egypt only), for previewing totals. */
+  const [offerConfig, setOfferConfig] = useState<OfferConfig | null>(null);
   /** The card checkout this tab just left for Stripe with, if any. */
   const leftForStripe = useRef<string | null>(null);
 
@@ -202,6 +224,21 @@ export default function CartContent({ cardPayments }: { cardPayments: boolean })
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/offer", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { offer: OfferConfig | null } | null) => {
+        if (!cancelled) setOfferConfig(data?.offer ?? null);
+      })
+      .catch(() => {
+        // No offer preview; checkout still applies it if it's running.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const region = useRegionOrDefault();
   const isUs = region === "us";
   // US orders are paid by card on Stripe's page once it's switched on.
@@ -221,13 +258,27 @@ export default function CartContent({ cardPayments }: { cardPayments: boolean })
       : null;
 
   const subtotal = items.reduce((n, i) => n + i.price * i.quantity, 0);
-  const discount = appliedPromo
+  const promoDiscount = appliedPromo
     ? Math.min(
         appliedPromo.type === "percentage" ? subtotal * (appliedPromo.value / 100) : appliedPromo.value,
         subtotal
       )
     : 0;
-  const total = (shippingFee !== null ? subtotal + shippingFee : subtotal) - discount;
+  // The Egypt spend offer and a promo code never stack: whichever saves more
+  // applies. /api/checkout makes the same call with the same function when the
+  // order is placed; this is the preview. Until a governorate is picked the fee
+  // is unknown and counts as 0.
+  const offer = offerConfig && isOfferLive(offerConfig, region) ? offerConfig : null;
+  const totals = checkoutTotals({
+    subtotal,
+    shippingFee: shippingFee ?? 0,
+    offer,
+    promo: appliedPromo ? { code: appliedPromo.code, discount: promoDiscount } : null,
+  });
+  const discount = totals.discountAmount;
+  const total = totals.total;
+  /** The offer makes delivery free, whatever the governorate's fee turns out to be. */
+  const deliveryFree = totals.offerTier === "free_delivery" || totals.offerTier === "discount";
 
   async function applyPromo() {
     const code = promoInput.trim();
@@ -321,6 +372,7 @@ export default function CartContent({ cardPayments }: { cardPayments: boolean })
           },
           notes: form.notes || undefined,
           promoCode: appliedPromo?.code,
+          offerExpected: !!offer,
           // No prices: the server prices every line from the catalog.
           items: items.map((i) => ({
             productHandle: i.productHandle,
@@ -348,7 +400,11 @@ export default function CartContent({ cardPayments }: { cardPayments: boolean })
       }
       clear();
       setAppliedPromo(null);
-      setOrder({ id: data.orderId, total: typeof data.total === "number" ? data.total : total });
+      setOrder({
+        id: data.orderId,
+        total: typeof data.total === "number" ? data.total : total,
+        breakdown: data.breakdown,
+      });
       setStep("confirmed");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -557,7 +613,14 @@ export default function CartContent({ cardPayments }: { cardPayments: boolean })
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "var(--space-4)" }}>
                 <span className="aa-caption">SHIPPING</span>
                 <span className="aa-body">
-                  {shippingFee !== null
+                  {deliveryFree ? (
+                    <>
+                      {shippingFee !== null && shippingFee > 0 && (
+                        <s style={{ color: "var(--text-muted)", marginRight: "var(--space-2)" }}>{money(shippingFee)}</s>
+                      )}
+                      {OFFER_COPY.freeDelivery}
+                    </>
+                  ) : shippingFee !== null
                     ? money(shippingFee)
                     : isInternational
                     ? "Unavailable"
@@ -570,7 +633,11 @@ export default function CartContent({ cardPayments }: { cardPayments: boolean })
               </div>
               {discount > 0 && (
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "var(--space-4)" }}>
-                  <span className="aa-caption">DISCOUNT ({appliedPromo?.code})</span>
+                  <span className="aa-caption">
+                    {totals.offerDiscount > 0
+                      ? OFFER_COPY.discountLabel(totals.offerDiscount)
+                      : `DISCOUNT (${totals.promoCode})`}
+                  </span>
                   <span className="aa-body" style={{ color: "var(--accent-default)" }}>−{money(discount)}</span>
                 </div>
               )}
@@ -614,7 +681,27 @@ export default function CartContent({ cardPayments }: { cardPayments: boolean })
                     {promoError}
                   </p>
                 )}
+                {totals.outcome && (
+                  <p className="aa-caption" style={{ marginTop: "var(--space-1)" }}>
+                    {totals.outcome === "code_beat_offer" ? OFFER_COPY.codeBeatsOffer : OFFER_COPY.offerBeatsCode}
+                  </p>
+                )}
               </div>
+
+              {totals.offerDiscount > 0 && (
+                <p
+                  className="aa-body"
+                  style={{
+                    background: "var(--accent-default)",
+                    color: "var(--text-on-accent)",
+                    padding: "var(--space-2) var(--space-3)",
+                    marginBottom: "var(--space-4)",
+                    textAlign: "center",
+                  }}
+                >
+                  {OFFER_COPY.saved(Math.round(totals.saved))}
+                </p>
+              )}
 
               <div style={{ height: 1, background: "var(--border-default)", marginBottom: "var(--space-4)" }} />
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "var(--space-6)" }}>
@@ -675,6 +762,7 @@ export default function CartContent({ cardPayments }: { cardPayments: boolean })
           <div className="aa-eyebrow">{order.processing ? "PAYMENT PROCESSING" : "ORDER CONFIRMED"}</div>
           <h1 className="aa-display-hero" style={{ fontSize: "var(--text-4xl)" }}>DON&apos;T DIE WONDERING</h1>
           <p className="aa-numeric" style={{ fontSize: "var(--text-md)" }}>ORDER #{order.id}</p>
+          {order.breakdown && <OrderBreakdown breakdown={order.breakdown} money={money} />}
           <p className="aa-body" style={{ color: "var(--text-muted)", maxWidth: 420 }}>
             {order.processing
               ? "Your bank is still confirming the payment. We'll email you as soon as it clears."
@@ -683,6 +771,44 @@ export default function CartContent({ cardPayments }: { cardPayments: boolean })
           <Link href="/shop"><Button variant="primary" size="lg">CONTINUE SHOPPING</Button></Link>
         </div>
       )}
+    </div>
+  );
+}
+
+/** The confirmed order's totals, line for line as checkout settled them. */
+function OrderBreakdown({ breakdown: b, money }: { breakdown: Breakdown; money: (n: number) => string }) {
+  const row = (label: string, value: React.ReactNode) => (
+    <div style={{ display: "flex", justifyContent: "space-between", gap: "var(--space-6)" }}>
+      <span className="aa-caption">{label}</span>
+      <span className="aa-body">{value}</span>
+    </div>
+  );
+  return (
+    <div style={{ width: "100%", maxWidth: 360, display: "flex", flexDirection: "column", gap: "var(--space-2)", textAlign: "left" }}>
+      {b.offerEnded && <p className="aa-caption">{OFFER_COPY.offerEnded}</p>}
+      {row("SUBTOTAL", money(b.subtotal))}
+      {b.discountAmount > 0 &&
+        row(
+          b.offerDiscount > 0 ? OFFER_COPY.discountLabel(b.offerDiscount) : `DISCOUNT${b.promoCode ? ` (${b.promoCode})` : ""}`,
+          `−${money(b.discountAmount)}`
+        )}
+      {row(
+        "SHIPPING",
+        b.deliveryFeeWaived > 0 ? (
+          <>
+            <s style={{ color: "var(--text-muted)", marginRight: "var(--space-2)" }}>{money(b.deliveryFeeWaived + b.shippingFee)}</s>
+            {OFFER_COPY.freeDelivery}
+          </>
+        ) : (
+          money(b.shippingFee)
+        )
+      )}
+      {b.offerDiscount > 0 && (
+        <p className="aa-body" style={{ color: "var(--accent-default)", textAlign: "right" }}>
+          {OFFER_COPY.saved(Math.round(b.saved))}
+        </p>
+      )}
+      {row("TOTAL", money(b.total))}
     </div>
   );
 }

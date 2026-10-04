@@ -399,15 +399,36 @@ export default async function OrderDetailPage({
         {order.discountAmount > 0 && (
           <div className="flex justify-between text-sm">
             <span className="text-[var(--text-muted)] uppercase tracking-[0.2em] text-xs">
-              Discount{order.promoCode ? ` (${order.promoCode})` : ""}
+              {order.offer && order.offer.discount > 0
+                ? "Spend offer discount"
+                : `Discount${order.promoCode ? ` (${order.promoCode})` : ""}`}
             </span>
             <span>-{fmt(order.discountAmount, order.currency)}</span>
           </div>
         )}
         <div className="flex justify-between text-sm">
           <span className="text-[var(--text-muted)] uppercase tracking-[0.2em] text-xs">Shipping</span>
-          <span>{fmt(order.shippingFee, order.currency)}</span>
+          <span>
+            {order.offer && order.offer.deliveryFeeWaived > 0 && (
+              <span className="line-through text-[var(--text-muted)] mr-2">
+                {fmt(order.offer.deliveryFeeWaived + order.shippingFee, order.currency)}
+              </span>
+            )}
+            {fmt(order.shippingFee, order.currency)}
+          </span>
         </div>
+        {order.offer && (
+          <div className="flex justify-between text-sm">
+            <span className="text-[var(--text-muted)] uppercase tracking-[0.2em] text-xs">Spend offer</span>
+            <span>
+              {order.offer.tier === "discount"
+                ? `Discount + free delivery (cost ${fmt(order.offer.discount + order.offer.deliveryFeeWaived, order.currency)})`
+                : order.offer.tier === "free_delivery"
+                ? `Free delivery (cost ${fmt(order.offer.deliveryFeeWaived, order.currency)})`
+                : "Not reached"}
+            </span>
+          </div>
+        )}
         <div className="flex justify-between text-sm pt-2 border-t border-[var(--border-subtle)]">
           <span className="font-[family-name:var(--font-bebas)] tracking-[0.2em] text-base">
             Total

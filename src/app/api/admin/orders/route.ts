@@ -34,6 +34,8 @@ type OrderRow = {
   itemCount: number;
   createdAt: number | null;
   deliveredAt: number | null;
+  offerTier: string | null;
+  offerCost: number;
 };
 
 export async function GET() {
@@ -80,6 +82,8 @@ export async function GET() {
       itemCount: items.reduce((n, i) => n + Number(i.quantity ?? 0), 0),
       createdAt: toMillis(data.createdAt),
       deliveredAt: toMillis(data.deliveredAt),
+      offerTier: typeof data.offerTier === "string" ? data.offerTier : null,
+      offerCost: Number(data.offerDiscount ?? 0) + Number(data.deliveryFeeWaived ?? 0),
     };
   });
 

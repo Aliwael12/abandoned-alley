@@ -185,6 +185,15 @@ export default function OverviewTab({ data }: { data: OrdersResponse | null }) {
   if (!data) return null;
 
   const { filtered, revenue, count, avg, buckets } = view;
+
+  // Spend offer in this range: how many live orders it rewarded, and what it
+  // cost (discounts plus waived delivery). Cancelled orders cost nothing.
+  const offerOrders = filtered.filter((o) => o.offerTier !== null && o.status !== "cancelled");
+  const offerStats = {
+    freeDelivery: offerOrders.filter((o) => o.offerTier === "free_delivery").length,
+    discount: offerOrders.filter((o) => o.offerTier === "discount").length,
+    cost: offerOrders.reduce((n, o) => n + o.offerCost, 0),
+  };
   const maxRevenue = Math.max(1, ...buckets.map((b) => b.revenue));
 
   const stats = [
@@ -222,6 +231,18 @@ export default function OverviewTab({ data }: { data: OrdersResponse | null }) {
           </div>
         ))}
       </section>
+
+      {offerOrders.length > 0 && (
+        <section className="glass  p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <p className="text-[10px] tracking-[0.3em] uppercase text-[var(--text-muted)]">
+            Spend offer · {offerOrders.length} order{offerOrders.length === 1 ? "" : "s"} while it ran
+          </p>
+          <p className="text-sm">
+            {offerStats.discount} reached the discount · {offerStats.freeDelivery} free delivery only ·
+            cost {fmtUsd(offerStats.cost)}
+          </p>
+        </section>
+      )}
 
       <section className="glass  p-6">
         <div className="flex items-center justify-between mb-4">

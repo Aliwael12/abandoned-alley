@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import type { Region } from "@/lib/pricing";
+import { OFFER_COPY } from "@/lib/offer";
 
 export const resend = new Resend(process.env.RESEND_API_KEY!);
 
@@ -69,7 +70,13 @@ export type OrderForEmail = {
   subtotal: number;
   discountAmount?: number;
   promoCode?: string;
+  /** The spend offer's share of discountAmount (Egypt, while it runs). */
+  offerDiscount?: number;
+  /** What the customer pays for delivery. */
   shippingFee: number;
+  /** Delivery fee the spend offer waived; the zone's normal fee is
+   * shippingFee + deliveryFeeWaived. */
+  deliveryFeeWaived?: number;
   /** ISO-ish display string for when the order was placed. */
   placedAt?: string;
   /** True when the customer already paid online (US card checkout). */
@@ -99,16 +106,48 @@ const itemsHtml = (items: OrderItemForEmail[], currency?: string) =>
     )
     .join("");
 
-const discountRowHtml = (discountAmount: number, promoCode: string | undefined, currency: string | undefined) =>
+const discountRowHtml = (
+  discountAmount: number,
+  promoCode: string | undefined,
+  currency: string | undefined,
+  offerDiscount = 0
+) =>
   discountAmount > 0
     ? `
       <tr>
         <td style="padding:6px 0 0;color:#888;text-transform:uppercase;letter-spacing:0.18em;font-size:12px;">
-          Discount${promoCode ? ` (${escape(promoCode)})` : ""}
+          ${offerDiscount > 0 ? escape(OFFER_COPY.discountLabel(offerDiscount)) : `Discount${promoCode ? ` (${escape(promoCode)})` : ""}`}
         </td>
         <td style="padding:6px 0 0;color:#eee;text-align:right;font-size:14px;">-${money(discountAmount, currency)}</td>
       </tr>`
     : "";
+
+/** Delivery line: crossed-out normal fee next to "Free" when the offer waived it. */
+const shippingRowHtml = (order: OrderForEmail) => {
+  const waived = order.deliveryFeeWaived ?? 0;
+  const value =
+    waived > 0
+      ? `<span style="color:#666;text-decoration:line-through;">${money(waived + order.shippingFee, order.currency)}</span> ${escape(OFFER_COPY.freeDelivery)}`
+      : money(order.shippingFee, order.currency);
+  return `
+      <tr>
+        <td style="padding:6px 0 0;color:#888;text-transform:uppercase;letter-spacing:0.18em;font-size:12px;">Shipping</td>
+        <td style="padding:6px 0 0;color:#eee;text-align:right;font-size:14px;">${value}</td>
+      </tr>`;
+};
+
+/** "You saved …" under the total at the offer's top tier, as the cart shows it. */
+const savedRowHtml = (order: OrderForEmail) => {
+  const waived = order.deliveryFeeWaived ?? 0;
+  const offerDiscount = order.offerDiscount ?? 0;
+  if (offerDiscount <= 0) return "";
+  return `
+      <tr>
+        <td colspan="2" style="padding:10px 0 0;color:#f5d90a;text-align:right;font-size:13px;letter-spacing:0.08em;">
+          ${escape(OFFER_COPY.saved(Math.round(waived + offerDiscount)))}
+        </td>
+      </tr>`;
+};
 
 export function customerOrderHtml(order: OrderForEmail) {
   const ship = order.shipping;
@@ -129,15 +168,13 @@ export function customerOrderHtml(order: OrderForEmail) {
         <td style="padding:14px 0 0;color:#888;text-transform:uppercase;letter-spacing:0.18em;font-size:12px;">Subtotal</td>
         <td style="padding:14px 0 0;color:#eee;text-align:right;font-size:14px;">${money(order.subtotal, order.currency)}</td>
       </tr>
-      ${discountRowHtml(discountAmount, order.promoCode, order.currency)}
-      <tr>
-        <td style="padding:6px 0 0;color:#888;text-transform:uppercase;letter-spacing:0.18em;font-size:12px;">Shipping</td>
-        <td style="padding:6px 0 0;color:#eee;text-align:right;font-size:14px;">${money(order.shippingFee, order.currency)}</td>
-      </tr>
+      ${discountRowHtml(discountAmount, order.promoCode, order.currency, order.offerDiscount)}
+      ${shippingRowHtml(order)}
       <tr>
         <td style="padding:14px 0 0;color:#eee;text-transform:uppercase;letter-spacing:0.18em;font-size:13px;font-weight:bold;border-top:1px solid #222;">Total</td>
         <td style="padding:14px 0 0;color:#eee;text-align:right;font-size:18px;font-weight:bold;border-top:1px solid #222;">${money(total, order.currency)}</td>
       </tr>
+      ${savedRowHtml(order)}
     </table>
     <h3 style="margin-top:32px;color:#eee;letter-spacing:0.1em;">Ship to</h3>
     <p style="color:#aaa;line-height:1.6;margin:0;">
@@ -179,15 +216,13 @@ export function adminOrderHtml(order: OrderForEmail) {
         <td style="padding:14px 0 0;color:#888;text-transform:uppercase;letter-spacing:0.18em;font-size:12px;">Subtotal</td>
         <td style="padding:14px 0 0;color:#eee;text-align:right;font-size:14px;">${money(order.subtotal, order.currency)}</td>
       </tr>
-      ${discountRowHtml(discountAmount, order.promoCode, order.currency)}
-      <tr>
-        <td style="padding:6px 0 0;color:#888;text-transform:uppercase;letter-spacing:0.18em;font-size:12px;">Shipping</td>
-        <td style="padding:6px 0 0;color:#eee;text-align:right;font-size:14px;">${money(order.shippingFee, order.currency)}</td>
-      </tr>
+      ${discountRowHtml(discountAmount, order.promoCode, order.currency, order.offerDiscount)}
+      ${shippingRowHtml(order)}
       <tr>
         <td style="padding:14px 0 0;color:#eee;text-transform:uppercase;letter-spacing:0.18em;font-size:13px;font-weight:bold;border-top:1px solid #222;">Total</td>
         <td style="padding:14px 0 0;color:#eee;text-align:right;font-size:18px;font-weight:bold;border-top:1px solid #222;">${money(total, order.currency)}</td>
       </tr>
+      ${savedRowHtml(order)}
     </table>
     <h3 style="margin-top:32px;">Ship to</h3>
     <p style="color:#aaa;line-height:1.6;margin:0;">

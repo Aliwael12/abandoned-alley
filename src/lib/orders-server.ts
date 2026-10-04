@@ -13,6 +13,7 @@ import {
 } from "@/lib/droppin";
 import type { ShippingZone } from "@/lib/shipping";
 import { toRegion, type Region } from "@/lib/pricing";
+import type { OfferTier } from "@/lib/offer";
 
 export type OrderItem = {
   productHandle: string;
@@ -65,6 +66,12 @@ export type OrderDetail = {
     amountPaid: number | null;
     stripeRefundId: string | null;
   };
+  /** What the Egypt spend offer gave this order; null when it wasn't running. */
+  offer: {
+    tier: OfferTier;
+    discount: number;
+    deliveryFeeWaived: number;
+  } | null;
 };
 
 function tsToMillis(ts: unknown): number | null {
@@ -140,6 +147,16 @@ export async function getOrderById(id: string): Promise<OrderDetail | null> {
       amountPaid: typeof data.amountPaid === "number" ? data.amountPaid : null,
       stripeRefundId: typeof data.stripeRefundId === "string" ? data.stripeRefundId : null,
     },
+    offer:
+      data.offerTier === "none" ||
+      data.offerTier === "free_delivery" ||
+      data.offerTier === "discount"
+        ? {
+            tier: data.offerTier,
+            discount: Number(data.offerDiscount ?? 0),
+            deliveryFeeWaived: Number(data.deliveryFeeWaived ?? 0),
+          }
+        : null,
   };
 }
 
