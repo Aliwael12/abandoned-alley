@@ -815,7 +815,8 @@ select.aa-input {
   display: inline-flex;
   align-items: center;
   /* Slides by exactly one of its two identical halves, then loops. */
-  animation: aa-offer-strip 40s linear infinite;
+  /* ~75px/s for the shortest message set (two messages, 8 copies per half). */
+  animation: aa-offer-strip 80s linear infinite;
 }
 .aa-offer-strip:hover .aa-offer-strip-track {
   animation-play-state: paused;

@@ -6,9 +6,10 @@ import { OFFER_COPY } from "@/lib/offer";
 import { useLiveOffer } from "@/lib/use-offer";
 import { PIN_IMAGES } from "./PinAnimation";
 
-/** Copies of the message set in each half of the loop: enough to run wider
- * than any screen, so the strip never shows a gap. */
-const COPIES_PER_HALF = 4;
+/** Copies of the message set in each half of the loop. A half must be wider
+ * than the screen, or a gap shows just before the loop restarts: with only
+ * the two shortest messages, 8 copies make a half of about 3,000px. */
+const COPIES_PER_HALF = 8;
 
 /**
  * The spend-offer announcement strip, at the very top of every store page while
