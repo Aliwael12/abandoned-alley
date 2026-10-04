@@ -1,6 +1,7 @@
 "use client";
 
 import type { Product } from "@/lib/products";
+import { isProductSoldOut } from "@/lib/inventory";
 import { isPricedForRegion } from "@/lib/pricing";
 import { useRegionOrDefault } from "@/lib/region";
 import ProductCard from "./ProductCard";
@@ -10,6 +11,10 @@ import ProductCard from "./ProductCard";
  * prices are set independently by the admin, so a product with no USD price
  * isn't priced for the US yet and is hidden there rather than shown at a price
  * that doesn't exist.
+ *
+ * Sold-out products drop to the end so the grid leads with what can be bought.
+ * Each store has its own stock, so "sold out" is decided per region; the sort
+ * is stable, so the admin's order holds within each group.
  */
 export default function ProductGrid({
   products,
@@ -22,7 +27,9 @@ export default function ProductGrid({
   emptyMessage?: string;
 }) {
   const region = useRegionOrDefault();
-  const visible = products.filter((p) => isPricedForRegion(p, region));
+  const visible = products
+    .filter((p) => isPricedForRegion(p, region))
+    .sort((a, b) => Number(isProductSoldOut(a, region)) - Number(isProductSoldOut(b, region)));
 
   if (visible.length === 0) {
     return (
