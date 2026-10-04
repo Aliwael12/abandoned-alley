@@ -129,7 +129,7 @@ export default function Header() {
               style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}
             >
               <Badge variant="outline">
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
                   {regionLabel(region)}
                   <ArrowLeftRight size={12} aria-hidden />
                 </span>

@@ -30,7 +30,15 @@ export default function OfferBanner() {
     const box = boxRef.current;
     const span = textRef.current;
     if (!box || !span) return;
-    const measure = () => setOverflows(span.scrollWidth > box.clientWidth);
+    // clientWidth includes the side padding, which the text can't use. The
+    // padding is the same in both modes, so this can't flip back and forth.
+    const measure = () => {
+      const style = getComputedStyle(box);
+      const usable = box.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+      // In marquee mode each copy carries trailing spacing; it isn't text.
+      const text = span.scrollWidth - parseFloat(getComputedStyle(span).paddingRight);
+      setOverflows(text > usable);
+    };
     const observer = new ResizeObserver(measure);
     observer.observe(box);
     return () => observer.disconnect();
