@@ -800,7 +800,7 @@ select.aa-input {
    Spend offer (Egypt): announcement bar, progress bar, "complete the fit".
    --------------------------------------------------------------------------- */
 
-.aa-offer-banner {
+.aa-offer-strip {
   background: var(--accent-default);
   color: var(--text-on-accent);
   font-family: var(--font-display);
@@ -809,29 +809,33 @@ select.aa-input {
   text-transform: uppercase;
   white-space: nowrap;
   overflow: hidden;
-  text-align: center;
-  padding: var(--space-2) var(--space-4);
+  padding: 6px 0;
 }
-.aa-offer-banner-track {
+.aa-offer-strip-track {
   display: inline-flex;
+  align-items: center;
+  /* Slides by exactly one of its two identical halves, then loops. */
+  animation: aa-offer-strip 40s linear infinite;
 }
-/* Too long for the bar (phones): loop two copies sideways instead of wrapping. */
-.aa-offer-banner--marquee {
-  text-align: left;
+.aa-offer-strip:hover .aa-offer-strip-track {
+  animation-play-state: paused;
 }
-.aa-offer-banner--marquee .aa-offer-banner-track {
-  animation: aa-offer-marquee 18s linear infinite;
+.aa-offer-strip-item {
+  padding: 0 var(--space-4);
 }
-.aa-offer-banner--marquee .aa-offer-banner-track > span {
-  padding-right: var(--space-12);
+.aa-offer-strip-pin {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  flex-shrink: 0;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35));
 }
-@keyframes aa-offer-marquee {
+@keyframes aa-offer-strip {
   from { transform: translateX(0); }
   to { transform: translateX(-50%); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .aa-offer-banner--marquee { overflow-x: auto; }
-  .aa-offer-banner--marquee .aa-offer-banner-track { animation: none; }
+  .aa-offer-strip-track { animation: none; }
 }
 
 .aa-offer-progress {

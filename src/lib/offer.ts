@@ -42,11 +42,13 @@ export type OfferTier = "none" | "free_delivery" | "discount";
 const egp = (n: number) => Math.round(n).toLocaleString("en-US");
 
 export const OFFER_COPY = {
-  /** Announcement bar. The discount leads; free delivery is the smaller half. */
-  banner: (o: OfferConfig, endsLabel: string | null) =>
-    `${egp(o.discountAmount)} OFF AT ${egp(o.discountAt)} · free delivery at ${egp(o.freeDeliveryAt)}${
-      endsLabel ? ` · ends ${endsLabel}` : ""
-    }`,
+  /** Announcement strip, one entry per message (pins go between them). The
+   * discount leads; free delivery is the smaller half; then the end date. */
+  bannerItems: (o: OfferConfig, endsLabel: string | null) => [
+    `${egp(o.discountAmount)} OFF AT ${egp(o.discountAt)}`,
+    `free delivery at ${egp(o.freeDeliveryAt)}`,
+    ...(endsLabel ? [`ends ${endsLabel}`] : []),
+  ],
   /** Line under the price on product pages. */
   productLine: (o: OfferConfig) => `Counts toward ${egp(o.discountAmount)} off at ${egp(o.discountAt)}`,
   /** Progress bar: the main line always talks about the discount. */

@@ -1,62 +1,58 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { Fragment } from "react";
 import { CAIRO_TIME_ZONE } from "@/lib/cairo-time";
 import { OFFER_COPY } from "@/lib/offer";
 import { useLiveOffer } from "@/lib/use-offer";
+import { PIN_IMAGES } from "./PinAnimation";
+
+/** Copies of the message set in each half of the loop: enough to run wider
+ * than any screen, so the strip never shows a gap. */
+const COPIES_PER_HALF = 4;
 
 /**
- * The spend-offer announcement bar, at the very top of every store page while
- * the offer runs (Egypt only). Always one line: when the text doesn't fit —
- * on phones — it scrolls sideways as a marquee instead of wrapping.
+ * The spend-offer announcement strip, at the very top of every store page while
+ * the offer runs (Egypt only). It scrolls continuously, with one of the
+ * background animation's pins between each message. The track holds two
+ * identical halves and slides by exactly one half, so the loop is seamless.
+ * With reduced motion it stands still.
  */
 export default function OfferBanner() {
   const offer = useLiveOffer();
-  const boxRef = useRef<HTMLDivElement>(null);
-  const textRef = useRef<HTMLSpanElement>(null);
-  const [overflows, setOverflows] = useState(false);
+  if (!offer) return null;
 
-  const endsLabel = offer?.endsAt
+  const endsLabel = offer.endsAt
     ? new Date(offer.endsAt - 1)
         .toLocaleDateString("en-GB", { timeZone: CAIRO_TIME_ZONE, day: "numeric", month: "short" })
         .toUpperCase()
     : null;
-  const text = offer ? OFFER_COPY.banner(offer, endsLabel) : "";
+  const items = OFFER_COPY.bannerItems(offer, endsLabel);
 
-  // Measure the single copy of the text against the bar whenever the bar
-  // resizes (rotation, window resize). A ResizeObserver also reports once as
-  // soon as it starts observing, which covers the first measurement.
-  useLayoutEffect(() => {
-    const box = boxRef.current;
-    const span = textRef.current;
-    if (!box || !span) return;
-    // clientWidth includes the side padding, which the text can't use. The
-    // padding is the same in both modes, so this can't flip back and forth.
-    const measure = () => {
-      const style = getComputedStyle(box);
-      const usable = box.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
-      // In marquee mode each copy carries trailing spacing; it isn't text.
-      const text = span.scrollWidth - parseFloat(getComputedStyle(span).paddingRight);
-      setOverflows(text > usable);
-    };
-    const observer = new ResizeObserver(measure);
-    observer.observe(box);
-    return () => observer.disconnect();
-  }, [text]);
-
-  if (!offer) return null;
+  // One long run of messages, each followed by the next pin in the set.
+  const run = Array.from({ length: COPIES_PER_HALF }, () => items).flat();
+  const half = (keyPrefix: string) =>
+    run.map((text, i) => (
+      <Fragment key={`${keyPrefix}-${i}`}>
+        <span className="aa-offer-strip-item">{text}</span>
+        {/* Decorative; the pins are the same files the background animation
+            already loaded. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={PIN_IMAGES[i % PIN_IMAGES.length]}
+          alt=""
+          className="aa-offer-strip-pin"
+          style={{ rotate: `${i % 2 ? 12 : -12}deg` }}
+        />
+      </Fragment>
+    ));
 
   return (
-    <div
-      ref={boxRef}
-      className={`aa-offer-banner${overflows ? " aa-offer-banner--marquee" : ""}`}
-      role="region"
-      aria-label="Current offer"
-    >
-      <div className="aa-offer-banner-track">
-        <span ref={textRef}>{text}</span>
-        {/* The marquee loops two copies; the second is decoration only. */}
-        {overflows && <span aria-hidden="true">{text}</span>}
+    <div className="aa-offer-strip" role="region" aria-label="Current offer">
+      {/* Screen readers get the messages once, not the scrolling copies. */}
+      <span className="sr-only">{items.join(". ")}</span>
+      <div className="aa-offer-strip-track" aria-hidden="true">
+        {half("a")}
+        {half("b")}
       </div>
     </div>
   );

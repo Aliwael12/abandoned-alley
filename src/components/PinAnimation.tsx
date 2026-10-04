@@ -29,6 +29,9 @@ const PINS: Pin[] = [
   { key: "bad-bitch", src: "/media/pins-bg/pin-bg-bad-bitch.png", left: 45, top: 4, vw: 6.5, px: 72, fx: 4, fy: -34, fr: 210, rot: 15, delay: 5.6 },
 ];
 
+/** The pin artwork, for anything else that shows the same pins (the offer strip). */
+export const PIN_IMAGES: string[] = PINS.map((p) => p.src);
+
 /**
  * Enamel pins fly in from off-screen, land on the page with a bounce, hold,
  * then lift off and repeat — a continuous "pins being added to the page"
